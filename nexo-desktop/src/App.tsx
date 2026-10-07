@@ -1,51 +1,62 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "./theme/ThemeProvider";
+import { ToastProvider } from "./context/ToastContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AppLayout } from "./components/layout/AppLayout";
+import { LoginView } from "./features/auth/LoginView";
+import { DashboardView } from "./features/dashboard/DashboardView";
+import { WorkspaceView } from "./features/workspace/WorkspaceView";
+import "./i18n";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+const AppRoutes: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-app text-fg">
+        <div className="flex items-center gap-2 text-caption text-muted">
+          <span className="w-2 h-2 rounded-full bg-concept-fg animate-ping" />
+          Loading Nexo Desktop…
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginView />;
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+    <Routes>
+      <Route path="/" element={<AppLayout />}>
+        <Route
+          index
+          element={
+            <DashboardView
+              onOpenNewProject={() => {
+                // Handled in layout command modal
+              }}
+            />
+          }
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+        <Route path="workspace/:projectId" element={<WorkspaceView />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+};
+
+export default function App() {
+  return (
+    <ThemeProvider defaultTheme="system">
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
-
-export default App;
