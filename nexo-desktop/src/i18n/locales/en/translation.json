@@ -1,0 +1,270 @@
+{
+  "app": {
+    "name": "Nexo",
+    "tagline": "Where ideas take shape.",
+    "preview": "Preview"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "done": "Done",
+    "retry": "Try Again",
+    "open": "Open",
+    "loading": "Loading…",
+    "clearSearch": "Clear search",
+    "undo": "Undo",
+    "optional": "Optional",
+    "copied": "Copied to clipboard"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "projects": "Projects",
+    "workspace": "Workspace",
+    "settings": "Settings",
+    "profile": "Profile",
+    "showSidebar": "Show sidebar",
+    "hideSidebar": "Hide sidebar"
+  },
+  "chrome": {
+    "command": "Search or run a command"
+  },
+  "auth": {
+    "email": "Email",
+    "emailPlaceholder": "you@university.edu",
+    "password": "Password",
+    "passwordPlaceholder": "At least 6 characters",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submit": "Sign In",
+    "submitting": "Signing in…",
+    "previewNote": "Preview build — any email and a password of 6 or more characters will work.",
+    "errors": {
+      "emailRequired": "Enter your email address.",
+      "emailInvalid": "Enter a valid email address, like name@example.com.",
+      "passwordShort": "Use at least 6 characters.",
+      "offline": "Can't reach Nexo. Check your connection and try again.",
+      "unknown": "Something went wrong. Try again."
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "description": "Pick up where you left off, or start shaping a new idea.",
+    "recent": "Recent projects",
+    "viewAll": "View All"
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "Every idea you're shaping, in one place.",
+    "searchPlaceholder": "Search projects",
+    "searchLabel": "Search projects",
+    "filterLabel": "Filter projects",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "draft": "Drafts",
+      "archived": "Archived"
+    },
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "archived": "Archived"
+    },
+    "updated": "Updated {{time}}",
+    "nodes_one": "{{count}} concept",
+    "nodes_other": "{{count}} concepts",
+    "openProject": "Open {{name}}",
+    "newCard": {
+      "title": "New Project",
+      "hint": "Start from a blank canvas"
+    },
+    "create": {
+      "title": "New Project",
+      "description": "Give your idea a name. You can refine everything later in the workspace.",
+      "name": "Project name",
+      "namePlaceholder": "e.g. Campus Circular Market",
+      "details": "Description",
+      "detailsPlaceholder": "What problem does it solve, and for whom?",
+      "submit": "Create Project",
+      "submitting": "Creating…",
+      "nameRequired": "Give the project a name.",
+      "created": "“{{name}}” created"
+    },
+    "empty": {
+      "title": "No projects yet",
+      "description": "Create your first project and Nexo will help you map it."
+    },
+    "noResults": {
+      "title": "No matching projects",
+      "description": "Try a different name or clear the search."
+    },
+    "error": {
+      "title": "Projects couldn't load"
+    }
+  },
+  "workspace": {
+    "loading": "Opening workspace…",
+    "notFound": {
+      "title": "Project not found",
+      "description": "It may have been removed. Go back to your projects to continue.",
+      "action": "Back to Projects"
+    },
+    "back": "Back to projects",
+    "showChat": "Show conversation",
+    "hideChat": "Hide conversation",
+    "resizeChat": "Resize conversation panel",
+    "saved": "Saved",
+    "status": {
+      "ready": "Ready",
+      "thinking": "Thinking"
+    }
+  },
+  "chat": {
+    "title": "Conversation",
+    "aiName": "Nexo",
+    "aiBadge": "AI",
+    "you": "You",
+    "messagesLabel": "Conversation messages",
+    "actions": "Conversation actions",
+    "clear": "Clear Conversation",
+    "cleared": "Conversation cleared",
+    "copyAll": "Copy Conversation",
+    "empty": {
+      "title": "Start with your idea",
+      "description": "Describe what you're thinking. Nexo turns it into concepts, viability signals and risks on the canvas.",
+      "suggestions": "Suggestions",
+      "s1": "A marketplace where students resell textbooks",
+      "s2": "What are the main risks of this idea?",
+      "s3": "Is this idea viable as a business?"
+    },
+    "thinking": {
+      "step1": "Reading your idea…",
+      "step2": "Mapping concepts…",
+      "step3": "Weighing risks and signals…"
+    },
+    "error": {
+      "title": "Nexo couldn't respond",
+      "description": "Your message is saved. Try again in a moment.",
+      "offline": "You're offline. Reconnect, then try again."
+    },
+    "insight": {
+      "eyebrow": "Insight detected",
+      "viewOnCanvas": "View on Canvas",
+      "show": "Show {{label}} on the canvas"
+    },
+    "message": {
+      "copy": "Copy response",
+      "retry": "Regenerate response"
+    },
+    "composer": {
+      "label": "Message Nexo",
+      "placeholder": "Describe an idea or ask Nexo…",
+      "send": "Send message",
+      "attach": "Attach file",
+      "attachSoon": "Attachments arrive in a later version",
+      "more": "More prompts",
+      "promptRisks": "Ask About Risks",
+      "promptViability": "Ask About Viability",
+      "promptConcept": "Expand the Core Concept",
+      "promptRisksText": "What are the biggest risks I should validate?",
+      "promptViabilityText": "How viable is this idea as a business?",
+      "promptConceptText": "Help me sharpen the core concept.",
+      "disclaimer": "Nexo AI can make mistakes. Review important insights."
+    }
+  },
+  "kinds": {
+    "concept": "Concept",
+    "viability": "Viability",
+    "risk": "Risk"
+  },
+  "nodeStatus": {
+    "confirmed": "Confirmed",
+    "exploring": "Exploring",
+    "review": "Needs review"
+  },
+  "canvas": {
+    "label": "Concept map",
+    "instructions": "Drag the background to pan, scroll to move, Ctrl or ⌘ plus scroll to zoom. Press + or − to zoom and F to fit. Select a concept, then use the arrow keys to move it.",
+    "toolbar": "Canvas controls",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "fit": "Fit to Screen",
+    "reset": "Reset View",
+    "zoomLevel": "Zoom level {{value}}%",
+    "generate": "Generate Document",
+    "generating": "Generating document…",
+    "generated": "“{{title}}” is ready",
+    "more": "More canvas actions",
+    "arrange": "Auto-Arrange",
+    "showRelations": "Show Connections",
+    "hideRelations": "Hide Connections",
+    "clearFocus": "Clear Highlight",
+    "nodeLabel": "{{kind}}: {{title}}",
+    "empty": {
+      "title": "No concepts yet",
+      "description": "Send a message in the conversation and Nexo will map the first concepts here."
+    },
+    "node": {
+      "menu": "Concept actions",
+      "ask": "Ask Nexo About This",
+      "askText": "Tell me more about “{{title}}”.",
+      "center": "Center on Canvas",
+      "remove": "Remove from Map",
+      "removed": "“{{title}}” removed"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDescription": "System follows your computer's appearance.",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": "Language",
+    "languageDescription": "Applies immediately across Nexo.",
+    "interface": "Interface",
+    "reduceMotion": "Reduce motion",
+    "reduceMotionDescription": "Minimizes animation. Nexo also follows your system setting.",
+    "notifications": "Notifications",
+    "desktopNotifications": "Desktop notifications",
+    "desktopNotificationsDescription": "Notify me when a long AI task finishes.",
+    "sound": "Sound",
+    "soundDescription": "Play a subtle sound when actions complete.",
+    "account": "Account",
+    "signOut": "Sign Out",
+    "version": "Nexo {{version}} · Preview"
+  },
+  "profile": {
+    "menu": "Account menu",
+    "signedInAs": "Signed in as"
+  },
+  "command": {
+    "label": "Command menu",
+    "placeholder": "Search projects and commands…",
+    "actions": "Actions",
+    "navigation": "Go To",
+    "projects": "Projects",
+    "newProject": "New Project",
+    "openSettings": "Open Settings",
+    "toggleTheme": "Toggle Light and Dark Appearance",
+    "switchLanguage": "Cambiar a Español",
+    "empty": "No results for “{{query}}”",
+    "hint": "↑↓ to navigate · Enter to open · Esc to close"
+  },
+  "toast": {
+    "region": "Notifications",
+    "dismiss": "Dismiss"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español"
+  }
+}
