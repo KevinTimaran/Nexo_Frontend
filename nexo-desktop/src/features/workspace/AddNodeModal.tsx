@@ -18,7 +18,7 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ isOpen, onClose, onA
   const [description, setDescription] = useState("");
   const [kind, setKind] = useState<ConceptKind>("concept");
   const [status, setStatus] = useState<ConceptStatus>("exploring");
-  const [metadata, setMetadata] = useState("User added");
+  const [metadata] = useState("User added");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

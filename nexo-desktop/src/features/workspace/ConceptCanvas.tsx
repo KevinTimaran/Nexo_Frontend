@@ -1,14 +1,11 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ZoomIn,
   ZoomOut,
   Maximize2,
   RotateCcw,
-  Sparkles,
   Plus,
-  Grid,
-  Maximize,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import type { ConceptMap, ConceptNode } from "../../domain/types";
@@ -196,14 +193,12 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
             const target = nodeMap.get(rel.to);
             if (!source || !target) return null;
 
-            // Center points of source and target cards (Card size: ~260px w, ~160px h)
             const sx = source.x + 130;
             const sy = source.y + 80;
             const tx = target.x + 130;
             const ty = target.y + 80;
 
             const dx = tx - sx;
-            const dy = ty - sy;
             const cx1 = sx + dx * 0.5;
             const cy1 = sy;
             const cx2 = sx + dx * 0.5;
@@ -272,7 +267,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
         {/* Empty Canvas Hint */}
         {map.nodes.length === 0 && (
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center max-w-sm p-8 glass border border-line rounded-3xl">
-            <Sparkles className="w-8 h-8 text-concept-fg mx-auto mb-3 animate-pulse" />
+            <Plus className="w-8 h-8 text-concept-fg mx-auto mb-3 animate-pulse" />
             <h3 className="text-body font-bold text-fg">{t("canvas.empty.title")}</h3>
             <p className="text-caption text-muted mt-1">{t("canvas.empty.description")}</p>
           </div>

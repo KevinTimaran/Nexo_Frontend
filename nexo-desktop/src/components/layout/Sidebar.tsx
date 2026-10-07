@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Plus,
   Sparkles,
-  LayoutGrid,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { Project } from "../../domain/types";

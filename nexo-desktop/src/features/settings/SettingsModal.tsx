@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { useTheme } from "../../theme/ThemeProvider";
+import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
 import { useAuth } from "../../context/AuthContext";
 import type { Language, ThemeMode } from "../../domain/types";

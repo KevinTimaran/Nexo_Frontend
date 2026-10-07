@@ -5,19 +5,10 @@ import {
   Sparkles,
   Bot,
   User,
-  ArrowRight,
-  RotateCcw,
-  Plus,
-  Compass,
-  AlertTriangle,
-  CheckCircle2,
   X,
   ChevronRight,
-  Maximize2,
 } from "lucide-react";
-import { Badge } from "../../components/ui/Badge";
-import { Button } from "../../components/ui/Button";
-import type { Message, ConceptKind } from "../../domain/types";
+import type { Message } from "../../domain/types";
 
 interface AIChatDrawerProps {
   isOpen: boolean;
@@ -164,11 +155,21 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     </div>
                   )}
 
-                  <div className="text-[10px] text-muted font-mono px-1">
-                    {new Date(msg.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <div className="text-[10px] text-muted font-mono px-1 flex items-center justify-between">
+                    <span>
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {!isUser && (
+                      <button
+                        onClick={onRetry}
+                        className="text-[10px] text-muted hover:text-fg ml-2 transition-colors"
+                      >
+                        {t("chat.message.retry")}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

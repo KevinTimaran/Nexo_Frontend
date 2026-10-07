@@ -14,10 +14,8 @@ import {
   Layers,
   Activity,
   ArrowUpRight,
-  Filter,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { useToast } from "../../context/ToastContext";
 import { currentLanguage } from "../../i18n";
 import { mockServices } from "../../services/mock";
 import { Badge } from "../../components/ui/Badge";
@@ -126,7 +124,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-elevated/50 border border-line-soft">
+          <div className="flex items-center gap-4 p-4 rounded-2xl bg-positive-fg/10 text-positive-fg flex items-center justify-center">
             <div className="w-10 h-10 rounded-xl bg-positive-fg/10 text-positive-fg flex items-center justify-center">
               <Sparkles className="w-5 h-5" />
             </div>

@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Sun, Moon, Monitor, Command, Globe, Check } from "lucide-react";
-import { useTheme } from "../../theme/ThemeProvider";
+import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
 import type { Language } from "../../domain/types";
 
@@ -27,7 +27,7 @@ export const Titlebar: React.FC<TitlebarProps> = ({ onOpenCommand, statusText })
       data-tauri-drag-region
       className="h-11 shrink-0 glass border-b border-line flex items-center justify-between px-3 select-none z-30"
     >
-      {/* Left section: Tauri window control placeholder or app title */}
+      {/* Left section: Tauri window controls placeholder or app title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 pl-1">
           <div className="w-3 h-3 rounded-full bg-rose-500/80 hover:bg-rose-500 transition-colors" />

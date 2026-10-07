@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-[#i18n]";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  MessageSquare,
   FileText,
-  Plus,
-  Sparkles,
   Check,
   Loader2,
   FolderKanban,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
-import { useTranslation as useTrans } from "react-i18next";
 import { mockServices } from "../../services/mock";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
@@ -26,7 +22,7 @@ import { Button } from "../../components/ui/Button";
 import type { ConceptMap, ConceptNode, Message, Workspace } from "../../domain/types";
 
 export const WorkspaceView: React.FC = () => {
-  const { t } = useTrans();
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const lang = currentLanguage();

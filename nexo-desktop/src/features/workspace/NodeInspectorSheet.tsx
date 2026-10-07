@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { X, Sparkles, Trash2, ArrowUpRight, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
+import { X, Sparkles, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import type { ConceptNode } from "../../domain/types";

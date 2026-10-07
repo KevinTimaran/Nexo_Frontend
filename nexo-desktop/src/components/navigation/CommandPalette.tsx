@@ -9,12 +9,9 @@ import {
   Moon,
   Globe,
   Folder,
-  LogOut,
-  Sparkles,
 } from "lucide-react";
-import { useTheme } from "../../theme/ThemeProvider";
+import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
-import { useAuth } from "../../context/AuthContext";
 import type { Project } from "../../domain/types";
 
 interface CommandPaletteProps {
@@ -35,7 +32,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const { signOut } = useAuth();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
