@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
+  ChevronLeft,
   FileText,
   Check,
   Loader2,
@@ -150,20 +150,19 @@ export const WorkspaceView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-app space-y-3">
-        <Loader2 className="w-8 h-8 text-concept-fg animate-spin" />
-        <p className="text-body font-medium text-muted">{t("workspace.loading")}</p>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-app space-y-3">
+        <Loader2 className="w-6 h-6 text-muted animate-spin" />
       </div>
     );
   }
 
   if (!workspace) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-app text-center">
-        <div className="w-12 h-12 rounded-2xl bg-elevated flex items-center justify-center text-muted mb-3">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-app text-center">
+        <div className="w-12 h-12 rounded-xl bg-sunken flex items-center justify-center text-muted mb-3 border border-line">
           <FolderKanban className="w-6 h-6" />
         </div>
-        <h3 className="text-body font-bold text-fg">{t("workspace.notFound.title")}</h3>
+        <h3 className="text-body font-semibold text-fg">{t("workspace.notFound.title")}</h3>
         <p className="text-caption text-muted mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
         <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4">
           {t("workspace.notFound.action")}
@@ -177,22 +176,22 @@ export const WorkspaceView: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-app">
       {/* Workspace Top Toolbar Header */}
-      <div className="h-12 shrink-0 glass border-b border-line px-4 flex items-center justify-between z-20">
+      <div className="h-12 shrink-0 bg-surface border-b border-line px-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-1 text-caption font-medium text-muted hover:text-fg p-1.5 rounded-lg hover:bg-hover transition-colors"
+            className="flex items-center gap-1 text-body font-medium text-concept-fg hover:brightness-110 p-1 -ml-1 rounded transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">{t("workspace.back")}</span>
+            <ChevronLeft className="w-5 h-5" />
+            <span className="hidden sm:inline">Projects</span>
           </button>
 
           <div className="h-4 w-px bg-line" />
 
           <div>
-            <h2 className="text-body font-bold text-fg flex items-center gap-2">
+            <h2 className="text-body font-semibold text-fg flex items-center gap-2">
               {workspace.project.name}
-              <span className="text-caption font-normal text-muted flex items-center gap-1 bg-elevated px-2 py-0.5 rounded-full border border-line-soft">
+              <span className="text-[10px] font-medium text-muted flex items-center gap-1 bg-sunken px-1.5 py-0.5 rounded-sm border border-line ml-1">
                 <Check className="w-3 h-3 text-positive-fg" />
                 {t("workspace.saved")}
               </span>
@@ -202,29 +201,29 @@ export const WorkspaceView: React.FC = () => {
 
         {/* Right Action buttons */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="glass"
-            size="sm"
+          <button
             onClick={() => setIsDocModalOpen(true)}
-            icon={<FileText className="w-3.5 h-3.5 text-concept-fg" />}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-caption font-medium bg-sunken hover:bg-hover border border-line text-fg transition-colors"
           >
+            <FileText className="w-3.5 h-3.5 text-concept-fg" />
             {t("canvas.generate")}
-          </Button>
+          </button>
 
-          <Button
-            variant={isChatOpen ? "primary" : "secondary"}
-            size="sm"
+          <button
             onClick={() => setIsChatOpen(!isChatOpen)}
-            icon={
-              isChatOpen ? (
-                <PanelRightClose className="w-3.5 h-3.5" />
-              ) : (
-                <PanelRightOpen className="w-3.5 h-3.5" />
-              )
-            }
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-caption font-medium transition-colors border ${
+              isChatOpen
+                ? "bg-concept-fg text-white border-transparent"
+                : "bg-sunken hover:bg-hover border-line text-fg"
+            }`}
           >
+            {isChatOpen ? (
+              <PanelRightClose className="w-3.5 h-3.5" />
+            ) : (
+              <PanelRightOpen className="w-3.5 h-3.5" />
+            )}
             {isChatOpen ? t("workspace.hideChat") : t("workspace.showChat")}
-          </Button>
+          </button>
         </div>
       </div>
 

@@ -40,17 +40,17 @@ export const LoginView: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-app relative overflow-hidden">
       {/* Background ambient ambient glows */}
-      <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-concept-fg/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-concept-fg/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Login Card */}
-      <div className="w-full max-w-md glass border border-line rounded-3xl p-8 shadow-2xl relative z-10 animate-rise-in">
+      <div className="w-full max-w-md bg-surface border border-line rounded-3xl p-8 shadow-2xl relative z-10 animate-rise-in">
         {/* Brand logo & tagline */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-blue-500/25 mb-4">
-            <Sparkles className="w-7 h-7 animate-pulse" />
+          <div className="w-14 h-14 rounded-2xl bg-concept-fg flex items-center justify-center text-white shadow-lg shadow-concept-fg/20 mb-4">
+            <Sparkles className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-fg">{t("app.name")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-fg">{t("app.name")}</h1>
           <p className="text-caption text-muted mt-1">{t("app.tagline")}</p>
         </div>
 
@@ -86,7 +86,7 @@ export const LoginView: React.FC = () => {
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-risk-fg/10 border border-risk-fg/20 text-risk-fg text-caption">
+             <div className="p-3 rounded-xl bg-risk-fg/10 border border-risk-fg/20 text-risk-fg text-caption">
               {error}
             </div>
           )}
@@ -104,7 +104,7 @@ export const LoginView: React.FC = () => {
         </form>
 
         {/* Preview build helper hint */}
-        <div className="mt-6 p-3 rounded-xl bg-elevated/60 border border-line-soft text-caption text-muted text-center">
+        <div className="mt-6 p-3 rounded-xl bg-sunken border border-line text-caption text-muted text-center">
           {t("auth.previewNote")}
         </div>
       </div>
