@@ -1,73 +1,74 @@
 @import "tailwindcss";
 
 /*
- * Nexo design tokens
- * ------------------------------------------------------------------
- * One source of truth. Role-based variables switch with the `.dark`
- * class (set by ThemeProvider); Tailwind utilities are generated from
- * them via `@theme inline`, so components write `bg-surface text-fg`
- * instead of repeating light/dark pairs.
- *
- * Contrast (WCAG 2.x, computed from hex):
- *   fg       #18181b on #ffffff 17.7:1 · #f4f4f5 on #141414 16.4:1
- *   muted    #71717a on #ffffff  4.8:1 · #a1a1aa on #141414  7.2:1
- *   concept  #2563eb on #ffffff  5.2:1 · #60a5fa on #141414  7.0:1
- *   positive #047857 on #ffffff  5.5:1 · #34d399 on #141414  9.6:1
- *   risk     #b45309 on #ffffff  5.0:1 · #fbbf24 on #141414 10.6:1
- * The -500 semantic hues are used only for non-text indicators
- * (bars, dots, strokes) where 3:1 applies.
+ * Nexo design tokens (Apple HIG style)
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --app: #fafafa; /* zinc-50 */
+  --app: #ececec;
   --surface: #ffffff;
-  --elevated: #f4f4f5; /* zinc-100 */
-  --sunken: #f4f4f5;
-  --fg: #18181b; /* zinc-900 */
-  --muted: #71717a; /* zinc-500 */
-  --line: #e4e4e7; /* zinc-200 */
-  --line-soft: #f4f4f5; /* zinc-100 */
-  --hover: rgb(228 228 231 / 0.5); /* zinc-200/50 */
-  --selected: rgb(228 228 231 / 0.5);
-  --ring: #d4d4d8; /* zinc-300 */
-  --inverse: #18181b;
+  --elevated: #ffffff;
+  --sunken: #f5f5f7;
+  
+  --fg: #1d1d1f;
+  --muted: #86868b;
+  --line: #d2d2d7;
+  --line-soft: #e5e5ea;
+  
+  --hover: rgb(0 0 0 / 0.04);
+  --selected: rgb(0 0 0 / 0.08);
+  --ring: #0071e3;
+  --inverse: #1d1d1f;
   --on-inverse: #ffffff;
-  --dot: #e5e7eb;
+  
+  --dot: #d2d2d7;
 
-  --glass-bg: rgb(255 255 255 / 0.6);
-  --glass-border: rgb(255 255 255 / 0.2);
-  --glass-edge: rgb(0 0 0 / 0.06);
+  /* Liquid Glass */
+  --glass-bg: rgb(255 255 255 / 0.65);
+  --glass-border: rgb(0 0 0 / 0.05);
+  --glass-edge: rgb(0 0 0 / 0.02);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.06);
 
-  --concept-fg: #2563eb;
-  --positive-fg: #047857;
-  --risk-fg: #b45309;
+  /* Semantic Colors */
+  --concept-fg: #0071e3;
+  --positive-fg: #34c759;
+  --risk-fg: #ff9f0a;
+  
+  --sidebar-bg: rgb(236 236 236 / 0.6);
 }
 
 .dark {
-  --app: #0a0a0a;
-  --surface: #141414;
-  --elevated: #1a1a1a;
-  --sunken: rgb(39 39 42 / 0.5); /* zinc-800/50 */
-  --fg: #f4f4f5; /* zinc-100 */
-  --muted: #a1a1aa; /* zinc-400 */
-  --line: #27272a; /* zinc-800 */
-  --line-soft: #1f1f22;
-  --hover: rgb(39 39 42 / 0.6);
-  --selected: #27272a; /* zinc-800 */
-  --ring: #3f3f46; /* zinc-700 */
-  --inverse: #ffffff;
-  --on-inverse: #000000;
-  --dot: #27272a;
+  --app: #1c1c1e;
+  --surface: #2c2c2e;
+  --elevated: #3a3a3c;
+  --sunken: #151516;
+  
+  --fg: #f5f5f7;
+  --muted: #98989d;
+  --line: #38383a;
+  --line-soft: #2c2c2e;
+  
+  --hover: rgb(255 255 255 / 0.06);
+  --selected: rgb(255 255 255 / 0.1);
+  --ring: #0a84ff;
+  --inverse: #f5f5f7;
+  --on-inverse: #1d1d1f;
+  
+  --dot: #38383a;
 
-  --glass-bg: rgb(0 0 0 / 0.5);
+  /* Liquid Glass Dark */
+  --glass-bg: rgb(44 44 46 / 0.65);
   --glass-border: rgb(255 255 255 / 0.1);
-  --glass-edge: rgb(255 255 255 / 0.04);
+  --glass-edge: rgb(0 0 0 / 0.2);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.24);
 
-  --concept-fg: #60a5fa;
-  --positive-fg: #34d399;
-  --risk-fg: #fbbf24;
+  --concept-fg: #0a84ff;
+  --positive-fg: #30d158;
+  --risk-fg: #ff9f0a;
+  
+  --sidebar-bg: rgb(28 28 30 / 0.6);
 }
 
 @theme inline {
@@ -85,28 +86,27 @@
   --color-inverse: var(--inverse);
   --color-on-inverse: var(--on-inverse);
 
-  /* Semantic meaning — one colour, one meaning */
-  --color-concept: var(--color-blue-500);
-  --color-positive: var(--color-emerald-500);
-  --color-risk: var(--color-amber-500);
+  --color-concept: var(--concept-fg);
+  --color-positive: var(--positive-fg);
+  --color-risk: var(--risk-fg);
   --color-concept-fg: var(--concept-fg);
   --color-positive-fg: var(--positive-fg);
   --color-risk-fg: var(--risk-fg);
+  
+  --color-sidebar-bg: var(--sidebar-bg);
 }
 
 @theme {
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI Variable", "Segoe UI",
-    system-ui, "Cantarell", "Ubuntu", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Type scale (desktop: 13px default, 11px minimum for metadata) */
-  --text-caption: 0.6875rem; /* 11px */
-  --text-caption--line-height: 1rem;
+  /* Type scale */
+  --text-caption: 0.75rem; /* 12px */
+  --text-caption--line-height: 1.1rem;
   --text-body: 0.8125rem; /* 13px */
   --text-body--line-height: 1.25rem;
 
-  --ease-nexo: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-nexo: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --animate-fade-in: fade-in 300ms var(--ease-nexo) both;
   --animate-rise-in: rise-in 400ms var(--ease-nexo) both;
@@ -146,43 +146,34 @@
   }
 }
 
-/*
- * Liquid Glass — functional layer only (toolbars, floating controls,
- * sheets, command surfaces). Never on content. Falls back to opaque
- * when the person asks for less transparency or more contrast.
- */
 @utility glass {
   background-color: var(--glass-bg);
-  border-color: var(--glass-border);
-  -webkit-backdrop-filter: blur(40px) saturate(1.4);
-  backdrop-filter: blur(40px) saturate(1.4);
-  box-shadow:
-    0 0 0 1px var(--glass-edge),
-    0 20px 25px -5px rgb(0 0 0 / 0.05),
-    0 8px 10px -6px rgb(0 0 0 / 0.05);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+}
+
+@utility sidebar-glass {
+  background-color: var(--sidebar-bg);
+  border-right: 0.5px solid var(--line);
+  -webkit-backdrop-filter: blur(60px) saturate(2);
+  backdrop-filter: blur(60px) saturate(2);
 }
 
 @utility canvas-dots {
-  background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
 }
 
 @utility focus-ring {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
+  outline: none;
   &:focus-visible {
-    box-shadow:
-      0 0 0 2px var(--app),
-      0 0 0 4px var(--color-concept);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-concept) 40%, transparent);
   }
 }
 
 @layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-  }
-
+  html, body, #root { height: 100%; }
   html {
     font-family: var(--font-sans);
     font-size: 16px;
@@ -191,56 +182,40 @@
     text-rendering: optimizeLegibility;
     font-synthesis: none;
   }
-
   body {
     background-color: var(--app);
     color: var(--fg);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
     overflow: hidden;
-    /* Desktop app: text selection only where it is content */
     -webkit-user-select: none;
     user-select: none;
   }
-
-  input,
-  textarea,
-  [data-selectable] {
+  input, textarea, [data-selectable] {
     -webkit-user-select: text;
     user-select: text;
   }
-
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]) {
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
     cursor: default;
   }
-
   ::selection {
-    background-color: color-mix(in oklab, var(--color-concept) 25%, transparent);
+    background-color: color-mix(in oklab, var(--color-concept) 30%, transparent);
   }
-
-  /* Thin, quiet scrollbars that match the surface */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--ring) transparent;
   }
 }
 
-/* Respect the OS setting and the in-app "Reduce motion" preference */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }
-
-.reduce-motion *,
-.reduce-motion *::before,
-.reduce-motion *::after {
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
@@ -253,16 +228,17 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     border-color: var(--line);
+    box-shadow: none;
+  }
+  .sidebar-glass {
+    background-color: var(--app);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--line);
   }
 }
 
 @media (prefers-contrast: more) {
-  :root {
-    --muted: #52525b;
-    --line: #a1a1aa;
-  }
-  .dark {
-    --muted: #d4d4d8;
-    --line: #52525b;
-  }
+  :root { --muted: #52525b; --line: #a1a1aa; }
+  .dark { --muted: #d4d4d8; --line: #52525b; }
 }

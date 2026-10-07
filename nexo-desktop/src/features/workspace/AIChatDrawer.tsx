@@ -64,27 +64,23 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
   ];
 
   return (
-    <aside className="w-96 h-full glass border-l border-line flex flex-col justify-between z-20 animate-sheet-in">
+    <aside className="w-[320px] shrink-0 h-full sidebar-glass border-l border-line flex flex-col justify-between z-20 animate-sheet-in">
       {/* Header */}
-      <div className="p-4 border-b border-line-soft flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
-            <Sparkles className="w-4 h-4" />
+      <div className="p-3 border-b border-line flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-concept-fg flex items-center justify-center text-white shadow-sm">
+            <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h3 className="text-body font-bold text-fg flex items-center gap-1.5">
+            <h3 className="text-body font-semibold text-fg leading-none flex items-center gap-1.5">
               {t("chat.aiName")}
-              <span className="text-[10px] bg-concept-fg/10 text-concept-fg px-1.5 py-0.2 rounded-md font-semibold border border-concept-fg/20">
-                {t("chat.aiBadge")}
-              </span>
             </h3>
-            <p className="text-[10px] text-muted">{t("chat.title")}</p>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="text-muted hover:text-fg p-1.5 rounded-lg hover:bg-hover transition-colors"
+          className="text-muted hover:text-fg p-1.5 rounded hover:bg-hover transition-colors"
           aria-label="Close"
         >
           <X className="w-4 h-4" />
@@ -92,12 +88,12 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {messages.length === 0 ? (
-          <div className="text-center p-6 glass border border-line rounded-2xl my-4 space-y-3">
-            <Sparkles className="w-7 h-7 text-concept-fg mx-auto animate-pulse" />
-            <h4 className="text-body font-bold text-fg">{t("chat.empty.title")}</h4>
-            <p className="text-caption text-muted">{t("chat.empty.description")}</p>
+          <div className="text-center p-6 bg-surface border border-line rounded-xl my-4 shadow-sm">
+            <Sparkles className="w-6 h-6 text-concept-fg mx-auto mb-3" />
+            <h4 className="text-body font-semibold text-fg">{t("chat.empty.title")}</h4>
+            <p className="text-caption text-muted mt-1">{t("chat.empty.description")}</p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -105,24 +101,24 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
             return (
               <div
                 key={msg.id}
-                className={`flex gap-3 animate-rise-in ${isUser ? "flex-row-reverse" : ""}`}
+                className={`flex gap-2.5 animate-rise-in ${isUser ? "flex-row-reverse" : ""}`}
               >
                 <div
-                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
                     isUser
-                      ? "bg-elevated text-fg border border-line"
+                      ? "bg-surface text-fg border border-line"
                       : "bg-concept-fg text-white shadow-sm"
                   }`}
                 >
                   {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                 </div>
 
-                <div className={`space-y-2 max-w-[82%] ${isUser ? "text-right" : ""}`}>
+                <div className={`space-y-1.5 max-w-[85%] ${isUser ? "text-right" : ""}`}>
                   <div
-                    className={`p-3.5 rounded-2xl text-caption leading-relaxed ${
+                    className={`p-2.5 rounded-lg text-caption leading-relaxed ${
                       isUser
-                        ? "bg-concept-fg text-white rounded-tr-none"
-                        : "glass border border-line text-fg rounded-tl-none"
+                        ? "bg-concept-fg text-white rounded-tr-sm"
+                        : "bg-surface border border-line text-fg rounded-tl-sm shadow-sm"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -130,19 +126,19 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
                   {/* Embedded Insight Card if available */}
                   {"insight" in msg && msg.insight && (
-                    <div className="p-3 rounded-xl bg-elevated/70 border border-line space-y-2 text-left animate-fade-in">
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-concept-fg">
+                    <div className="p-2.5 rounded-lg bg-surface border border-line space-y-1.5 text-left animate-fade-in shadow-sm">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-concept-fg uppercase tracking-wide">
                         <span className="flex items-center gap-1">
                           <Sparkles className="w-3 h-3" />
                           {msg.insight.title}
                         </span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {msg.insight.items.map((item) => (
                           <button
                             key={item.nodeId}
                             onClick={() => onSelectNode(item.nodeId)}
-                            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-hover transition-colors text-caption text-fg text-left group"
+                            className="w-full flex items-center justify-between p-1.5 rounded-md hover:bg-sunken transition-colors text-caption text-fg text-left group"
                           >
                             <span className="truncate flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-concept-fg" />
@@ -155,7 +151,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     </div>
                   )}
 
-                  <div className="text-[10px] text-muted font-mono px-1 flex items-center justify-between">
+                  <div className={`text-[10px] text-muted flex items-center ${isUser ? "justify-end" : "justify-start"}`}>
                     <span>
                       {new Date(msg.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -165,7 +161,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     {!isUser && (
                       <button
                         onClick={onRetry}
-                        className="text-[10px] text-muted hover:text-fg ml-2 transition-colors"
+                        className="hover:text-fg ml-2 transition-colors"
                       >
                         {t("chat.message.retry")}
                       </button>
@@ -179,11 +175,11 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
         {/* Thinking Steps Animation */}
         {isThinking && (
-          <div className="flex gap-3 animate-fade-in">
-            <div className="w-7 h-7 rounded-xl bg-concept-fg text-white flex items-center justify-center shrink-0">
+          <div className="flex gap-2.5 animate-fade-in">
+            <div className="w-6 h-6 rounded-md bg-concept-fg text-white flex items-center justify-center shrink-0">
               <Bot className="w-3.5 h-3.5 animate-spin" />
             </div>
-            <div className="p-3.5 rounded-2xl glass border border-line text-caption text-muted rounded-tl-none flex items-center gap-2">
+            <div className="p-2.5 rounded-lg bg-surface border border-line text-caption text-muted rounded-tl-sm flex items-center gap-2 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-concept-fg animate-ping" />
               <span>{t("chat.thinking.step2")}</span>
             </div>
@@ -193,14 +189,14 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
       </div>
 
       {/* Prompt Composer Footer */}
-      <div className="p-3 border-t border-line-soft space-y-3 glass">
+      <div className="p-3 border-t border-line bg-surface/50">
         {/* Suggestion Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar">
           {promptSuggestions.map((s, idx) => (
             <button
               key={idx}
               onClick={() => onSendMessage(s.text)}
-              className="px-2.5 py-1 rounded-lg bg-elevated hover:bg-hover border border-line text-[11px] text-muted hover:text-fg whitespace-nowrap transition-colors"
+              className="px-2 py-1 rounded bg-surface hover:bg-sunken border border-line text-[11px] font-medium text-muted hover:text-fg whitespace-nowrap transition-colors"
             >
               {s.label}
             </button>
@@ -208,27 +204,23 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         </div>
 
         {/* Form input */}
-        <form onSubmit={handleSend} className="relative flex items-center">
+        <form onSubmit={handleSend} className="relative flex items-end bg-surface border border-line rounded-lg shadow-sm focus-within:ring-2 focus-within:ring-concept-fg/40 transition-all p-1">
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t("chat.composer.placeholder")}
             rows={2}
-            className="w-full bg-elevated border border-line rounded-xl text-fg text-caption p-2.5 pr-10 placeholder:text-muted focus-ring transition-colors resize-none"
+            className="w-full bg-transparent text-fg text-caption p-2 pr-9 placeholder:text-muted outline-none resize-none"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || isThinking}
-            className="absolute right-2 bottom-2.5 p-1.5 rounded-lg bg-concept-fg text-white disabled:opacity-40 hover:brightness-110 transition-all shadow-sm"
+            className="absolute right-1.5 bottom-1.5 p-1 rounded-md bg-concept-fg text-white disabled:opacity-40 hover:brightness-110 transition-all shadow-sm"
           >
             <Send className="w-3.5 h-3.5" />
           </button>
         </form>
-
-        <p className="text-[10px] text-muted text-center leading-tight">
-          {t("chat.composer.disclaimer")}
-        </p>
       </div>
     </aside>
   );

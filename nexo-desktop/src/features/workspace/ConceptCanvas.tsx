@@ -119,47 +119,47 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
       aria-label={t("canvas.label")}
     >
       {/* Floating Canvas Toolbar Header */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 glass border border-line rounded-2xl p-1.5 shadow-lg">
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-1 glass rounded-lg p-1.5 shadow-sm border border-line">
         <button
           onClick={handleZoomIn}
-          className="p-2 text-muted hover:text-fg rounded-xl hover:bg-hover transition-colors"
+          className="p-1.5 text-muted hover:text-fg rounded hover:bg-hover transition-colors"
           title={t("canvas.zoomIn")}
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="p-2 text-muted hover:text-fg rounded-xl hover:bg-hover transition-colors"
+          className="p-1.5 text-muted hover:text-fg rounded hover:bg-hover transition-colors"
           title={t("canvas.zoomOut")}
         >
           <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={handleFit}
-          className="p-2 text-muted hover:text-fg rounded-xl hover:bg-hover transition-colors"
+          className="p-1.5 text-muted hover:text-fg rounded hover:bg-hover transition-colors"
           title={t("canvas.fit")}
         >
           <Maximize2 className="w-4 h-4" />
         </button>
         <button
           onClick={handleReset}
-          className="p-2 text-muted hover:text-fg rounded-xl hover:bg-hover transition-colors"
+          className="p-1.5 text-muted hover:text-fg rounded hover:bg-hover transition-colors"
           title={t("canvas.reset")}
         >
           <RotateCcw className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-px bg-line mx-1" />
+        <div className="h-4 w-px bg-line mx-1.5" />
 
-        <span className="text-caption font-mono text-muted px-2">
+        <span className="text-caption font-mono text-muted px-1">
           {Math.round(zoom * 100)}%
         </span>
 
-        <div className="h-4 w-px bg-line mx-1" />
+        <div className="h-4 w-px bg-line mx-1.5" />
 
         <button
           onClick={onOpenAddNode}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-concept-fg text-white text-caption font-semibold shadow-sm hover:brightness-110 transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-concept-fg text-white text-caption font-medium shadow-sm hover:brightness-110 transition-all ml-1"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add Concept</span>
@@ -184,7 +184,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
               refY="3"
               orient="auto"
             >
-              <polygon points="0 0, 8 3, 0 6" fill="var(--ring)" />
+              <polygon points="0 0, 8 3, 0 6" fill="var(--muted)" />
             </marker>
           </defs>
 
@@ -193,10 +193,10 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
             const target = nodeMap.get(rel.to);
             if (!source || !target) return null;
 
-            const sx = source.x + 130;
-            const sy = source.y + 80;
+            const sx = source.x + 130; // approx center width
+            const sy = source.y + 60;  // approx center height
             const tx = target.x + 130;
-            const ty = target.y + 80;
+            const ty = target.y + 60;
 
             const dx = tx - sx;
             const cx1 = sx + dx * 0.5;
@@ -209,9 +209,8 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                 <path
                   d={`M ${sx} ${sy} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${tx} ${ty}`}
                   fill="none"
-                  stroke="var(--ring)"
+                  stroke="var(--line)"
                   strokeWidth="2"
-                  strokeDasharray="4 4"
                   markerEnd="url(#arrowhead)"
                   className="transition-all duration-300"
                 />
@@ -224,9 +223,9 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
         {map.nodes.map((node) => {
           const isSelected = selectedNodeId === node.id;
           const kindBorder = {
-            concept: "border-concept-fg/40 hover:border-concept-fg",
-            viability: "border-positive-fg/40 hover:border-positive-fg",
-            risk: "border-risk-fg/40 hover:border-risk-fg",
+            concept: "border-line hover:border-concept-fg",
+            viability: "border-line hover:border-positive-fg",
+            risk: "border-line hover:border-risk-fg",
           };
 
           return (
@@ -237,11 +236,11 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                 left: `${node.x}px`,
                 top: `${node.y}px`,
               }}
-              className={`absolute w-64 glass border rounded-2xl p-4 shadow-xl cursor-grab active:cursor-grabbing transition-shadow duration-200 z-10 ${
+              className={`absolute w-[260px] bg-surface border rounded-xl p-4 cursor-grab active:cursor-grabbing transition-shadow duration-200 z-10 shadow-sm ${
                 kindBorder[node.kind]
               } ${
                 isSelected
-                  ? "ring-2 ring-concept-fg shadow-2xl scale-[1.02] z-20 animate-node-pulse"
+                  ? "ring-2 ring-concept-fg shadow-lg z-20"
                   : ""
               }`}
             >
@@ -250,25 +249,29 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                 <Badge kind={node.kind} status={node.status}>
                   {t(`kinds.${node.kind}`)}
                 </Badge>
-                <span className="text-[10px] text-muted font-mono bg-elevated px-2 py-0.5 rounded-full border border-line-soft">
-                  {node.metadata}
-                </span>
+                {node.metadata && (
+                  <span className="text-[10px] text-muted font-mono bg-sunken px-1.5 py-0.5 rounded border border-line-soft">
+                    {node.metadata}
+                  </span>
+                )}
               </div>
 
               {/* Title & Description */}
-              <h4 className="text-body font-bold text-fg leading-snug line-clamp-1">{node.title}</h4>
-              <p className="text-caption text-muted mt-1 leading-relaxed line-clamp-3">
-                {node.description}
-              </p>
+              <h4 className="text-body font-semibold text-fg leading-snug line-clamp-2">{node.title}</h4>
+              {node.description && (
+                <p className="text-caption text-muted mt-1 leading-relaxed line-clamp-3">
+                  {node.description}
+                </p>
+              )}
             </div>
           );
         })}
 
         {/* Empty Canvas Hint */}
         {map.nodes.length === 0 && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center max-w-sm p-8 glass border border-line rounded-3xl">
-            <Plus className="w-8 h-8 text-concept-fg mx-auto mb-3 animate-pulse" />
-            <h3 className="text-body font-bold text-fg">{t("canvas.empty.title")}</h3>
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center max-w-sm p-6 bg-surface border border-line rounded-xl shadow-sm">
+            <Plus className="w-8 h-8 text-concept-fg mx-auto mb-3" />
+            <h3 className="text-body font-semibold text-fg">{t("canvas.empty.title")}</h3>
             <p className="text-caption text-muted mt-1">{t("canvas.empty.description")}</p>
           </div>
         )}
