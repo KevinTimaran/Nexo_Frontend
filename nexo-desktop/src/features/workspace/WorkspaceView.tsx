@@ -255,6 +255,7 @@ export const WorkspaceView: React.FC = () => {
               onClose={() => selectNode(null)}
               onAskAI={handleAskAIAboutNode}
               onRemoveNode={handleRemoveNode}
+              onOpenDoc={(node) => setExpandedDocNodeId(node.id)}
             />
           )}
 
