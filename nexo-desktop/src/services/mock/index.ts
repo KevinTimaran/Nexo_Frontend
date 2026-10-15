@@ -14,6 +14,7 @@ import {
   type Message,
   type Project,
   type ProjectIcon,
+  type ResearchPhase,
   type Workspace,
 } from "../../domain/types";
 import { aiCopy, nodeTemplates, pick, seedProjects, type SeedProject } from "../../mocks/seed";

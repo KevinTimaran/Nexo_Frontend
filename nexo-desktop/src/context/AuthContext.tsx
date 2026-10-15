@@ -18,9 +18,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : { id: "u-demo", name: "Kevin Timaran", email: "kevin@nexo.ai" };
+      return stored ? JSON.parse(stored) : null;
     } catch {
-      return { id: "u-demo", name: "Kevin Timaran", email: "kevin@nexo.ai" };
+      return null;
     }
   });
 

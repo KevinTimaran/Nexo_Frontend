@@ -82,6 +82,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <h1 className="text-title font-semibold tracking-tight text-fg">
             {t("nav.projects")}
           </h1>
+          {user && (
+            <p className="text-caption text-muted mt-0.5">
+              {t("home.greeting.morning", { name: user.name })} · {t("home.description")}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
