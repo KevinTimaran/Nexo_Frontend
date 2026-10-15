@@ -13,13 +13,15 @@ import {
 import { mockServices } from "../../services/mock";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
+import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { ConceptCanvas } from "./ConceptCanvas";
 import { AIChatDrawer } from "./AIChatDrawer";
 import { NodeInspectorSheet } from "./NodeInspectorSheet";
+import { DocumentDetailOverlay } from "./DocumentDetailOverlay";
 import { AddNodeModal } from "./AddNodeModal";
 import { GenerateDocumentModal } from "../documents/GenerateDocumentModal";
 import { Button } from "../../components/ui/Button";
-import type { ConceptMap, ConceptNode, Message, Workspace } from "../../domain/types";
+import type { ConceptMap, ConceptNode, Message } from "../../domain/types";
 
 export const WorkspaceView: React.FC = () => {
   const { t } = useTranslation();
@@ -28,17 +30,30 @@ export const WorkspaceView: React.FC = () => {
   const lang = currentLanguage();
   const { showToast } = useToast();
 
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Zustand centralized workspace store
+  const {
+    workspace,
+    setWorkspace,
+    canvasMode,
+    selectedNodeId,
+    selectNode,
+    expandedDocNodeId,
+    setExpandedDocNodeId,
+    isThinking,
+    setThinking,
+    isChatOpen,
+    toggleChat,
+    moveNode,
+    addNode,
+    removeNode,
+    setCanvasMode,
+  } = useWorkspaceStore();
 
-  // UI State
-  const [isChatOpen, setIsChatOpen] = useState(true);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [isThinking, setIsThinking] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isAddNodeOpen, setIsAddNodeOpen] = useState(false);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
 
-  // Load Workspace data
+  // Load Workspace data on project change or language switch
   useEffect(() => {
     if (!projectId) return;
     setLoading(true);
@@ -51,7 +66,7 @@ export const WorkspaceView: React.FC = () => {
         showToast(t("workspace.notFound.title"), "error");
       })
       .finally(() => setLoading(false));
-  }, [projectId, lang]);
+  }, [projectId, lang, setWorkspace, showToast, t]);
 
   // Persist session edits
   const saveSession = (map: ConceptMap, messages: Message[]) => {
@@ -74,7 +89,7 @@ export const WorkspaceView: React.FC = () => {
     setWorkspace(updatedWorkspace);
     saveSession(workspace.map, updatedMessages);
 
-    setIsThinking(true);
+    setThinking(true);
 
     try {
       const response = await mockServices.ai.reply({
@@ -98,68 +113,51 @@ export const WorkspaceView: React.FC = () => {
       saveSession(nextMap, nextMessages);
 
       if (response.newNodes.length > 0) {
-        showToast(`Mapped ${response.newNodes.length} new concept nodes!`, "success");
+        showToast(`Se mapearon ${response.newNodes.length} nuevos conceptos.`, "success");
       }
     } catch {
       showToast(t("chat.error.title"), "error");
     } finally {
-      setIsThinking(false);
+      setThinking(false);
     }
   };
 
   const handleNodeMove = (nodeId: string, x: number, y: number) => {
-    if (!workspace || !projectId) return;
-    const nextNodes = workspace.map.nodes.map((n) => (n.id === nodeId ? { ...n, x, y } : n));
-    const nextMap = { ...workspace.map, nodes: nextNodes };
-    setWorkspace({ ...workspace, map: nextMap });
-    saveSession(nextMap, workspace.messages);
+    moveNode(nodeId, x, y);
   };
 
   const handleAddNode = (newNodeData: Omit<ConceptNode, "id">) => {
-    if (!workspace || !projectId) return;
-    const newNode: ConceptNode = {
-      id: "n-" + Math.random().toString(36).substring(2, 8),
-      ...newNodeData,
-    };
-    const nextMap = { ...workspace.map, nodes: [...workspace.map.nodes, newNode] };
-    setWorkspace({ ...workspace, map: nextMap });
-    saveSession(nextMap, workspace.messages);
+    const newNode = addNode(newNodeData);
     showToast(t("projects.create.created", { name: newNode.title }), "success");
   };
 
   const handleRemoveNode = (nodeId: string) => {
-    if (!workspace || !projectId) return;
+    if (!workspace) return;
     const target = workspace.map.nodes.find((n) => n.id === nodeId);
-    const nextNodes = workspace.map.nodes.filter((n) => n.id !== nodeId);
-    const nextRelations = workspace.map.relations.filter(
-      (r) => r.from !== nodeId && r.to !== nodeId
-    );
-    const nextMap = { nodes: nextNodes, relations: nextRelations };
-    setWorkspace({ ...workspace, map: nextMap });
-    saveSession(nextMap, workspace.messages);
-    setSelectedNodeId(null);
+    removeNode(nodeId);
     if (target) {
       showToast(t("canvas.node.removed", { title: target.title }), "info");
     }
   };
 
   const handleAskAIAboutNode = (nodeTitle: string) => {
-    setIsChatOpen(true);
+    if (!isChatOpen) toggleChat();
     void handleSendMessage(t("canvas.node.askText", { title: nodeTitle }));
   };
 
   if (loading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-app space-y-3">
-        <Loader2 className="w-6 h-6 text-muted animate-spin" />
+        <Loader2 className="w-6 h-6 text-concept-fg animate-spin" />
+        <p className="text-caption text-muted font-medium">{t("workspace.loading")}</p>
       </div>
     );
   }
 
   if (!workspace) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-app text-center">
-        <div className="w-12 h-12 rounded-xl bg-sunken flex items-center justify-center text-muted mb-3 border border-line">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-app text-center p-6">
+        <div className="w-12 h-12 rounded-2xl bg-sunken flex items-center justify-center text-muted mb-3 border border-line">
           <FolderKanban className="w-6 h-6" />
         </div>
         <h3 className="text-body font-semibold text-fg">{t("workspace.notFound.title")}</h3>
@@ -172,6 +170,16 @@ export const WorkspaceView: React.FC = () => {
   }
 
   const selectedNode = workspace.map.nodes.find((n) => n.id === selectedNodeId) || null;
+  const docNode = workspace.map.nodes.find((n) => n.id === expandedDocNodeId) || null;
+
+  // Find related nodes for doc overlay
+  const docRelatedNodes = docNode
+    ? workspace.map.relations
+        .filter((r) => r.from === docNode.id || r.to === docNode.id)
+        .map((r) => (r.from === docNode.id ? r.to : r.from))
+        .map((id) => workspace.map.nodes.find((n) => n.id === id))
+        .filter((n): n is ConceptNode => !!n)
+    : [];
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-app">
@@ -180,10 +188,10 @@ export const WorkspaceView: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-1 text-body font-medium text-concept-fg hover:brightness-110 p-1 -ml-1 rounded transition-colors"
+            className="flex items-center gap-1 text-body font-medium text-concept-fg hover:brightness-110 p-1 -ml-1 rounded-lg transition-colors focus-ring"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Projects</span>
+            <span className="hidden sm:inline">Proyectos</span>
           </button>
 
           <div className="h-4 w-px bg-line" />
@@ -191,7 +199,7 @@ export const WorkspaceView: React.FC = () => {
           <div>
             <h2 className="text-body font-semibold text-fg flex items-center gap-2">
               {workspace.project.name}
-              <span className="text-[10px] font-medium text-muted flex items-center gap-1 bg-sunken px-1.5 py-0.5 rounded-sm border border-line ml-1">
+              <span className="text-[10px] font-medium text-muted flex items-center gap-1 bg-sunken px-1.5 py-0.5 rounded-md border border-line ml-1">
                 <Check className="w-3 h-3 text-positive-fg" />
                 {t("workspace.saved")}
               </span>
@@ -203,17 +211,17 @@ export const WorkspaceView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsDocModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-caption font-medium bg-sunken hover:bg-hover border border-line text-fg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium bg-sunken hover:bg-hover border border-line text-fg transition-colors focus-ring"
           >
             <FileText className="w-3.5 h-3.5 text-concept-fg" />
-            {t("canvas.generate")}
+            <span>{t("canvas.generate")}</span>
           </button>
 
           <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-caption font-medium transition-colors border ${
+            onClick={toggleChat}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-colors border focus-ring ${
               isChatOpen
-                ? "bg-concept-fg text-white border-transparent"
+                ? "bg-concept-fg text-white border-transparent shadow-xs"
                 : "bg-sunken hover:bg-hover border-line text-fg"
             }`}
           >
@@ -222,7 +230,7 @@ export const WorkspaceView: React.FC = () => {
             ) : (
               <PanelRightOpen className="w-3.5 h-3.5" />
             )}
-            {isChatOpen ? t("workspace.hideChat") : t("workspace.showChat")}
+            <span>{isChatOpen ? t("workspace.hideChat") : t("workspace.showChat")}</span>
           </button>
         </div>
       </div>
@@ -234,28 +242,47 @@ export const WorkspaceView: React.FC = () => {
           <ConceptCanvas
             map={workspace.map}
             selectedNodeId={selectedNodeId}
-            onSelectNode={setSelectedNodeId}
+            onSelectNode={selectNode}
             onNodeMove={handleNodeMove}
             onOpenAddNode={() => setIsAddNodeOpen(true)}
+            onOpenDocDetail={(node) => setExpandedDocNodeId(node.id)}
           />
 
-          {/* Node Inspector Sheet overlay */}
-          <NodeInspectorSheet
-            node={selectedNode}
-            onClose={() => setSelectedNodeId(null)}
-            onAskAI={handleAskAIAboutNode}
-            onRemoveNode={handleRemoveNode}
-          />
+          {/* Node Inspector Sheet overlay (when in Graph mode and a node is selected) */}
+          {canvasMode === "graph" && selectedNode && !docNode && (
+            <NodeInspectorSheet
+              node={selectedNode}
+              onClose={() => selectNode(null)}
+              onAskAI={handleAskAIAboutNode}
+              onRemoveNode={handleRemoveNode}
+            />
+          )}
+
+          {/* Document Deep Dive Overlay (Notion mode or explicit doc open) */}
+          {docNode && (
+            <DocumentDetailOverlay
+              node={docNode}
+              onClose={() => setExpandedDocNodeId(null)}
+              onViewInGraph={(nodeId) => {
+                setCanvasMode("graph");
+                selectNode(nodeId);
+                setExpandedDocNodeId(null);
+              }}
+              onAskAI={handleAskAIAboutNode}
+              onRemoveNode={handleRemoveNode}
+              relatedNodes={docRelatedNodes}
+            />
+          )}
         </div>
 
         {/* AI Chat Drawer (Right panel) */}
         <AIChatDrawer
           isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
+          onClose={toggleChat}
           messages={workspace.messages}
           isThinking={isThinking}
           onSendMessage={handleSendMessage}
-          onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+          onSelectNode={(nodeId) => selectNode(nodeId)}
           onRetry={() => {
             const lastUserMsg = [...workspace.messages].reverse().find((m) => m.role === "user");
             if (lastUserMsg) void handleSendMessage(lastUserMsg.text);
