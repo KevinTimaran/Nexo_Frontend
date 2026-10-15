@@ -158,7 +158,11 @@
     },
     "message": {
       "copy": "Copy response",
-      "retry": "Regenerate response"
+      "retry": "Regenerate response",
+      "explain": "I don't understand this, explain it to me",
+      "explained": "Simplified explanation",
+      "addToCanvas": "Map to Canvas",
+      "addedToCanvas": "Mapped to Canvas"
     },
     "composer": {
       "label": "Message Nexo",
@@ -175,6 +179,15 @@
       "promptConceptText": "Help me sharpen the core concept.",
       "disclaimer": "Nexo AI can make mistakes. Review important insights."
     }
+  },
+  "phases": {
+    "planning": "Planning",
+    "execution": "Execution",
+    "validation": "Validation"
+  },
+  "modes": {
+    "notion": "Knowledge",
+    "graph": "Graph"
   },
   "kinds": {
     "concept": "Concept",

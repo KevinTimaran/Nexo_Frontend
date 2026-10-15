@@ -83,6 +83,16 @@ function resolveSeedMap(seed: SeedProject, lang: Language): ConceptMap {
       status: n.status,
       x: n.x,
       y: n.y,
+      phase:
+        n.phase ??
+        (n.kind === "concept"
+          ? "planning"
+          : n.kind === "viability"
+          ? "execution"
+          : "validation"),
+      details: n.details
+        ? pick(n.details, lang)
+        : `${pick(n.title, lang)}\n\n${pick(n.description, lang)}\n\n### Evidencia y Métricas\n- Estado de validación: ${n.status}\n- Respaldo empírico: ${pick(n.metadata, lang)}\n\n### Próximos Pasos\n- Conectar con actores clave de la comunidad estudiantil.\n- Ejecutar prueba de concepto piloto para validar hipótesis de tracción.`,
       title: pick(n.title, lang),
       description: pick(n.description, lang),
       metadata: pick(n.metadata, lang),
@@ -227,11 +237,13 @@ const ai: AIService = {
         id: uid("n"),
         kind: "concept",
         status: "exploring",
+        phase: "planning",
         x: 60,
         y: 160,
         title: summarize(text),
         description: pick(aiCopy.coreDescription, lang),
         metadata: pick(aiCopy.coreMetadata, lang),
+        details: `${summarize(text)}\n\n${pick(aiCopy.coreDescription, lang)}\n\n### Hipótesis de Partida\n- Los usuarios necesitan un canal verificado y de confianza.\n- Las alternativas actuales carecen de seguridad y proximidad.\n\n### Plan de Validación\n1. Entrevistar a los primeros 20 usuarios potenciales.\n2. Probar la adopción inicial con un grupo piloto.`,
       };
       const v = nodeTemplates.viability[0];
       const r = nodeTemplates.risk[0];
@@ -239,21 +251,25 @@ const ai: AIService = {
         id: uid("n"),
         kind: "viability",
         status: "exploring",
+        phase: "execution",
         x: 60 + GAP_X,
         y: 40,
         title: pick(v.title, lang),
         description: pick(v.description, lang),
         metadata: pick(v.metadata, lang),
+        details: `${pick(v.title, lang)}\n\n${pick(v.description, lang)}\n\n### Arquitectura de Ejecución\n- Implementación de flujos de pago o intercambio seguro.\n- Puntos de entrega física coordinados dentro del campus.`,
       };
       const risk: ConceptNode = {
         id: uid("n"),
         kind: "risk",
         status: "review",
+        phase: "validation",
         x: 60 + GAP_X,
         y: 40 + GAP_Y + 40,
         title: pick(r.title, lang),
         description: pick(r.description, lang),
         metadata: pick(r.metadata, lang),
+        details: `${pick(r.title, lang)}\n\n${pick(r.description, lang)}\n\n### Criterios de Mitigación\n- Claridad en los términos de servicio y políticas de resolución de disputas.\n- Cumplimiento normativo estricto con protección de identidad.`,
       };
       const response: AIResponse = {
         message: {
@@ -261,10 +277,22 @@ const ai: AIService = {
           role: "assistant",
           createdAt: now,
           replyTo,
+          cardType: "idea",
           text: pick(aiCopy.firstMessage, lang),
+          simplifiedExplanation:
+            lang === "es"
+              ? "En términos sencillos: Acabamos de estructurar tu idea en tres piezas: la idea central (Planificación), la viabilidad para ponerla en marcha (Ejecución) y los posibles obstáculos que debes cuidar (Validación)."
+              : "In simple terms: We broke down your idea into 3 key pieces: the core concept (Planning), how it executes (Execution), and what obstacles to watch out for (Validation).",
           insight: {
             title: pick(aiCopy.firstTitle, lang),
             items: [core, viability, risk].map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
+          },
+          actionableNode: {
+            title: core.title,
+            description: core.description,
+            kind: "concept",
+            phase: "planning",
+            metadata: core.metadata,
           },
         },
         newNodes: [core, viability, risk],
@@ -283,15 +311,22 @@ const ai: AIService = {
     const anchor = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
     const slot = freeSlot(map.nodes, anchor.x + GAP_X, anchor.y);
 
+    const phase: ResearchPhase =
+      kind === "concept" ? "planning" : kind === "viability" ? "execution" : "validation";
+    const cardType =
+      kind === "concept" ? "idea" : kind === "viability" ? "recommendation" : "explanation";
+
     const node: ConceptNode = {
       id: uid("n"),
       kind,
       status: kind === "risk" ? "review" : "exploring",
+      phase,
       x: slot.x,
       y: slot.y,
       title: pick(template.title, lang),
       description: pick(template.description, lang),
       metadata: pick(template.metadata, lang),
+      details: `${pick(template.title, lang)}\n\n${pick(template.description, lang)}\n\n### Análisis Profundo\n- Fase: ${phase.toUpperCase()}\n- Evaluación contextual: Respaldado por patrones de ideación ágil y métricas preliminares.`,
     };
     const relation: ConceptRelation = { id: uid("r"), from: anchor.id, to: node.id };
     const related = map.nodes.find((n) => n.kind !== kind && n.id !== anchor.id);
@@ -301,14 +336,38 @@ const ai: AIService = {
       label: n.title,
     }));
 
+    const simplifiedExplanations = {
+      risk:
+        lang === "es"
+          ? "En palabras simples: Este punto te avisa de un posible tropiezo legal o financiero. Te conviene resolver las reglas antes de lanzar para evitar reclamos."
+          : "Simply put: This warns you of a potential regulatory or financial hiccup. Establish clear terms before launch to avoid disputes.",
+      viability:
+        lang === "es"
+          ? "En palabras simples: Esta tarjeta analiza si los números y la demanda tienen sentido. Nos dice que el costo de conseguir clientes es favorable."
+          : "Simply put: This looks at whether the math and demand make sense. It shows your acquisition costs are low enough to scale.",
+      concept:
+        lang === "es"
+          ? "En palabras simples: Esta es la esencia de tu propuesta: qué valor tangible le ofreces a las personas para que elijan tu solución."
+          : "Simply put: This is the core value proposition: why users will choose your product over existing options.",
+    };
+
     return {
       message: {
         id: uid("m"),
         role: "assistant",
         createdAt: now,
         replyTo,
+        cardType,
         text: pick(aiCopy.reply[kind], lang),
+        simplifiedExplanation: simplifiedExplanations[kind],
         insight: { title: pick(aiCopy.replyTitle[kind], lang), items },
+        actionableNode: {
+          title: node.title,
+          description: node.description,
+          kind: node.kind,
+          phase: node.phase ?? "planning",
+          metadata: node.metadata,
+        },
       },
       newNodes: [node],
       newRelations: [relation],

@@ -32,6 +32,16 @@ export interface NewProjectInput {
   description: string;
 }
 
+export type CanvasMode = "notion" | "graph";
+
+/**
+ * The three distinct research phases for visualizing concept evolution:
+ * - planning (emerald): initial scoping, framing, hypothesis.
+ * - execution (blue): implementation, architecture, logistics.
+ * - validation (amber): testing, risks, viability metrics.
+ */
+export type ResearchPhase = "planning" | "execution" | "validation";
+
 /** The three semantic kinds a concept can have on the map. */
 export type ConceptKind = "concept" | "viability" | "risk";
 export type ConceptStatus = "confirmed" | "exploring" | "review";
@@ -46,6 +56,11 @@ export interface ConceptNode {
   status: ConceptStatus;
   x: number;
   y: number;
+  /** Research phase to organize and color-code the node */
+  phase?: ResearchPhase;
+  /** Long-form markdown or structured text for deep-dive document view */
+  details?: string;
+  tags?: string[];
 }
 
 export interface ConceptRelation {
@@ -86,6 +101,20 @@ export interface AssistantMessage extends BaseMessage {
   insight?: Insight;
   /** The user message this answers; used for Retry. */
   replyTo?: string;
+  /** Presentation card type for distinct AI responses */
+  cardType?: "idea" | "explanation" | "recommendation";
+  /** Simplified contextual explanation in Spanish when requested */
+  simplifiedExplanation?: string;
+  /** Whether the simplified explanation is toggled open */
+  showExplanation?: boolean;
+  /** Actionable node candidate that can be mapped directly to canvas */
+  actionableNode?: {
+    title: string;
+    description: string;
+    kind: ConceptKind;
+    phase: ResearchPhase;
+    metadata?: string;
+  };
 }
 
 export type Message = UserMessage | AssistantMessage;

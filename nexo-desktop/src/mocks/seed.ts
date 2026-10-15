@@ -10,6 +10,7 @@ import type {
   Language,
   ProjectIcon,
   ProjectStatus,
+  ResearchPhase,
 } from "../domain/types";
 
 export interface L {
@@ -28,6 +29,8 @@ export interface SeedNode {
   title: L;
   description: L;
   metadata: L;
+  phase?: ResearchPhase;
+  details?: L;
 }
 
 export interface SeedMessage {

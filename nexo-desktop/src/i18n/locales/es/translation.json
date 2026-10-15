@@ -158,7 +158,11 @@
     },
     "message": {
       "copy": "Copiar respuesta",
-      "retry": "Regenerar respuesta"
+      "retry": "Regenerar respuesta",
+      "explain": "No entiendo esto, explícamelo",
+      "explained": "Explicación en lenguaje sencillo",
+      "addToCanvas": "Mapear al lienzo",
+      "addedToCanvas": "Mapeado al lienzo"
     },
     "composer": {
       "label": "Mensaje para Nexo",
@@ -175,6 +179,15 @@
       "promptConceptText": "Ayúdame a precisar el concepto central.",
       "disclaimer": "Nexo IA puede equivocarse. Revisa los hallazgos importantes."
     }
+  },
+  "phases": {
+    "planning": "Planificación",
+    "execution": "Ejecución",
+    "validation": "Validación"
+  },
+  "modes": {
+    "notion": "Conocimiento",
+    "graph": "Grafo"
   },
   "kinds": {
     "concept": "Concepto",
