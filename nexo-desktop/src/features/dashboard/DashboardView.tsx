@@ -238,6 +238,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {/* Tarjeta flotante para crear nuevo proyecto */}
+              <div
+                onClick={handleNewProject}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleNewProject();
+                  }
+                }}
+                className="
+                  group relative flex flex-col justify-center items-center text-center p-6
+                  min-h-[190px] rounded-[26px] cursor-pointer
+                  border-2 border-dashed border-line/80 hover:border-concept-fg/60 dark:border-white/15 dark:hover:border-concept-fg/60
+                  bg-surface/50 hover:bg-surface/90 dark:bg-white/[0.02] dark:hover:bg-white/[0.06]
+                  backdrop-blur-xl
+                  shadow-[0_8px_20px_-6px_rgba(0,0,0,0.04)]
+                  hover:shadow-[0_18px_36px_-8px_rgba(0,0,0,0.1)]
+                  hover:-translate-y-1.5 active:translate-y-0
+                  transition-all duration-300 ease-out focus-ring
+                "
+              >
+                <div
+                  className="
+                    w-12 h-12 rounded-2xl mb-3
+                    bg-concept-fg/10 text-concept-fg
+                    flex items-center justify-center
+                    border border-concept-fg/20
+                    group-hover:scale-110 group-hover:bg-concept-fg group-hover:text-white
+                    transition-all duration-300 shadow-xs
+                  "
+                >
+                  <Plus className="w-5 h-5" />
+                </div>
+                <h3 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors">
+                  {t("projects.newCard.title")}
+                </h3>
+                <p className="text-caption text-muted mt-1 max-w-[180px] leading-relaxed">
+                  {t("projects.newCard.hint")}
+                </p>
+              </div>
+
               {filteredProjects.map((project) => (
                 <div
                   key={project.id}
