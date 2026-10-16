@@ -26,6 +26,7 @@ import { mockServices } from "../../services/mock";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { Modal } from "../../components/ui/Modal";
 import type { Project, ProjectIcon, ProjectStatus } from "../../domain/types";
 
 interface DashboardViewProps {
@@ -62,6 +63,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ProjectStatus>("all");
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  // Cerrar el menú de opciones al hacer clic en cualquier parte de la ventana
+  useEffect(() => {
+    if (!activeMenuProjectId) return;
+    const handleGlobalClick = () => setActiveMenuProjectId(null);
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, [activeMenuProjectId]);
 
   const handleDuplicateProject = (project: Project) => {
     setActiveMenuProjectId(null);
@@ -101,18 +111,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     );
   };
 
-  const handleDeleteProject = (project: Project) => {
-    setActiveMenuProjectId(null);
-    const nextList = projects.filter((p) => p.id !== project.id);
+  const confirmDeleteProject = () => {
+    if (!projectToDelete) return;
+    const target = projectToDelete;
+    setProjectToDelete(null);
+    const nextList = projects.filter((p) => p.id !== target.id);
     setProjects(nextList);
     try {
       const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]") as Project[];
-      const updatedStored = stored.filter((p) => p.id !== project.id);
+      const updatedStored = stored.filter((p) => p.id !== target.id);
       localStorage.setItem("nexo.mock.projects", JSON.stringify(updatedStored));
     } catch {
       /* ignore */
     }
-    showToast(`Proyecto "${project.name}" eliminado`, "info");
+    showToast(`Proyecto "${target.name}" eliminado correctamente`, "info");
   };
 
   const loadProjects = async () => {
@@ -402,15 +414,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
 
                         {/* Botón de 3 puntos y Menú flotante */}
-                        <div className="relative">
+                        <div
+                          className="relative"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveMenuProjectId(isMenuOpen ? null : project.id);
                             }}
                             className={`
-                              p-1.5 rounded-full hover:bg-hover transition-all duration-200 cursor-pointer focus-ring
+                              p-2 rounded-full hover:bg-hover transition-all duration-200 cursor-pointer focus-ring
                               ${isMenuOpen ? "opacity-100 bg-hover text-fg" : "text-muted hover:text-fg opacity-0 group-hover:opacity-100"}
                             `}
                             aria-label="Más opciones"
@@ -421,93 +438,91 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                           {/* Menú desplegable funcional */}
                           {isMenuOpen && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40 cursor-default"
+                            <div
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                              className="
+                                absolute right-0 top-10 z-50 w-56
+                                rounded-2xl p-2
+                                border border-line/80 dark:border-white/10
+                                bg-surface/98 dark:bg-[#1c1c1e]/98
+                                backdrop-blur-2xl backdrop-saturate-150
+                                shadow-[0_20px_45px_-8px_rgba(0,0,0,0.25),0_6px_16px_-4px_rgba(0,0,0,0.12),inset_0_1px_0_0_rgba(255,255,255,0.7)]
+                                dark:shadow-[0_24px_50px_-8px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.1)]
+                                animate-scale-in text-fg select-none
+                              "
+                            >
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuProjectId(null);
+                                  navigate(`/workspace/${project.id}`);
                                 }}
-                              />
-                              <div
-                                onClick={(e) => e.stopPropagation()}
                                 className="
-                                  absolute right-0 top-8 z-50 w-44
-                                  rounded-2xl p-1.5
-                                  border border-line/80 dark:border-white/10
-                                  bg-surface/95 dark:bg-[#1f1f23]/95
-                                  backdrop-blur-2xl backdrop-saturate-150
-                                  shadow-[0_16px_36px_-6px_rgba(0,0,0,0.22),0_4px_12px_-2px_rgba(0,0,0,0.12),inset_0_1px_0_0_rgba(255,255,255,0.6)]
-                                  dark:shadow-[0_20px_45px_-6px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.08)]
-                                  animate-scale-in text-fg select-none
+                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-medium
+                                  hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
                                 "
                               >
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuProjectId(null);
-                                    navigate(`/workspace/${project.id}`);
-                                  }}
-                                  className="
-                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
-                                    hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
-                                  "
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5 text-concept-fg shrink-0" />
-                                  <span>Abrir</span>
-                                </button>
+                                <ExternalLink className="w-4 h-4 text-concept-fg shrink-0" />
+                                <span>Abrir diseño</span>
+                              </button>
 
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDuplicateProject(project);
-                                  }}
-                                  className="
-                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
-                                    hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
-                                  "
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-concept-fg shrink-0" />
-                                  <span>Duplicar</span>
-                                </button>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDuplicateProject(project);
+                                }}
+                                className="
+                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-medium
+                                  hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
+                                "
+                              >
+                                <Copy className="w-4 h-4 text-concept-fg shrink-0" />
+                                <span>Duplicar diseño</span>
+                              </button>
 
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleArchiveProject(project);
-                                  }}
-                                  className="
-                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
-                                    hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
-                                  "
-                                >
-                                  <Archive className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                  <span>
-                                    {project.status === "archived" ? "Restaurar" : "Archivar"}
-                                  </span>
-                                </button>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleArchiveProject(project);
+                                }}
+                                className="
+                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-medium
+                                  hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
+                                "
+                              >
+                                <Archive className="w-4 h-4 text-amber-500 shrink-0" />
+                                <span>
+                                  {project.status === "archived" ? "Restaurar a Activo" : "Archivar proyecto"}
+                                </span>
+                              </button>
 
-                                <div className="my-1 h-px bg-line/60 dark:bg-white/10" />
+                              <div className="my-1.5 h-px bg-line/60 dark:bg-white/10" />
 
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteProject(project);
-                                  }}
-                                  className="
-                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
-                                    text-risk-fg hover:bg-risk-fg/10 active:bg-risk-fg/15 transition-colors text-left cursor-pointer
-                                  "
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                                  <span>Eliminar</span>
-                                </button>
-                              </div>
-                            </>
+                              {/* Botón de Eliminar amplio, cómodo y destacado */}
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuProjectId(null);
+                                  setProjectToDelete(project);
+                                }}
+                                className="
+                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-semibold
+                                  text-risk-fg hover:bg-risk-fg/15 active:bg-risk-fg/25 transition-colors text-left cursor-pointer
+                                "
+                              >
+                                <Trash2 className="w-4 h-4 shrink-0 text-risk-fg" />
+                                <span>Eliminar proyecto</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -539,10 +554,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
               );
             })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
+
+      {/* Modal de confirmación para eliminar proyecto con botones grandes y claros */}
+      <Modal
+        isOpen={!!projectToDelete}
+        onClose={() => setProjectToDelete(null)}
+        title="¿Eliminar proyecto?"
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-body text-muted leading-relaxed">
+            ¿Estás seguro de que deseas eliminar{" "}
+            <strong className="text-fg font-semibold">«{projectToDelete?.name}»</strong>?
+            Esta acción borrará el diseño y todos sus conceptos de forma permanente.
+          </p>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-line-soft">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              onClick={() => setProjectToDelete(null)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="md"
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={confirmDeleteProject}
+            >
+              Eliminar proyecto
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
