@@ -1,16 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Monitor, Command, Globe, Check } from "lucide-react";
+import { Sun, Moon, Monitor, Command, Globe, Check, Settings } from "lucide-react";
 import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
 import type { Language } from "../../domain/types";
 
 interface TitlebarProps {
   onOpenCommand: () => void;
+  onOpenSettings?: () => void;
   statusText?: string;
 }
 
-export const Titlebar: React.FC<TitlebarProps> = ({ onOpenCommand, statusText }) => {
+export const Titlebar: React.FC<TitlebarProps> = ({
+  onOpenCommand,
+  onOpenSettings,
+  statusText,
+}) => {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const lang = currentLanguage();
@@ -75,6 +80,16 @@ export const Titlebar: React.FC<TitlebarProps> = ({ onOpenCommand, statusText })
           {theme === "dark" && <Moon className="w-3.5 h-3.5" />}
           {theme === "system" && <Monitor className="w-3.5 h-3.5" />}
         </button>
+
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-fg hover:bg-hover transition-colors ml-0.5"
+            title={t("nav.settings")}
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     </header>
   );

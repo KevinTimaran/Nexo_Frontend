@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { Titlebar } from "./Titlebar";
-import { Sidebar } from "./Sidebar";
 import { CommandPalette } from "../navigation/CommandPalette";
 import { SettingsModal } from "../../features/settings/SettingsModal";
 import { CreateProjectModal } from "../../features/dashboard/CreateProjectModal";
@@ -11,19 +10,14 @@ import { currentLanguage } from "../../i18n";
 import type { NewProjectInput, Project } from "../../domain/types";
 
 export const AppLayout: React.FC = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
 
-  const location = useLocation();
   const navigate = useNavigate();
   const lang = currentLanguage();
   const { showToast } = useToast();
-
-  const isWorkspace = location.pathname.startsWith("/workspace");
-  const activeProjectId = isWorkspace ? location.pathname.split("/")[2] : undefined;
 
   useEffect(() => {
     mockServices.projects
@@ -56,24 +50,20 @@ export const AppLayout: React.FC = () => {
       {/* Native Desktop Titlebar */}
       <Titlebar
         onOpenCommand={() => setCommandPaletteOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
         statusText="Nexo Engine Ready"
       />
 
       {/* Main Workspace Frame */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar */}
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          onOpenNewProject={() => setCreateProjectOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
-          recentProjects={recentProjects}
-          activeProjectId={activeProjectId}
-        />
-
         {/* View Content Area */}
-        <main className="flex-1 h-full overflow-y-auto relative bg-app">
-          <Outlet />
+        <main className="flex-1 h-full overflow-hidden relative bg-app">
+          <Outlet
+            context={{
+              onOpenSettings: () => setSettingsOpen(true),
+              onOpenNewProject: () => setCreateProjectOpen(true),
+            }}
+          />
         </main>
       </div>
 
