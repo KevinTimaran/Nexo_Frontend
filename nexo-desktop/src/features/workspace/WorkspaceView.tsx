@@ -9,6 +9,7 @@ import {
   FolderKanban,
   PanelRightClose,
   PanelRightOpen,
+  Sparkles,
 } from "lucide-react";
 import { mockServices } from "../../services/mock";
 import { currentLanguage } from "../../i18n";
@@ -252,6 +253,7 @@ export const WorkspaceView: React.FC = () => {
           {canvasMode === "graph" && selectedNode && !docNode && (
             <NodeInspectorSheet
               node={selectedNode}
+              isChatOpen={isChatOpen}
               onClose={() => selectNode(null)}
               onAskAI={handleAskAIAboutNode}
               onRemoveNode={handleRemoveNode}
@@ -274,21 +276,45 @@ export const WorkspaceView: React.FC = () => {
               relatedNodes={docRelatedNodes}
             />
           )}
-        </div>
 
-        {/* AI Chat Drawer (Right panel) */}
-        <AIChatDrawer
-          isOpen={isChatOpen}
-          onClose={toggleChat}
-          messages={workspace.messages}
-          isThinking={isThinking}
-          onSendMessage={handleSendMessage}
-          onSelectNode={(nodeId) => selectNode(nodeId)}
-          onRetry={() => {
-            const lastUserMsg = [...workspace.messages].reverse().find((m) => m.role === "user");
-            if (lastUserMsg) void handleSendMessage(lastUserMsg.text);
-          }}
-        />
+          {/* Botón flotante para reabrir el chat cuando está cerrado */}
+          {!isChatOpen && (
+            <button
+              onClick={toggleChat}
+              className="
+                absolute bottom-4 right-4 z-20
+                flex items-center gap-2.5 px-4 py-2.5 rounded-2xl
+                bg-surface/90 dark:bg-zinc-900/90
+                border border-line/80 dark:border-white/10
+                text-fg shadow-xl backdrop-blur-xl
+                hover:bg-surface hover:shadow-2xl hover:scale-105 active:scale-95
+                transition-all duration-200 cursor-pointer group focus-ring
+              "
+              title="Abrir Nexo AI"
+            >
+              <div className="w-6 h-6 rounded-xl bg-gradient-to-br from-concept-fg to-concept-fg/80 text-white flex items-center justify-center shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              </div>
+              <span className="text-caption font-semibold">
+                {t("chat.aiName")}
+              </span>
+            </button>
+          )}
+
+          {/* Floating AI Chat Card */}
+          <AIChatDrawer
+            isOpen={isChatOpen}
+            onClose={toggleChat}
+            messages={workspace.messages}
+            isThinking={isThinking}
+            onSendMessage={handleSendMessage}
+            onSelectNode={(nodeId) => selectNode(nodeId)}
+            onRetry={() => {
+              const lastUserMsg = [...workspace.messages].reverse().find((m) => m.role === "user");
+              if (lastUserMsg) void handleSendMessage(lastUserMsg.text);
+            }}
+          />
+        </div>
       </div>
 
       {/* Modals */}

@@ -7,6 +7,7 @@ import type { ConceptNode, ResearchPhase } from "../../domain/types";
 
 interface NodeInspectorSheetProps {
   node: ConceptNode | null;
+  isChatOpen?: boolean;
   onClose: () => void;
   onAskAI: (nodeTitle: string) => void;
   onRemoveNode: (nodeId: string) => void;
@@ -15,6 +16,7 @@ interface NodeInspectorSheetProps {
 
 export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
   node,
+  isChatOpen = false,
   onClose,
   onAskAI,
   onRemoveNode,
@@ -66,7 +68,23 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
   };
 
   return (
-    <div className="absolute right-4 top-4 bottom-4 w-80 glass border border-line rounded-2xl p-5 shadow-2xl z-30 flex flex-col justify-between animate-sheet-in">
+    <div
+      className={`
+        absolute top-3 bottom-3 sm:top-4 sm:bottom-4
+        ${isChatOpen ? "right-3 sm:right-[444px]" : "right-3 sm:right-4"}
+        w-80 max-w-[calc(100vw-2rem)]
+        rounded-[26px] overflow-hidden
+        border border-line/80 dark:border-white/10
+        bg-surface/90 dark:bg-zinc-950/90
+        backdrop-blur-2xl backdrop-saturate-150
+        p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.18)]
+        dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)]
+        z-30 flex flex-col justify-between
+        transition-all duration-300 ease-out animate-sheet-in select-text
+      `}
+    >
+      {/* Specular Top Reflection */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10" />
       {/* Header */}
       <div>
         <div className="flex items-center justify-between gap-2 pb-3 border-b border-line-soft">

@@ -127,42 +127,70 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
   };
 
   return (
-    <aside className="w-[360px] sm:w-[380px] shrink-0 h-full sidebar-glass border-l border-line flex flex-col justify-between z-20 animate-sheet-in">
-      {/* Header */}
-      <div className="p-3.5 border-b border-line flex items-center justify-between bg-surface/40 backdrop-blur-md">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-concept-fg flex items-center justify-center text-white shadow-sm shadow-concept-fg/30">
-            <Sparkles className="w-4 h-4" />
+    <aside
+      className="
+        absolute top-3 bottom-3 right-3 sm:top-4 sm:bottom-4 sm:right-4 z-30
+        w-[380px] sm:w-[420px] max-w-[calc(100vw-1.5rem)]
+        flex flex-col justify-between
+        rounded-[28px] overflow-hidden
+        border border-line/80 dark:border-white/10
+        bg-surface/90 dark:bg-zinc-950/90
+        backdrop-blur-2xl backdrop-saturate-150
+        shadow-[0_20px_50px_-12px_rgba(0,0,0,0.22),0_0_0_1px_rgba(0,0,0,0.04)]
+        dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.06)]
+        animate-sheet-in transition-all duration-300 ease-out select-text
+      "
+    >
+      {/* Specular Top Reflection */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10" />
+
+      {/* Floating Card Header */}
+      <div className="p-3.5 sm:p-4 border-b border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/60 dark:bg-white/[0.03] backdrop-blur-md relative shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-concept-fg to-concept-fg/80 flex items-center justify-center text-white shadow-md shadow-concept-fg/25">
+            <Sparkles className="w-4 h-4 animate-pulse" />
           </div>
           <div>
-            <h3 className="text-body font-bold text-fg leading-none flex items-center gap-1.5">
-              {t("chat.aiName")}
-              <span className="text-[10px] font-medium bg-concept-fg/10 text-concept-fg border border-concept-fg/20 px-1.5 py-0.2 rounded">
-                IA
+            <div className="flex items-center gap-2">
+              <h3 className="text-body font-bold text-fg leading-none tracking-tight">
+                {t("chat.aiName")}
+              </h3>
+              <span className="text-[10px] font-semibold bg-concept-fg/15 text-concept-fg border border-concept-fg/25 px-1.5 py-0.5 rounded-full">
+                Copilot
               </span>
-            </h3>
-            <p className="text-[10px] text-muted mt-0.5">Exploración e ideación visual</p>
+            </div>
+            <p className="text-[11px] text-muted mt-1 leading-none font-normal">
+              Exploración e ideación visual
+            </p>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="text-muted hover:text-fg p-1.5 rounded-lg hover:bg-hover transition-colors"
-          aria-label={t("common.close")}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {messages.length > 0 && (
+            <span className="text-[10px] font-semibold text-muted bg-sunken/80 dark:bg-white/[0.05] border border-line-soft dark:border-white/10 px-2 py-0.5 rounded-full">
+              {messages.length}
+            </span>
+          )}
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-muted hover:text-fg hover:bg-hover active:scale-95 transition-all focus-ring cursor-pointer"
+            aria-label={t("common.close")}
+            title={t("common.close")}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
         {messages.length === 0 ? (
-          <div className="text-center p-6 bg-surface/70 border border-line rounded-2xl my-4 shadow-sm">
-            <div className="w-10 h-10 rounded-2xl bg-concept-fg/10 text-concept-fg flex items-center justify-center mx-auto mb-3 border border-concept-fg/20">
-              <Sparkles className="w-5 h-5" />
+          <div className="text-center p-6 bg-surface/60 dark:bg-white/[0.02] border border-line/60 dark:border-white/10 rounded-2xl my-4 shadow-sm backdrop-blur-md">
+            <div className="w-12 h-12 rounded-2xl bg-concept-fg/10 text-concept-fg flex items-center justify-center mx-auto mb-3 border border-concept-fg/20 shadow-xs">
+              <Sparkles className="w-6 h-6 animate-pulse" />
             </div>
             <h4 className="text-body font-bold text-fg">{t("chat.empty.title")}</h4>
-            <p className="text-caption text-muted mt-1 leading-relaxed">
+            <p className="text-caption text-muted mt-1.5 leading-relaxed">
               {t("chat.empty.description")}
             </p>
           </div>
@@ -359,15 +387,15 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Prompt Composer Footer */}
-      <div className="p-3.5 border-t border-line bg-surface/50 backdrop-blur-md">
+      {/* Floating Prompt Composer Footer */}
+      <div className="p-3.5 sm:p-4 border-t border-line/60 dark:border-white/10 bg-surface/60 dark:bg-white/[0.03] backdrop-blur-md shrink-0 space-y-2.5">
         {/* Suggestion Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {promptSuggestions.map((s, idx) => (
             <button
               key={idx}
               onClick={() => onSendMessage(s.text)}
-              className="px-2.5 py-1 rounded-full bg-surface hover:bg-sunken border border-line text-[11px] font-medium text-muted hover:text-fg whitespace-nowrap transition-colors shadow-2xs"
+              className="px-2.5 py-1 rounded-full bg-surface/90 dark:bg-white/[0.05] hover:bg-hover border border-line-soft dark:border-white/10 text-[11px] font-medium text-muted hover:text-fg whitespace-nowrap transition-all shadow-2xs hover:scale-[1.02] active:scale-95 cursor-pointer"
             >
               {s.label}
             </button>
@@ -377,7 +405,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         {/* Composer Form */}
         <form
           onSubmit={handleSend}
-          className="relative flex items-end bg-surface border border-line rounded-xl shadow-xs focus-within:ring-2 focus-within:ring-concept-fg/40 focus-within:border-concept-fg transition-all p-1.5"
+          className="relative flex items-end bg-surface/90 dark:bg-zinc-900/90 border border-line/80 dark:border-white/10 rounded-2xl shadow-xs focus-within:ring-2 focus-within:ring-concept-fg/40 focus-within:border-concept-fg transition-all p-1.5"
         >
           <textarea
             value={inputText}
@@ -385,12 +413,12 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={t("chat.composer.placeholder")}
             rows={2}
-            className="w-full bg-transparent text-fg text-caption p-2 pr-10 placeholder:text-muted outline-none resize-none font-normal"
+            className="w-full bg-transparent text-fg text-caption p-2 pr-11 placeholder:text-muted outline-none resize-none font-normal"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || isThinking}
-            className="absolute right-2.5 bottom-2.5 p-1.5 rounded-lg bg-concept-fg text-white disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all shadow-sm"
+            className="absolute right-2 bottom-2 p-2 rounded-xl bg-gradient-to-br from-concept-fg to-concept-fg/90 text-white disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer"
             aria-label={t("chat.composer.send")}
           >
             <Send className="w-3.5 h-3.5" />
