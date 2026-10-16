@@ -14,8 +14,13 @@ import {
   MoreHorizontal,
   Settings,
   LogOut,
+  ExternalLink,
+  Copy,
+  Archive,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { currentLanguage } from "../../i18n";
 import { mockServices } from "../../services/mock";
 import { Badge } from "../../components/ui/Badge";
@@ -45,6 +50,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const outlet = useOutletContext<{ onOpenSettings?: () => void; onOpenNewProject?: () => void }>() || {};
   const handleNewProject = onOpenNewProject || outlet.onOpenNewProject || (() => {});
@@ -55,6 +61,59 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ProjectStatus>("all");
+  const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
+
+  const handleDuplicateProject = (project: Project) => {
+    setActiveMenuProjectId(null);
+    const newId = `p-${Math.random().toString(36).slice(2, 9)}`;
+    const duplicated: Project = {
+      ...project,
+      id: newId,
+      name: `${project.name} (Copia)`,
+      updatedAt: new Date().toISOString(),
+    };
+    const nextList = [duplicated, ...projects];
+    setProjects(nextList);
+    try {
+      const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]");
+      localStorage.setItem("nexo.mock.projects", JSON.stringify([duplicated, ...stored]));
+    } catch {
+      /* ignore */
+    }
+    showToast(`Proyecto "${duplicated.name}" duplicado`, "success");
+  };
+
+  const handleToggleArchiveProject = (project: Project) => {
+    setActiveMenuProjectId(null);
+    const nextStatus: ProjectStatus = project.status === "archived" ? "active" : "archived";
+    const nextList = projects.map((p) => (p.id === project.id ? { ...p, status: nextStatus } : p));
+    setProjects(nextList);
+    try {
+      const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]") as Project[];
+      const updatedStored = stored.map((p) => (p.id === project.id ? { ...p, status: nextStatus } : p));
+      localStorage.setItem("nexo.mock.projects", JSON.stringify(updatedStored));
+    } catch {
+      /* ignore */
+    }
+    showToast(
+      nextStatus === "archived" ? `Proyecto "${project.name}" archivado` : `Proyecto "${project.name}" reactivado`,
+      "info"
+    );
+  };
+
+  const handleDeleteProject = (project: Project) => {
+    setActiveMenuProjectId(null);
+    const nextList = projects.filter((p) => p.id !== project.id);
+    setProjects(nextList);
+    try {
+      const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]") as Project[];
+      const updatedStored = stored.filter((p) => p.id !== project.id);
+      localStorage.setItem("nexo.mock.projects", JSON.stringify(updatedStored));
+    } catch {
+      /* ignore */
+    }
+    showToast(`Proyecto "${project.name}" eliminado`, "info");
+  };
 
   const loadProjects = async () => {
     setLoading(true);
@@ -281,74 +340,177 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </p>
               </div>
 
-              {filteredProjects.map((project) => (
-                <div
-                  key={project.id}
-                  onClick={() => navigate(`/workspace/${project.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      navigate(`/workspace/${project.id}`);
-                    }
-                  }}
-                  className="
-                    group relative flex flex-col justify-between p-5
-                    min-h-[190px] rounded-[26px] cursor-pointer
-                    border border-white/60 dark:border-white/10
-                    bg-surface/85 dark:bg-surface/60
-                    backdrop-blur-2xl backdrop-saturate-150
-                    shadow-[0_10px_25px_-5px_rgba(0,0,0,0.07),0_4px_10px_-4px_rgba(0,0,0,0.03),inset_0_1px_0_0_rgba(255,255,255,0.7)]
-                    dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_0_rgba(255,255,255,0.08)]
-                    hover:shadow-[0_22px_42px_-10px_rgba(0,0,0,0.14),0_8px_16px_-4px_rgba(0,0,0,0.06),inset_0_1px_0_0_rgba(255,255,255,0.9)]
-                    dark:hover:shadow-[0_24px_48px_-10px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.15)]
-                    hover:border-concept-fg/40 dark:hover:border-concept-fg/40
-                    hover:-translate-y-1.5 active:translate-y-0
-                    transition-all duration-300 ease-out focus-ring
-                    overflow-hidden
-                  "
-                >
-                  {/* Brillo especular superior para dar sensación de relieve y vidrio flotante */}
+              {filteredProjects.map((project) => {
+                const isMenuOpen = activeMenuProjectId === project.id;
+                return (
                   <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 opacity-80"
-                  />
+                    key={project.id}
+                    onClick={() => navigate(`/workspace/${project.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(`/workspace/${project.id}`);
+                      }
+                    }}
+                    className={`
+                      group relative flex flex-col justify-between p-5
+                      min-h-[190px] rounded-[26px] cursor-pointer
+                      border border-white/60 dark:border-white/10
+                      bg-surface/85 dark:bg-surface/60
+                      backdrop-blur-2xl backdrop-saturate-150
+                      shadow-[0_10px_25px_-5px_rgba(0,0,0,0.07),0_4px_10px_-4px_rgba(0,0,0,0.03),inset_0_1px_0_0_rgba(255,255,255,0.7)]
+                      dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+                      hover:shadow-[0_22px_42px_-10px_rgba(0,0,0,0.14),0_8px_16px_-4px_rgba(0,0,0,0.06),inset_0_1px_0_0_rgba(255,255,255,0.9)]
+                      dark:hover:shadow-[0_24px_48px_-10px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.15)]
+                      hover:border-concept-fg/40 dark:hover:border-concept-fg/40
+                      hover:-translate-y-1.5 active:translate-y-0
+                      transition-all duration-300 ease-out focus-ring
+                      ${isMenuOpen ? "z-30 !translate-y-0 shadow-lg" : "z-10"}
+                    `}
+                  >
+                    {/* Brillo especular superior para dar sensación de relieve y vidrio flotante */}
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 top-0 h-16 rounded-t-[25px] bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 opacity-80"
+                    />
 
-                  {/* Resplandor ambiental flotante en hover */}
-                  <div
-                    aria-hidden
-                    className="
-                      pointer-events-none absolute -inset-px rounded-[26px]
-                      bg-gradient-to-br from-concept-fg/15 via-transparent to-concept-fg/5
-                      opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10
-                    "
-                  />
+                    {/* Resplandor ambiental flotante en hover */}
+                    <div
+                      aria-hidden
+                      className="
+                        pointer-events-none absolute -inset-px rounded-[26px]
+                        bg-gradient-to-br from-concept-fg/15 via-transparent to-concept-fg/5
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10
+                      "
+                    />
 
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-3.5">
-                      <div
-                        className="
-                          w-11 h-11 rounded-2xl
-                          bg-gradient-to-b from-concept-fg/15 to-concept-fg/5
-                          text-concept-fg flex items-center justify-center
-                          border border-concept-fg/20 shadow-xs
-                          group-hover:scale-105 group-hover:shadow-sm
-                          transition-transform duration-300
-                        "
-                      >
-                        {ICON_MAP[project.icon] || <Layers className="w-5 h-5" />}
+                    <div className="relative z-10">
+                      <div className="flex items-start justify-between mb-3.5 relative">
+                        <div
+                          className="
+                            w-11 h-11 rounded-2xl
+                            bg-gradient-to-b from-concept-fg/15 to-concept-fg/5
+                            text-concept-fg flex items-center justify-center
+                            border border-concept-fg/20 shadow-xs
+                            group-hover:scale-105 group-hover:shadow-sm
+                            transition-transform duration-300
+                          "
+                        >
+                          {ICON_MAP[project.icon] || <Layers className="w-5 h-5" />}
+                        </div>
+
+                        {/* Botón de 3 puntos y Menú flotante */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuProjectId(isMenuOpen ? null : project.id);
+                            }}
+                            className={`
+                              p-1.5 rounded-full hover:bg-hover transition-all duration-200 cursor-pointer focus-ring
+                              ${isMenuOpen ? "opacity-100 bg-hover text-fg" : "text-muted hover:text-fg opacity-0 group-hover:opacity-100"}
+                            `}
+                            aria-label="Más opciones"
+                            title="Opciones del proyecto"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+
+                          {/* Menú desplegable funcional */}
+                          {isMenuOpen && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40 cursor-default"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuProjectId(null);
+                                }}
+                              />
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="
+                                  absolute right-0 top-8 z-50 w-44
+                                  rounded-2xl p-1.5
+                                  border border-line/80 dark:border-white/10
+                                  bg-surface/95 dark:bg-[#1f1f23]/95
+                                  backdrop-blur-2xl backdrop-saturate-150
+                                  shadow-[0_16px_36px_-6px_rgba(0,0,0,0.22),0_4px_12px_-2px_rgba(0,0,0,0.12),inset_0_1px_0_0_rgba(255,255,255,0.6)]
+                                  dark:shadow-[0_20px_45px_-6px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+                                  animate-scale-in text-fg select-none
+                                "
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuProjectId(null);
+                                    navigate(`/workspace/${project.id}`);
+                                  }}
+                                  className="
+                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
+                                    hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
+                                  "
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5 text-concept-fg shrink-0" />
+                                  <span>Abrir</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDuplicateProject(project);
+                                  }}
+                                  className="
+                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
+                                    hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
+                                  "
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-concept-fg shrink-0" />
+                                  <span>Duplicar</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleArchiveProject(project);
+                                  }}
+                                  className="
+                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
+                                    hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
+                                  "
+                                >
+                                  <Archive className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                  <span>
+                                    {project.status === "archived" ? "Restaurar" : "Archivar"}
+                                  </span>
+                                </button>
+
+                                <div className="my-1 h-px bg-line/60 dark:bg-white/10" />
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteProject(project);
+                                  }}
+                                  className="
+                                    w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-caption font-medium
+                                    text-risk-fg hover:bg-risk-fg/10 active:bg-risk-fg/15 transition-colors text-left cursor-pointer
+                                  "
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                  <span>Eliminar</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        className="text-muted hover:text-fg p-1.5 rounded-full hover:bg-hover opacity-0 group-hover:opacity-100 transition-all duration-200"
-                        aria-label="Más opciones"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
                     
                     <h3 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors duration-200 line-clamp-1">
                       {project.name}
@@ -375,7 +537,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </Badge>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </div>
