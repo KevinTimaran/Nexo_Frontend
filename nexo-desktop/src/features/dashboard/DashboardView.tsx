@@ -270,7 +270,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Filter tabs */}
-        <div className="relative z-10 px-7 sm:px-8 mb-5 shrink-0">
+        <div className="relative z-10 px-7 sm:px-8 mb-2 shrink-0">
           <div className="inline-flex bg-sunken/80 border border-line-soft rounded-full p-1 shadow-inner backdrop-blur-md">
             {(["all", "active", "draft", "archived"] as const).map((st) => (
               <button
@@ -288,8 +288,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="relative z-10 flex-1 overflow-y-auto px-7 sm:px-8 pb-10">
+        {/* Scrollable Content: con pt-3.5 para permitir que la elevación hover de la primera fila no se corte con el borde superior */}
+        <div className="relative z-10 flex-1 overflow-y-auto px-7 sm:px-8 pt-3.5 pb-10">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {[1, 2, 3, 4].map((i) => (
@@ -329,6 +329,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   shadow-[0_8px_20px_-6px_rgba(0,0,0,0.04)]
                   hover:shadow-[0_18px_36px_-8px_rgba(0,0,0,0.1)]
                   hover:-translate-y-1.5 active:translate-y-0
+                  transform-gpu will-change-transform
                   transition-all duration-300 ease-out focus-ring
                 "
               >
@@ -378,6 +379,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       dark:hover:shadow-[0_24px_48px_-10px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.15)]
                       hover:border-concept-fg/40 dark:hover:border-concept-fg/40
                       hover:-translate-y-1.5 active:translate-y-0
+                      transform-gpu will-change-transform
                       transition-all duration-300 ease-out focus-ring
                       ${isMenuOpen ? "z-30 !translate-y-0 shadow-lg" : "z-10"}
                     `}
