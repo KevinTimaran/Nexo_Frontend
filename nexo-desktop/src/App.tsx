@@ -24,11 +24,7 @@ const AppRoutes: React.FC = () => {
             index
             element={
               <div className="h-full w-full animate-fade-in">
-                <DashboardView
-                  onOpenNewProject={() => {
-                    // Handled in layout command modal
-                  }}
-                />
+                <DashboardView />
               </div>
             }
           />

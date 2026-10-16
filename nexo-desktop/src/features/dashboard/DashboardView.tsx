@@ -27,7 +27,8 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
-import type { Project, ProjectIcon, ProjectStatus } from "../../domain/types";
+import { CreateProjectModal } from "./CreateProjectModal";
+import type { Project, ProjectIcon, ProjectStatus, NewProjectInput } from "../../domain/types";
 
 interface DashboardViewProps {
   onOpenNewProject?: () => void;
@@ -54,7 +55,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const { showToast } = useToast();
   const navigate = useNavigate();
   const outlet = useOutletContext<{ onOpenSettings?: () => void; onOpenNewProject?: () => void }>() || {};
-  const handleNewProject = onOpenNewProject || outlet.onOpenNewProject || (() => {});
+  const [internalCreateModalOpen, setInternalCreateModalOpen] = useState(false);
+
+  const handleNewProject = () => {
+    if (onOpenNewProject) {
+      onOpenNewProject();
+    } else if (outlet.onOpenNewProject) {
+      outlet.onOpenNewProject();
+    } else {
+      setInternalCreateModalOpen(true);
+    }
+  };
+
   const handleOpenSettings = onOpenSettings || outlet.onOpenSettings || (() => {});
   const lang = currentLanguage();
 
@@ -64,6 +76,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<"all" | ProjectStatus>("all");
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  const handleCreateProjectInternal = async (input: NewProjectInput) => {
+    const created = await mockServices.projects.create(input);
+    setInternalCreateModalOpen(false);
+    showToast(t("projects.create.created", { name: created.name }), "success");
+    navigate(`/workspace/${created.id}`);
+  };
 
   // Cerrar el menú de opciones al hacer clic en cualquier parte de la ventana
   useEffect(() => {
@@ -306,6 +325,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <h3 className="text-body font-semibold text-fg">{t("projects.empty.title")}</h3>
               <p className="text-caption text-muted mt-1 max-w-sm">{t("projects.empty.description")}</p>
+              <div className="mt-4 flex items-center gap-3">
+                {search || statusFilter !== "all" ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("all");
+                    }}
+                  >
+                    {t("common.clearSearch")}
+                  </Button>
+                ) : null}
+                <Button variant="primary" onClick={handleNewProject} icon={<Plus className="w-4 h-4" />}>
+                  {t("projects.newCard.title")}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -596,6 +631,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </Modal>
+
+      {/* Modal para crear nuevo proyecto (cuando se renderiza independiente o de respaldo) */}
+      <CreateProjectModal
+        isOpen={internalCreateModalOpen}
+        onClose={() => setInternalCreateModalOpen(false)}
+        onSubmit={handleCreateProjectInternal}
+      />
     </div>
   );
 };

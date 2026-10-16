@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Titlebar } from "./Titlebar";
 import { CommandPalette } from "../navigation/CommandPalette";
 import { SettingsModal } from "../../features/settings/SettingsModal";
@@ -10,6 +11,7 @@ import { currentLanguage } from "../../i18n";
 import type { NewProjectInput, Project } from "../../domain/types";
 
 export const AppLayout: React.FC = () => {
+  const { t } = useTranslation();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -40,7 +42,7 @@ export const AppLayout: React.FC = () => {
 
   const handleCreateProject = async (input: NewProjectInput) => {
     const created = await mockServices.projects.create(input);
-    showToast(`Project "${created.name}" created!`, "success");
+    showToast(t("projects.create.created", { name: created.name }), "success");
     setRecentProjects((prev) => [created, ...prev]);
     navigate(`/workspace/${created.id}`);
   };
