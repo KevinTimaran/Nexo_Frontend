@@ -11,7 +11,7 @@ import {
   PanelRightOpen,
   Sparkles,
 } from "lucide-react";
-import { mockServices } from "../../services/mock";
+import { services } from "../../services";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
@@ -58,7 +58,7 @@ export const WorkspaceView: React.FC = () => {
   useEffect(() => {
     if (!projectId) return;
     setLoading(true);
-    mockServices.workspace
+    services.workspace
       .load(projectId, lang)
       .then((data) => {
         setWorkspace(data);
@@ -72,7 +72,7 @@ export const WorkspaceView: React.FC = () => {
   // Persist session edits
   const saveSession = (map: ConceptMap, messages: Message[]) => {
     if (!projectId) return;
-    mockServices.workspace.save(projectId, map, messages);
+    services.workspace.save(projectId, map, messages);
   };
 
   const handleSendMessage = async (text: string) => {
@@ -93,7 +93,7 @@ export const WorkspaceView: React.FC = () => {
     setThinking(true);
 
     try {
-      const response = await mockServices.ai.reply({
+      const response = await services.ai.reply({
         text,
         map: workspace.map,
         lang,

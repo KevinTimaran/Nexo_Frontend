@@ -39,8 +39,16 @@ export interface AIReplyRequest {
   replyTo: string;
 }
 
+export interface AITutorRequest {
+  messageText: string;
+  conceptTitle?: string;
+  conceptDescription?: string;
+  lang: Language;
+}
+
 export interface AIService {
   reply(request: AIReplyRequest): Promise<AIResponse>;
+  explain(request: AITutorRequest): Promise<string>;
 }
 
 export interface DocumentService {

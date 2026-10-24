@@ -1,9 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Monitor, Command, Globe, Check, Settings } from "lucide-react";
+import { Sun, Moon, Monitor, Command, Globe, Settings } from "lucide-react";
 import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
 import type { Language } from "../../domain/types";
+
+import { ConnectivityStatus } from "../connectivity/ConnectivityStatus";
 
 interface TitlebarProps {
   onOpenCommand: () => void;
@@ -14,7 +16,6 @@ interface TitlebarProps {
 export const Titlebar: React.FC<TitlebarProps> = ({
   onOpenCommand,
   onOpenSettings,
-  statusText,
 }) => {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
@@ -37,15 +38,8 @@ export const Titlebar: React.FC<TitlebarProps> = ({
         <span className="text-body font-semibold text-fg tracking-tight">
           {t("app.name")}
         </span>
-        {statusText && (
-          <>
-            <div className="h-3 w-px bg-line mx-1" />
-            <span className="text-caption text-muted flex items-center gap-1.5 bg-sunken px-2 py-0.5 rounded-full border border-line">
-              <Check className="w-3 h-3 text-positive-fg" />
-              {statusText}
-            </span>
-          </>
-        )}
+        <div className="h-3 w-px bg-line mx-0.5" />
+        <ConnectivityStatus />
       </div>
 
       {/* Center section: Global Command trigger */}

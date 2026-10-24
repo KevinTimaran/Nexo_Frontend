@@ -387,13 +387,28 @@ const ai: AIService = {
           title: node.title,
           description: node.description,
           kind: node.kind,
+          category: node.category,
+          priority: node.priority,
           phase: node.phase ?? "planning",
           metadata: node.metadata,
+          details: node.details,
         },
       },
       newNodes: [node],
       newRelations: [relation],
     };
+  },
+
+  async explain(request) {
+    await latency(900);
+    const { messageText, conceptTitle, lang } = request;
+    if (lang === "es") {
+      if (conceptTitle) {
+        return `Explicación didáctica sobre «${conceptTitle}»:\n\n1. ¿Qué significa?\nEste concepto busca aterrizar un componente clave de tu modelo para que sea viable técnica y económicamente.\n\n2. Ejemplo cotidiano:\nImagina que estás abriendo una cafetería en la facultad; antes de comprar máquinas caras, haces una encuesta rápida para saber si los estudiantes prefieren café para llevar o mesas de estudio.\n\n3. Paso siguiente recomendado:\nDiseña una pequeña prueba de concepto con un grupo reducido de usuarios para validar esta hipótesis.`;
+      }
+      return `Explicación sencilla paso a paso:\n\n1. Enfoque clave:\nEl mensaje anterior analiza: "${messageText.slice(0, 90)}..."\n\n2. ¿Por qué importa?\nTe ayuda a priorizar los aspectos críticos de riesgo y viabilidad antes de invertir tiempo en desarrollo.\n\n3. Próximo paso:\nAgrégalo como concepto al lienzo para evaluar sus relaciones y dependencias con otras áreas.`;
+    }
+    return `Tutor explanation for "${conceptTitle || 'this concept'}":\n\n1. Core Idea: Breaks down your proposal into measurable milestones.\n2. Simple Analogy: Testing a recipe for 5 friends before printing restaurant menus.\n3. Recommended next step: Validate this assumption with your core user base.`;
   },
 };
 

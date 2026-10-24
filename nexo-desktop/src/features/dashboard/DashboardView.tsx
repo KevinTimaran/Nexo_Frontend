@@ -22,7 +22,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { currentLanguage } from "../../i18n";
-import { mockServices } from "../../services/mock";
+import { services } from "../../services";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -78,7 +78,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const handleCreateProjectInternal = async (input: NewProjectInput) => {
-    const created = await mockServices.projects.create(input);
+    const created = await services.projects.create(input);
     setInternalCreateModalOpen(false);
     showToast(t("projects.create.created", { name: created.name }), "success");
     navigate(`/workspace/${created.id}`);
@@ -149,7 +149,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const loadProjects = async () => {
     setLoading(true);
     try {
-      const data = await mockServices.projects.list(lang);
+      const data = await services.projects.list(lang);
       setProjects(data);
       if (onProjectsLoaded) onProjectsLoaded(data);
     } catch {

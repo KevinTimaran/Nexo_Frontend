@@ -11,7 +11,7 @@ import type {
   ResearchPhase,
   Workspace,
 } from "../domain/types";
-import { mockServices } from "../services/mock";
+import { services } from "../services";
 
 interface WorkspaceState {
   // Data
@@ -56,7 +56,7 @@ interface WorkspaceState {
 
 const persistSession = (projectId: string, map: ConceptMap, messages: Message[]) => {
   try {
-    mockServices.workspace.save(projectId, map, messages);
+    services.workspace.save(projectId, map, messages);
   } catch (error) {
     console.error("Failed to persist workspace session", error);
   }

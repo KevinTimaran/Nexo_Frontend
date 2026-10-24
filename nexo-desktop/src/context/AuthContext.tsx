@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { User } from "../domain/types";
-import { mockServices } from "../services/mock";
+import { services } from "../services";
 
 interface AuthContextValue {
   user: User | null;
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, pass: string) => {
     setIsLoading(true);
     try {
-      const result = await mockServices.auth.signIn(email, pass);
+      const result = await services.auth.signIn(email, pass);
       setUser(result);
       return result;
     } finally {
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setIsLoading(true);
     try {
-      await mockServices.auth.signOut();
+      await services.auth.signOut();
       setUser(null);
     } finally {
       setIsLoading(false);

@@ -5,7 +5,7 @@ import { Titlebar } from "./Titlebar";
 import { CommandPalette } from "../navigation/CommandPalette";
 import { SettingsModal } from "../../features/settings/SettingsModal";
 import { CreateProjectModal } from "../../features/dashboard/CreateProjectModal";
-import { mockServices } from "../../services/mock";
+import { services } from "../../services";
 import { useToast } from "../../context/ToastContext";
 import { currentLanguage } from "../../i18n";
 import type { NewProjectInput, Project } from "../../domain/types";
@@ -22,7 +22,7 @@ export const AppLayout: React.FC = () => {
   const { showToast } = useToast();
 
   useEffect(() => {
-    mockServices.projects
+    services.projects
       .list(lang)
       .then(setRecentProjects)
       .catch(() => {});
@@ -41,7 +41,7 @@ export const AppLayout: React.FC = () => {
   }, []);
 
   const handleCreateProject = async (input: NewProjectInput) => {
-    const created = await mockServices.projects.create(input);
+    const created = await services.projects.create(input);
     showToast(t("projects.create.created", { name: created.name }), "success");
     setRecentProjects((prev) => [created, ...prev]);
     navigate(`/workspace/${created.id}`);
@@ -53,7 +53,6 @@ export const AppLayout: React.FC = () => {
       <Titlebar
         onOpenCommand={() => setCommandPaletteOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
-        statusText="Nexo Engine Ready"
       />
 
       {/* Main Workspace Frame */}
