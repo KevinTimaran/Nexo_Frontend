@@ -237,7 +237,7 @@ export const LoginView: React.FC = () => {
               </button>
             </p>
 
-            {/* Secure dev note */}
+            {/* Secure dev note with truthful adapter transparency */}
             <div
               className="
                 mt-6 p-3 rounded-2xl
@@ -248,10 +248,12 @@ export const LoginView: React.FC = () => {
                 flex items-start gap-2.5 leading-normal
               "
             >
-              <ShieldCheck className="w-4 h-4 text-positive-fg shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-concept-fg shrink-0 mt-0.5" />
               <div>
-                <span className="font-medium text-fg">Ambiente seguro de desarrollo: </span>
-                {t("auth.previewNote")}
+                <span className="font-semibold text-fg">Adaptador de Autenticación: </span>
+                <span>
+                  Modo activo gestionado por el registro de servicios. En entorno local utiliza simulación determinista para desarrollo y pruebas de interfaz.
+                </span>
               </div>
             </div>
           </div>
