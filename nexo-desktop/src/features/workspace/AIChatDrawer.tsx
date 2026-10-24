@@ -14,10 +14,16 @@ import {
   Compass,
   AlertTriangle,
   RotateCcw,
+  Loader2,
+  BookOpen,
 } from "lucide-react";
 import type { AssistantMessage, Message, ResearchPhase } from "../../domain/types";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { useConnectivityStore } from "../../store/useConnectivityStore";
 import { useToast } from "../../context/ToastContext";
+import { services } from "../../services";
+import { currentLanguage } from "../../i18n";
+import { Badge } from "../../components/ui/Badge";
 
 interface AIChatDrawerProps {
   isOpen: boolean;
@@ -40,11 +46,20 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const lang = currentLanguage();
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Zustand actions for direct canvas synchronization
-  const { addNodeFromChat, toggleExplanation, workspace } = useWorkspaceStore();
+  const {
+    addNodeFromChat,
+    toggleExplanation,
+    setMessageExplaining,
+    setMessageExplanation,
+    workspace,
+  } = useWorkspaceStore();
+
+  const { mode: serviceMode, aiProvider } = useConnectivityStore();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,6 +105,38 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
     }
   };
 
+  // Asynchronous Tutor Mode handler ("No entiendo esto, explícamelo")
+  const handleRequestExplanation = async (msg: AssistantMessage) => {
+    // If an explanation is already processing for this message, avoid duplicate requests
+    if (msg.isExplaining) return;
+
+    // If an explanation already exists, simply toggle visibility
+    if (msg.simplifiedExplanation) {
+      toggleExplanation(msg.id);
+      return;
+    }
+
+    // Trigger loading state for this specific message
+    setMessageExplaining(msg.id, true, null);
+
+    try {
+      const explanation = await services.ai.explain({
+        messageText: msg.text,
+        conceptTitle: msg.actionableNode?.title,
+        conceptDescription: msg.actionableNode?.description,
+        lang,
+      });
+
+      setMessageExplanation(msg.id, explanation);
+    } catch {
+      setMessageExplaining(
+        msg.id,
+        false,
+        "No fue posible generar la explicación didáctica en este momento. Por favor reintenta."
+      );
+    }
+  };
+
   // Helper to check if an actionable candidate is already on canvas
   const isNodeOnCanvas = (title: string): boolean => {
     if (!workspace) return false;
@@ -130,7 +177,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
     <aside
       className="
         absolute top-3 bottom-3 right-3 sm:top-4 sm:bottom-4 sm:right-4 z-30
-        w-[380px] sm:w-[420px] max-w-[calc(100vw-1.5rem)]
+        w-[390px] sm:w-[440px] max-w-[calc(100vw-1.5rem)]
         flex flex-col justify-between
         rounded-[28px] overflow-hidden
         border border-line/80 dark:border-white/10
@@ -160,7 +207,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-muted mt-1 leading-none font-normal">
-              Exploración e ideación visual
+              Exploración, ideación y modo tutor
             </p>
           </div>
         </div>
@@ -230,9 +277,10 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     <p className="whitespace-pre-wrap font-normal">{msg.text}</p>
                   </div>
 
-                  {/* Rich Knowledge Card for Assistant Messages */}
+                  {/* 5.1 Structured Rich Knowledge Card for Assistant Responses */}
                   {asstMsg && (actionable || asstMsg.cardType) && (
-                    <div className="p-4 rounded-2xl bg-sunken/90 dark:bg-zinc-900/90 border border-line-soft dark:border-zinc-800 space-y-3 text-left shadow-sm animate-fade-in transition-all">
+                    <div className="p-4 rounded-2xl bg-sunken/90 dark:bg-zinc-900/90 border border-line-soft dark:border-zinc-800 space-y-3 text-left shadow-sm hover:shadow-md transition-all">
+                      {/* Card Header with Badges */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-1.5">
                           {actionable?.kind === "viability" ? (
@@ -246,25 +294,51 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                             {actionable?.title || t("chat.insight.eyebrow")}
                           </span>
                         </div>
-                        {getPhaseBadge(actionable?.phase)}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {actionable?.category && (
+                            <Badge category={actionable.category} size="sm" />
+                          )}
+                          {actionable?.priority && (
+                            <Badge priority={actionable.priority} size="sm" />
+                          )}
+                          {getPhaseBadge(actionable?.phase)}
+                        </div>
                       </div>
 
+                      {/* Card Content */}
                       {actionable?.description && (
                         <p className="text-caption text-muted leading-relaxed">
                           {actionable.description}
                         </p>
                       )}
 
-                      {/* Card Action Buttons */}
+                      {/* Contextual metadata chip if present */}
+                      {actionable?.metadata && (
+                        <div className="text-[11px] font-mono text-muted bg-surface/75 px-2 py-0.5 rounded-md border border-line-soft inline-block">
+                          {actionable.metadata}
+                        </div>
+                      )}
+
+                      {/* 5.2 Card Action Buttons: Tutor Mode & Direct Canvas Mapping */}
                       <div className="pt-2 flex flex-col gap-1.5 border-t border-line-soft dark:border-zinc-800/80">
-                        {/* Ghost Button: "No entiendo esto, explícamelo" */}
+                        {/* Tutor Mode Action Button */}
                         <button
                           type="button"
-                          onClick={() => toggleExplanation(msg.id)}
-                          className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-caption font-medium text-muted hover:text-fg hover:bg-hover active:bg-selected transition-all"
+                          onClick={() => void handleRequestExplanation(asstMsg)}
+                          disabled={asstMsg.isExplaining}
+                          className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-caption font-medium text-muted hover:text-fg hover:bg-hover active:bg-selected transition-all focus-ring disabled:opacity-50 cursor-pointer"
                         >
-                          <HelpCircle className="w-3.5 h-3.5 text-concept-fg" />
-                          <span>{t("chat.message.explain")}</span>
+                          {asstMsg.isExplaining ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 text-concept-fg animate-spin" />
+                              <span>Generando explicación didáctica...</span>
+                            </>
+                          ) : (
+                            <>
+                              <HelpCircle className="w-3.5 h-3.5 text-concept-fg" />
+                              <span>No entiendo esto, explícamelo</span>
+                            </>
+                          )}
                         </button>
 
                         {/* Direct Canvas Mapping Action */}
@@ -276,7 +350,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                             className={`w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-caption font-semibold transition-all shadow-sm ${
                               isAlreadyMapped
                                 ? "bg-positive-fg/15 text-positive-fg border border-positive-fg/20 cursor-default"
-                                : "bg-concept-fg text-white hover:brightness-110 active:scale-[0.98]"
+                                : "bg-concept-fg text-white hover:brightness-110 active:scale-[0.98] cursor-pointer"
                             }`}
                           >
                             {isAlreadyMapped ? (
@@ -294,17 +368,40 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                         )}
                       </div>
 
-                      {/* Contextual Simplified Explanation Callout */}
+                      {/* Tutor Mode Explanation Box */}
                       {asstMsg.showExplanation && (
-                        <div className="p-3 rounded-xl bg-concept-fg/5 dark:bg-concept-fg/10 border border-concept-fg/20 text-caption text-fg animate-fade-in space-y-1">
-                          <div className="flex items-center gap-1.5 text-concept-fg font-semibold text-[11px]">
-                            <HelpCircle className="w-3.5 h-3.5" />
-                            <span>{t("chat.message.explained")}</span>
+                        <div className="p-3.5 rounded-xl bg-concept-fg/5 dark:bg-concept-fg/10 border border-concept-fg/20 text-caption text-fg animate-fade-in space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-concept-fg font-bold text-[11px] uppercase tracking-wide">
+                              <BookOpen className="w-3.5 h-3.5" />
+                              <span>Modo Tutor — Explicación Simplificada</span>
+                            </div>
+                            <span className="text-[10px] text-muted font-mono">
+                              {serviceMode === "mock" ? "Simulador Local" : aiProvider}
+                            </span>
                           </div>
-                          <p className="text-muted leading-relaxed font-normal text-xs">
-                            {asstMsg.simplifiedExplanation ||
-                              "Esta tarjeta resume un componente esencial de tu proyecto. Te ayuda a entender su objetivo y los siguientes pasos necesarios para validar si tiene éxito."}
-                          </p>
+
+                          {asstMsg.isExplaining ? (
+                            <div className="flex items-center gap-2 py-2 text-muted text-xs">
+                              <Loader2 className="w-4 h-4 animate-spin text-concept-fg" />
+                              <span>El tutor está preparando tu explicación paso a paso...</span>
+                            </div>
+                          ) : asstMsg.explanationError ? (
+                            <div className="space-y-2">
+                              <p className="text-xs text-risk-fg">{asstMsg.explanationError}</p>
+                              <button
+                                type="button"
+                                onClick={() => void handleRequestExplanation(asstMsg)}
+                                className="text-xs text-concept-fg font-semibold hover:underline"
+                              >
+                                Reintentar explicación
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-muted leading-relaxed font-normal text-xs whitespace-pre-wrap">
+                              {asstMsg.simplifiedExplanation}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -322,7 +419,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                           <button
                             key={item.nodeId}
                             onClick={() => onSelectNode(item.nodeId)}
-                            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-sunken transition-colors text-caption text-fg text-left group"
+                            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-sunken transition-colors text-caption text-fg text-left group cursor-pointer"
                           >
                             <span className="truncate flex items-center gap-2">
                               <span
@@ -358,7 +455,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     {!isUser && (
                       <button
                         onClick={onRetry}
-                        className="inline-flex items-center gap-1 hover:text-fg transition-colors"
+                        className="inline-flex items-center gap-1 hover:text-fg transition-colors cursor-pointer"
                         title={t("chat.message.retry")}
                       >
                         <RotateCcw className="w-3 h-3" />
