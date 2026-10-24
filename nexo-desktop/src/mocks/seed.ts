@@ -8,6 +8,8 @@ import type {
   ConceptKind,
   ConceptStatus,
   Language,
+  NodeCategory,
+  NodePriority,
   ProjectIcon,
   ProjectStatus,
   ResearchPhase,
@@ -23,6 +25,8 @@ export const pick = (text: L, lang: Language): string => text[lang];
 export interface SeedNode {
   id: string;
   kind: ConceptKind;
+  category?: NodeCategory;
+  priority?: NodePriority;
   status: ConceptStatus;
   x: number;
   y: number;

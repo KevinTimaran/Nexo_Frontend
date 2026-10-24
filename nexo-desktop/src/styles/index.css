@@ -37,6 +37,19 @@
   --risk-fg: #ff9f0a;
   
   --sidebar-bg: rgb(236 236 236 / 0.6);
+
+  /* Refactored Priority & Category Semantic Palette */
+  --primary: #1e293b;
+  --priority-high: #991b1b;
+  --priority-medium: #b45309;
+  --priority-low: #475569;
+
+  --category-legal: #6b21a8;
+  --category-economic: #065f46;
+  --category-political: #1e3a8a;
+  --category-technical: #0f766e;
+
+  --card-shadow: 0 8px 30px rgb(0 0 0 / 0.04);
 }
 
 .dark {
@@ -69,6 +82,19 @@
   --risk-fg: #ff9f0a;
   
   --sidebar-bg: rgb(28 28 30 / 0.6);
+
+  /* Refactored Priority & Category Semantic Palette (Dark) */
+  --primary: #0f172a;
+  --priority-high: #ef4444;
+  --priority-medium: #f59e0b;
+  --priority-low: #94a3b8;
+
+  --category-legal: #a855f7;
+  --category-economic: #10b981;
+  --category-political: #3b82f6;
+  --category-technical: #14b8a6;
+
+  --card-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
 }
 
 @theme inline {
@@ -94,6 +120,16 @@
   --color-risk-fg: var(--risk-fg);
   
   --color-sidebar-bg: var(--sidebar-bg);
+
+  --color-primary: var(--primary);
+  --color-priority-high: var(--priority-high);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-low: var(--priority-low);
+
+  --color-category-legal: var(--category-legal);
+  --color-category-economic: var(--category-economic);
+  --color-category-political: var(--category-political);
+  --color-category-technical: var(--category-technical);
 }
 
 @theme {

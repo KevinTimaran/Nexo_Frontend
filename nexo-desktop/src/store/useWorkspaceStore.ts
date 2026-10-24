@@ -6,6 +6,8 @@ import type {
   ConceptNode,
   Message,
   AssistantMessage,
+  NodeCategory,
+  NodePriority,
   ResearchPhase,
   Workspace,
 } from "../domain/types";
@@ -38,10 +40,14 @@ interface WorkspaceState {
   // Message operations
   addMessage: (message: Message) => void;
   toggleExplanation: (messageId: string) => void;
+  setMessageExplaining: (messageId: string, isExplaining: boolean, error?: string | null) => void;
+  setMessageExplanation: (messageId: string, explanation: string) => void;
   addNodeFromChat: (nodeDraft: {
     title: string;
     description: string;
     kind: ConceptKind;
+    category?: NodeCategory;
+    priority?: NodePriority;
     phase: ResearchPhase;
     metadata?: string;
     details?: string;
@@ -58,7 +64,7 @@ const persistSession = (projectId: string, map: ConceptMap, messages: Message[])
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspace: null,
-  canvasMode: "graph",
+  canvasMode: "notion",
   selectedNodeId: null,
   expandedDocNodeId: null,
   isThinking: false,
@@ -170,6 +176,45 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ workspace: { ...workspace, messages: nextMessages } });
   },
 
+  setMessageExplaining: (messageId, isExplaining, error = null) => {
+    const { workspace } = get();
+    if (!workspace) return;
+
+    const nextMessages = workspace.messages.map((m) => {
+      if (m.id === messageId && m.role === "assistant") {
+        return {
+          ...m,
+          isExplaining,
+          explanationError: error,
+          showExplanation: isExplaining ? true : m.showExplanation,
+        } as AssistantMessage;
+      }
+      return m;
+    });
+
+    set({ workspace: { ...workspace, messages: nextMessages } });
+  },
+
+  setMessageExplanation: (messageId, explanation) => {
+    const { workspace } = get();
+    if (!workspace) return;
+
+    const nextMessages = workspace.messages.map((m) => {
+      if (m.id === messageId && m.role === "assistant") {
+        return {
+          ...m,
+          isExplaining: false,
+          explanationError: null,
+          simplifiedExplanation: explanation,
+          showExplanation: true,
+        } as AssistantMessage;
+      }
+      return m;
+    });
+
+    set({ workspace: { ...workspace, messages: nextMessages } });
+  },
+
   addNodeFromChat: (nodeDraft) => {
     const { workspace } = get();
     if (!workspace) return null;
@@ -193,6 +238,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const newNode: ConceptNode = {
       id,
       kind: nodeDraft.kind,
+      category: nodeDraft.category ?? (nodeDraft.kind === "viability" ? "economic" : nodeDraft.kind === "risk" ? "legal" : "technical"),
+      priority: nodeDraft.priority ?? (nodeDraft.kind === "risk" ? "high" : "medium"),
       title: nodeDraft.title,
       description: nodeDraft.description,
       status: "confirmed",

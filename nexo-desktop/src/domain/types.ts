@@ -32,7 +32,18 @@ export interface NewProjectInput {
   description: string;
 }
 
-export type CanvasMode = "notion" | "graph";
+export type CanvasMode = "notion" | "obsidian";
+
+/**
+ * Domain-specific thematic category for research and concept analysis.
+ * Explicitly mapped to semantic design tokens.
+ */
+export type NodeCategory = "legal" | "economic" | "political" | "technical";
+
+/**
+ * Strict priority levels for concepts and actionable insights.
+ */
+export type NodePriority = "high" | "medium" | "low";
 
 /**
  * The three distinct research phases for visualizing concept evolution:
@@ -49,6 +60,8 @@ export type ConceptStatus = "confirmed" | "exploring" | "review";
 export interface ConceptNode {
   id: string;
   kind: ConceptKind;
+  category?: NodeCategory;
+  priority?: NodePriority;
   title: string;
   description: string;
   /** Short supporting fact, e.g. "3 sources" or "Score 72/100". */
@@ -107,13 +120,20 @@ export interface AssistantMessage extends BaseMessage {
   simplifiedExplanation?: string;
   /** Whether the simplified explanation is toggled open */
   showExplanation?: boolean;
+  /** Whether a tutor explanation is currently being generated */
+  isExplaining?: boolean;
+  /** Error occurred while generating explanation, if any */
+  explanationError?: string | null;
   /** Actionable node candidate that can be mapped directly to canvas */
   actionableNode?: {
     title: string;
     description: string;
     kind: ConceptKind;
+    category?: NodeCategory;
+    priority?: NodePriority;
     phase: ResearchPhase;
     metadata?: string;
+    details?: string;
   };
 }
 
@@ -154,4 +174,51 @@ export class ServiceError extends Error {
     this.code = code;
     this.name = "ServiceError";
   }
+}
+
+/* ----------------------- Connectivity & Health Types ----------------------- */
+
+export type BackendStatus = "connected" | "disconnected" | "checking" | "error" | "mock";
+export type AIServiceStatus =
+  | "ready"
+  | "processing"
+  | "waiting"
+  | "unavailable"
+  | "error"
+  | "simulated";
+export type Neo4jStatus =
+  | "connected"
+  | "synchronizing"
+  | "synchronized"
+  | "disconnected"
+  | "error"
+  | "unknown";
+export type ServiceMode = "mock" | "server";
+
+export interface BackendHealthState {
+  status: BackendStatus;
+  mode: ServiceMode;
+  apiUrl: string;
+  lastChecked?: string;
+  latencyMs?: number;
+  errorMessage?: string;
+}
+
+export interface AIHealthState {
+  status: AIServiceStatus;
+  provider: string;
+  lastActivity?: string;
+  errorMessage?: string;
+}
+
+export interface Neo4jHealthState {
+  status: Neo4jStatus;
+  lastSync?: string;
+  errorMessage?: string;
+}
+
+export interface SystemConnectivityState {
+  backend: BackendHealthState;
+  ai: AIHealthState;
+  neo4j: Neo4jHealthState;
 }

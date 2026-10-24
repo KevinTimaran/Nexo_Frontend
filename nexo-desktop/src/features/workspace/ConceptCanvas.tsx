@@ -6,7 +6,6 @@ import {
   Maximize2,
   RotateCcw,
   Plus,
-  Network,
   FileText,
   Sparkles,
   CheckCircle2,
@@ -15,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
+import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import type { ConceptMap, ConceptNode, ResearchPhase } from "../../domain/types";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 
@@ -182,42 +182,8 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   return (
     <div className="relative w-full h-full bg-app overflow-hidden select-none">
       {/* Top-Centered Segmented Control: Dual-Mode Switcher */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center p-1 rounded-2xl glass border border-line shadow-lg backdrop-blur-xl animate-rise-in">
-        <div
-          role="radiogroup"
-          aria-label="Modo del lienzo"
-          className="flex items-center gap-1"
-        >
-          <button
-            type="button"
-            role="radio"
-            aria-checked={canvasMode === "graph"}
-            onClick={() => setCanvasMode("graph")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-caption font-semibold transition-all focus-ring ${
-              canvasMode === "graph"
-                ? "bg-surface text-fg shadow-xs scale-100"
-                : "text-muted hover:text-fg hover:bg-hover scale-95"
-            }`}
-          >
-            <Network className="w-3.5 h-3.5 text-concept-fg" />
-            <span>{t("modes.graph")}</span>
-          </button>
-
-          <button
-            type="button"
-            role="radio"
-            aria-checked={canvasMode === "notion"}
-            onClick={() => setCanvasMode("notion")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-caption font-semibold transition-all focus-ring ${
-              canvasMode === "notion"
-                ? "bg-surface text-fg shadow-xs scale-100"
-                : "text-muted hover:text-fg hover:bg-hover scale-95"
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5 text-concept-fg" />
-            <span>{t("modes.notion")}</span>
-          </button>
-        </div>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 animate-rise-in">
+        <ViewModeToggle mode={canvasMode} onChange={setCanvasMode} />
       </div>
 
       {/* ============================================================== */}
@@ -443,9 +409,9 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* MODE 2: GRAPH MODE ('graph') - Spatial Canvas with Bezier Curves */}
+      {/* MODE 2: OBSIDIAN CONSTELLATION MODE ('obsidian') */}
       {/* ============================================================== */}
-      {canvasMode === "graph" && (
+      {canvasMode === "obsidian" && (
         <div
           ref={containerRef}
           onMouseDown={handleMouseDownContainer}

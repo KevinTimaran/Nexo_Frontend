@@ -249,8 +249,8 @@ export const WorkspaceView: React.FC = () => {
             onOpenDocDetail={(node) => setExpandedDocNodeId(node.id)}
           />
 
-          {/* Node Inspector Sheet overlay (when in Graph mode and a node is selected) */}
-          {canvasMode === "graph" && selectedNode && !docNode && (
+          {/* Node Inspector Sheet overlay (when in Obsidian mode and a node is selected) */}
+          {canvasMode === "obsidian" && selectedNode && !docNode && (
             <NodeInspectorSheet
               node={selectedNode}
               isChatOpen={isChatOpen}
@@ -267,7 +267,7 @@ export const WorkspaceView: React.FC = () => {
               node={docNode}
               onClose={() => setExpandedDocNodeId(null)}
               onViewInGraph={(nodeId) => {
-                setCanvasMode("graph");
+                setCanvasMode("obsidian");
                 selectNode(nodeId);
                 setExpandedDocNodeId(null);
               }}

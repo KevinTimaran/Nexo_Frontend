@@ -10,8 +10,11 @@ import {
   type ConceptMap,
   type ConceptNode,
   type ConceptRelation,
+  type ConceptStatus,
   type Language,
   type Message,
+  type NodeCategory,
+  type NodePriority,
   type Project,
   type ProjectIcon,
   type ResearchPhase,
@@ -76,11 +79,29 @@ function resolveSeedProject(seed: SeedProject, lang: Language): Project {
   };
 }
 
+function inferCategory(id: string, kind: ConceptKind): NodeCategory {
+  const lower = id.toLowerCase();
+  if (lower.includes("legal") || lower.includes("pay") || lower.includes("reg") || lower.includes("law")) return "legal";
+  if (lower.includes("cac") || lower.includes("demand") || lower.includes("market") || lower.includes("cost") || lower.includes("eco")) return "economic";
+  if (lower.includes("identity") || lower.includes("safety") || lower.includes("impact") || lower.includes("social")) return "political";
+  if (kind === "viability") return "economic";
+  if (kind === "risk") return "legal";
+  return "technical";
+}
+
+function inferPriority(kind: ConceptKind, status: ConceptStatus): NodePriority {
+  if (kind === "risk" || status === "review") return "high";
+  if (kind === "viability" || status === "confirmed") return "medium";
+  return "low";
+}
+
 function resolveSeedMap(seed: SeedProject, lang: Language): ConceptMap {
   return {
     nodes: seed.nodes.map((n) => ({
       id: n.id,
       kind: n.kind,
+      category: n.category ?? inferCategory(n.id, n.kind),
+      priority: n.priority ?? inferPriority(n.kind, n.status),
       status: n.status,
       x: n.x,
       y: n.y,
