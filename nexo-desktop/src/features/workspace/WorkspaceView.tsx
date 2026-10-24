@@ -18,7 +18,7 @@ import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { ConceptCanvas } from "./ConceptCanvas";
 import { AIChatDrawer } from "./AIChatDrawer";
 import { NodeInspectorSheet } from "./NodeInspectorSheet";
-import { DocumentDetailOverlay } from "./DocumentDetailOverlay";
+import { NotionModalViewer } from "./NotionModalViewer";
 import { AddNodeModal } from "./AddNodeModal";
 import { GenerateDocumentModal } from "../documents/GenerateDocumentModal";
 import { Button } from "../../components/ui/Button";
@@ -261,9 +261,9 @@ export const WorkspaceView: React.FC = () => {
             />
           )}
 
-          {/* Document Deep Dive Overlay (Notion mode or explicit doc open) */}
+          {/* Deep-Dive Document Viewer (NotionModalViewer) */}
           {docNode && (
-            <DocumentDetailOverlay
+            <NotionModalViewer
               node={docNode}
               onClose={() => setExpandedDocNodeId(null)}
               onViewInGraph={(nodeId) => {
