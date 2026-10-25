@@ -27,17 +27,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
-            className={`w-full h-9 bg-elevated border rounded-xl text-fg text-body placeholder:text-muted focus-ring transition-colors ${
-              icon ? "pl-9" : "px-3"
-            } ${
-              error
-                ? "border-risk-fg focus:border-risk-fg"
-                : "border-line focus:border-concept-fg"
-            } ${className}`}
+            className={`
+              w-full h-9 rounded-xl text-fg text-body placeholder:text-muted/60
+              bg-surface/85 dark:bg-white/[0.04]
+              border border-line dark:border-white/10
+              backdrop-blur-md
+              shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
+              dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
+              focus:outline-none focus:ring-2 focus:ring-concept-fg/25
+              transition-all duration-200
+              ${icon ? "pl-9" : "px-3"}
+              ${
+                error
+                  ? "border-danger-fg focus:border-danger-fg focus:ring-danger-fg/20"
+                  : "focus:border-concept-fg"
+              }
+              ${className}
+            `}
             {...props}
           />
         </div>
-        {error && <span className="text-caption text-risk-fg">{error}</span>}
+        {error && <span className="text-caption text-danger-fg font-medium">{error}</span>}
         {hint && !error && <span className="text-caption text-muted">{hint}</span>}
       </div>
     );

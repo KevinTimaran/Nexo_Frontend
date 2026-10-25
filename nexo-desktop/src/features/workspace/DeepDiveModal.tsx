@@ -149,25 +149,34 @@ export const DeepDiveModal: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none">
         {/* Backdrop con desenfoque de cristal */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 bg-black/50 dark:bg-black/75 backdrop-blur-md cursor-pointer"
           onClick={closeDeepDive}
           aria-hidden="true"
         />
 
-        {/* Carta Flotante Superpuesta estilo Notion */}
+        {/* Carta Flotante Superpuesta estilo Notion (Creative Glass) */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 16 }}
+          initial={{ opacity: 0, scale: 0.96, y: 14 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 16 }}
+          exit={{ opacity: 0, scale: 0.96, y: 14 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-zinc-950 border border-line rounded-3xl shadow-2xl flex flex-col z-10 overflow-hidden text-fg"
+          className="
+            relative w-full max-w-3xl max-h-[90vh]
+            rounded-[32px] overflow-hidden
+            border border-line/80 dark:border-white/12
+            bg-surface/92 dark:bg-zinc-950/92
+            backdrop-blur-3xl backdrop-saturate-[180%]
+            shadow-[0_32px_80px_-16px_rgba(15,23,42,0.22),inset_0_1px_0_0_rgba(255,255,255,0.9)]
+            dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+            flex flex-col z-10 text-fg select-text
+          "
           role="dialog"
           aria-modal="true"
           aria-labelledby="deep-dive-title"
@@ -175,8 +184,14 @@ export const DeepDiveModal: React.FC = () => {
           {/* Barra superior de color de fase */}
           <div className={`h-2 w-full ${currentPhaseConfig.dotColor} transition-colors duration-300`} />
 
+          {/* Specular hairline top reflection */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-2 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
+          />
+
           {/* Modal Header */}
-          <div className="px-6 pt-5 pb-4 border-b border-line-soft space-y-4">
+          <div className="px-6 pt-5 pb-4 border-b border-line/60 dark:border-white/10 bg-surface/40 dark:bg-white/[0.02] space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-caption font-mono text-muted tracking-wider uppercase">
@@ -186,10 +201,10 @@ export const DeepDiveModal: React.FC = () => {
               <button
                 type="button"
                 onClick={closeDeepDive}
-                className="p-1.5 rounded-xl text-muted hover:text-fg hover:bg-hover active:scale-95 transition-all cursor-pointer"
+                className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover active:scale-95 transition-all flex items-center justify-center cursor-pointer focus-ring"
                 aria-label="Cerrar modal"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -210,7 +225,7 @@ export const DeepDiveModal: React.FC = () => {
               {/* Selector de Fase */}
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] text-muted font-medium">Fase:</span>
-                <div className="flex items-center gap-1 bg-sunken/60 dark:bg-zinc-900/60 p-1 rounded-xl border border-line-soft">
+                <div className="flex items-center gap-1 glass-pill p-1 rounded-xl">
                   {PHASES.map((p) => {
                     const active = phase === p.key;
                     return (
@@ -235,7 +250,7 @@ export const DeepDiveModal: React.FC = () => {
               {/* Selector de Prioridad */}
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] text-muted font-medium">Prioridad:</span>
-                <div className="flex items-center gap-1 bg-sunken/60 dark:bg-zinc-900/60 p-1 rounded-xl border border-line-soft">
+                <div className="flex items-center gap-1 glass-pill p-1 rounded-xl">
                   {PRIORITIES.map((pr) => {
                     const active = priority === pr.key;
                     return (
@@ -262,10 +277,10 @@ export const DeepDiveModal: React.FC = () => {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as NodeCategory)}
-                  className="px-2.5 py-1 rounded-xl bg-sunken/60 dark:bg-zinc-900/60 border border-line-soft text-[11px] font-medium text-fg focus:outline-none focus:border-concept-fg cursor-pointer"
+                  className="px-2.5 py-1 rounded-xl glass-pill text-[11px] font-semibold text-fg focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg cursor-pointer"
                 >
                   {CATEGORIES.map((cat) => (
-                    <option key={cat.key} value={cat.key}>
+                    <option key={cat.key} value={cat.key} className="bg-surface text-fg">
                       {cat.label}
                     </option>
                   ))}
@@ -286,7 +301,16 @@ export const DeepDiveModal: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Breve resumen de 1-2 oraciones del concepto..."
-                className="w-full text-caption px-3 py-2 rounded-xl bg-sunken/40 dark:bg-zinc-900/40 border border-line-soft text-fg focus:outline-none focus:border-concept-fg transition-colors"
+                className="
+                  w-full text-caption px-3.5 py-2.5 rounded-xl text-fg
+                  bg-surface/85 dark:bg-white/[0.04]
+                  border border-line/80 dark:border-white/10
+                  backdrop-blur-md
+                  shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
+                  dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
+                  focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg
+                  transition-colors
+                "
               />
             </div>
 
@@ -299,13 +323,13 @@ export const DeepDiveModal: React.FC = () => {
                 </label>
 
                 {/* Tabs Switcher */}
-                <div className="flex items-center p-0.5 rounded-lg bg-sunken/80 dark:bg-zinc-900/80 border border-line-soft text-[11px]">
+                <div className="flex items-center p-0.5 rounded-xl glass-pill text-[11px]">
                   <button
                     type="button"
                     onClick={() => setActiveTab("edit")}
-                    className={`px-2.5 py-1 rounded-md font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === "edit"
-                        ? "bg-white dark:bg-zinc-800 text-fg shadow-xs"
+                        ? "bg-surface/95 dark:bg-white/[0.1] text-fg shadow-2xs border border-line-soft dark:border-white/10"
                         : "text-muted hover:text-fg"
                     }`}
                   >
@@ -315,9 +339,9 @@ export const DeepDiveModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("preview")}
-                    className={`px-2.5 py-1 rounded-md font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === "preview"
-                        ? "bg-white dark:bg-zinc-800 text-fg shadow-xs"
+                        ? "bg-surface/95 dark:bg-white/[0.1] text-fg shadow-2xs border border-line-soft dark:border-white/10"
                         : "text-muted hover:text-fg"
                     }`}
                   >
@@ -333,10 +357,19 @@ export const DeepDiveModal: React.FC = () => {
                   onChange={(e) => setDetails(e.target.value)}
                   placeholder="Redacta la especificación completa de este bloque aquí...&#10;&#10;Puedes usar Markdown:&#10;### Hipótesis Central&#10;- Punto 1...&#10;&#10;### Métricas Clave&#10;- Adopción esperada: 80%&#10;&#10;### Próximos Pasos&#10;1. Validar prototipo..."
                   rows={14}
-                  className="w-full p-4 font-mono text-[13px] bg-sunken/30 dark:bg-zinc-900/30 rounded-2xl border border-line-soft focus:outline-none focus:border-concept-fg text-fg placeholder:text-muted/40 leading-relaxed resize-y min-h-[260px] shadow-inner"
+                  className="
+                    w-full p-4 font-mono text-[13px] rounded-2xl
+                    bg-surface/85 dark:bg-white/[0.04]
+                    border border-line/80 dark:border-white/10
+                    backdrop-blur-md
+                    shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
+                    dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
+                    focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg
+                    text-fg placeholder:text-muted/40 leading-relaxed resize-y min-h-[260px]
+                  "
                 />
               ) : (
-                <div className="w-full min-h-[260px] max-h-[420px] overflow-y-auto p-5 bg-sunken/20 dark:bg-zinc-900/20 rounded-2xl border border-line-soft">
+                <div className="w-full min-h-[260px] max-h-[420px] overflow-y-auto p-5 bg-surface/70 dark:bg-white/[0.03] rounded-2xl border border-line/80 dark:border-white/10 backdrop-blur-md">
                   <MarkdownRenderer
                     content={
                       details.trim().length > 0
@@ -350,12 +383,12 @@ export const DeepDiveModal: React.FC = () => {
           </div>
 
           {/* Footer con Botones de Acción */}
-          <div className="px-6 py-4 border-t border-line-soft bg-sunken/40 dark:bg-zinc-900/40 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-line/60 dark:border-white/10 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md flex items-center justify-between">
             <span className="text-[11px] text-muted">
-              Presiona <kbd className="px-1.5 py-0.5 rounded bg-surface border border-line-soft font-mono">ESC</kbd> para salir sin guardar
+              Presiona <kbd className="px-1.5 py-0.5 rounded bg-surface/90 dark:bg-white/[0.06] border border-line-soft dark:border-white/10 font-mono shadow-2xs">ESC</kbd> para salir sin guardar
             </span>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <Button
                 variant="ghost"
                 size="sm"

@@ -51,6 +51,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       onClose={onClose}
       title={t("projects.create.title")}
       description={t("projects.create.description")}
+      maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -71,11 +72,20 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("projects.create.detailsPlaceholder")}
             rows={3}
-            className="w-full bg-elevated border border-line rounded-xl text-fg text-body p-3 placeholder:text-muted focus-ring transition-colors resize-none"
+            className="
+              w-full rounded-xl text-fg text-body p-3 placeholder:text-muted/60
+              bg-surface/85 dark:bg-white/[0.04]
+              border border-line dark:border-white/10
+              backdrop-blur-md
+              shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
+              dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
+              focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg
+              transition-all duration-200 resize-none
+            "
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-line/60 dark:border-white/10">
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
@@ -85,7 +95,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             loading={loading}
             icon={<Plus className="w-4 h-4" />}
           >
-            {loading ? t("projects.create.submitting") : t("projects.create.submit")}
+            {t("projects.create.submit")}
           </Button>
         </div>
       </form>

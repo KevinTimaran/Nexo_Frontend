@@ -107,16 +107,13 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
   // Asynchronous Tutor Mode handler ("No entiendo esto, explícamelo")
   const handleRequestExplanation = async (msg: AssistantMessage) => {
-    // If an explanation is already processing for this message, avoid duplicate requests
     if (msg.isExplaining) return;
 
-    // If an explanation already exists, simply toggle visibility
     if (msg.simplifiedExplanation) {
       toggleExplanation(msg.id);
       return;
     }
 
-    // Trigger loading state for this specific message
     setMessageExplaining(msg.id, true, null);
 
     try {
@@ -137,11 +134,10 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
     }
   };
 
-  // Helper to check if an actionable candidate is already on canvas
   const isNodeOnCanvas = (title: string): boolean => {
     if (!workspace) return false;
     return workspace.map.nodes.some(
-      (n) => n.title.toLowerCase().trim() === title.toLowerCase().trim()
+      (n) => n.title.trim().toLowerCase() === title.trim().toLowerCase()
     );
   };
 
@@ -180,19 +176,22 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         w-[390px] sm:w-[440px] max-w-[calc(100vw-1.5rem)]
         flex flex-col justify-between
         rounded-[28px] overflow-hidden
-        border border-line/80 dark:border-white/10
-        bg-surface/90 dark:bg-zinc-950/90
-        backdrop-blur-2xl backdrop-saturate-150
-        shadow-[0_20px_50px_-12px_rgba(0,0,0,0.22),0_0_0_1px_rgba(0,0,0,0.04)]
-        dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.06)]
+        border border-line/80 dark:border-white/12
+        bg-surface/92 dark:bg-zinc-950/92
+        backdrop-blur-3xl backdrop-saturate-[180%]
+        shadow-[0_20px_50px_-12px_rgba(15,23,42,0.22),inset_0_1px_0_0_rgba(255,255,255,0.85)]
+        dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)]
         animate-sheet-in transition-all duration-300 ease-out select-text
       "
     >
       {/* Specular Top Reflection */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10"
+      />
 
       {/* Floating Card Header */}
-      <div className="p-3.5 sm:p-4 border-b border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/60 dark:bg-white/[0.03] backdrop-blur-md relative shrink-0">
+      <div className="p-3.5 sm:p-4 border-b border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md relative shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-concept-fg to-concept-fg/80 flex items-center justify-center text-white shadow-md shadow-concept-fg/25">
             <Sparkles className="w-4 h-4 animate-pulse" />
@@ -214,7 +213,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
         <div className="flex items-center gap-1.5">
           {messages.length > 0 && (
-            <span className="text-[10px] font-semibold text-muted bg-sunken/80 dark:bg-white/[0.05] border border-line-soft dark:border-white/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-semibold text-muted bg-surface/90 dark:bg-white/[0.06] border border-line-soft dark:border-white/10 px-2 py-0.5 rounded-full shadow-2xs">
               {messages.length}
             </span>
           )}
@@ -257,29 +256,29 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                 <div
                   className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
                     isUser
-                      ? "bg-surface text-fg border border-line"
-                      : "bg-concept-fg text-white"
+                      ? "bg-surface/90 text-fg border border-line/80 dark:border-white/10"
+                      : "bg-gradient-to-br from-concept-fg to-concept-fg/80 text-white shadow-concept-fg/20"
                   }`}
                 >
-                  {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                  {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                 </div>
 
                 {/* Message Body */}
                 <div className={`space-y-2 max-w-[88%] ${isUser ? "text-right" : ""}`}>
                   {/* Bubble / Text Box */}
                   <div
-                    className={`p-3.5 rounded-2xl text-caption leading-relaxed shadow-sm ${
+                    className={`p-3.5 rounded-2xl text-caption leading-relaxed shadow-xs ${
                       isUser
-                        ? "bg-concept-fg text-white rounded-tr-sm"
-                        : "bg-surface/90 border border-line text-fg rounded-tl-sm backdrop-blur-sm"
+                        ? "bg-gradient-to-r from-concept-fg to-concept-fg/90 text-white font-normal shadow-[0_4px_14px_-3px_rgba(37,99,235,0.4),inset_0_1px_0_0_rgba(255,255,255,0.3)] rounded-tr-sm"
+                        : "bg-surface/85 dark:bg-white/[0.04] border border-line/80 dark:border-white/10 text-fg rounded-tl-sm backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
                     }`}
                   >
                     <p className="whitespace-pre-wrap font-normal">{msg.text}</p>
                   </div>
 
-                  {/* 5.1 Structured Rich Knowledge Card for Assistant Responses */}
+                  {/* Structured Rich Knowledge Card for Assistant Responses */}
                   {asstMsg && (actionable || asstMsg.cardType) && (
-                    <div className="p-4 rounded-2xl bg-sunken/90 dark:bg-zinc-900/90 border border-line-soft dark:border-zinc-800 space-y-3 text-left shadow-sm hover:shadow-md transition-all">
+                    <div className="p-4 rounded-2xl bg-surface/90 dark:bg-zinc-900/90 border border-line/80 dark:border-white/10 space-y-3 text-left shadow-xs hover:shadow-md transition-all backdrop-blur-md">
                       {/* Card Header with Badges */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-1.5">
@@ -312,15 +311,15 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                         </p>
                       )}
 
-                      {/* Contextual metadata chip if present */}
+                      {/* Contextual metadata chip */}
                       {actionable?.metadata && (
-                        <div className="text-[11px] font-mono text-muted bg-surface/75 px-2 py-0.5 rounded-md border border-line-soft inline-block">
+                        <div className="text-[10px] font-mono text-muted bg-surface/80 dark:bg-white/[0.06] px-2 py-0.5 rounded-md border border-line-soft dark:border-white/10 inline-block">
                           {actionable.metadata}
                         </div>
                       )}
 
-                      {/* 5.2 Card Action Buttons: Tutor Mode & Direct Canvas Mapping */}
-                      <div className="pt-2 flex flex-col gap-1.5 border-t border-line-soft dark:border-zinc-800/80">
+                      {/* Card Action Buttons */}
+                      <div className="pt-2 flex flex-col gap-1.5 border-t border-line-soft dark:border-white/5">
                         {/* Tutor Mode Action Button */}
                         <button
                           type="button"
@@ -347,10 +346,10 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                             type="button"
                             onClick={() => handleMapNode(actionable)}
                             disabled={isAlreadyMapped}
-                            className={`w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-caption font-semibold transition-all shadow-sm ${
+                            className={`w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-caption font-semibold transition-all shadow-xs ${
                               isAlreadyMapped
-                                ? "bg-positive-fg/15 text-positive-fg border border-positive-fg/20 cursor-default"
-                                : "bg-concept-fg text-white hover:brightness-110 active:scale-[0.98] cursor-pointer"
+                                ? "bg-positive-fg/15 text-positive-fg border border-positive-fg/25 cursor-default"
+                                : "bg-gradient-to-r from-concept-fg to-concept-fg/90 text-white hover:brightness-105 active:scale-[0.98] cursor-pointer"
                             }`}
                           >
                             {isAlreadyMapped ? (
@@ -370,7 +369,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
                       {/* Tutor Mode Explanation Box */}
                       {asstMsg.showExplanation && (
-                        <div className="p-3.5 rounded-xl bg-concept-fg/5 dark:bg-concept-fg/10 border border-concept-fg/20 text-caption text-fg animate-fade-in space-y-2">
+                        <div className="p-3.5 rounded-xl bg-concept-fg/5 dark:bg-concept-fg/10 border border-concept-fg/20 text-caption text-fg animate-fade-in space-y-2 backdrop-blur-xs">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5 text-concept-fg font-bold text-[11px] uppercase tracking-wide">
                               <BookOpen className="w-3.5 h-3.5" />
@@ -392,7 +391,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                               <button
                                 type="button"
                                 onClick={() => void handleRequestExplanation(asstMsg)}
-                                className="text-xs text-concept-fg font-semibold hover:underline"
+                                className="text-xs text-concept-fg font-semibold hover:underline cursor-pointer"
                               >
                                 Reintentar explicación
                               </button>
@@ -409,7 +408,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
                   {/* Embedded Related Node Links if provided */}
                   {asstMsg?.insight && (
-                    <div className="p-3 rounded-xl bg-surface border border-line-soft space-y-1.5 text-left shadow-sm">
+                    <div className="p-3 rounded-2xl bg-surface/80 dark:bg-white/[0.03] border border-line/60 dark:border-white/10 space-y-1.5 text-left shadow-2xs backdrop-blur-md">
                       <div className="text-[10px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1">
                         <Sparkles className="w-3 h-3 text-concept-fg" />
                         {asstMsg.insight.title}
@@ -419,7 +418,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                           <button
                             key={item.nodeId}
                             onClick={() => onSelectNode(item.nodeId)}
-                            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-sunken transition-colors text-caption text-fg text-left group cursor-pointer"
+                            className="w-full flex items-center justify-between p-1.5 rounded-xl hover:bg-hover transition-colors text-caption text-fg text-left group cursor-pointer focus-ring"
                           >
                             <span className="truncate flex items-center gap-2">
                               <span
@@ -472,10 +471,10 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         {/* Thinking Indicator */}
         {isThinking && (
           <div className="flex gap-3 animate-fade-in">
-            <div className="w-7 h-7 rounded-xl bg-concept-fg text-white flex items-center justify-center shrink-0 shadow-sm shadow-concept-fg/30">
-              <Sparkles className="w-4 h-4 animate-spin" />
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-concept-fg to-concept-fg/80 text-white flex items-center justify-center shrink-0 shadow-sm shadow-concept-fg/30">
+              <Sparkles className="w-3.5 h-3.5 animate-spin" />
             </div>
-            <div className="p-3.5 rounded-2xl bg-surface border border-line text-caption text-muted rounded-tl-sm flex items-center gap-2.5 shadow-sm">
+            <div className="p-3.5 rounded-2xl bg-surface/85 dark:bg-white/[0.04] border border-line/80 dark:border-white/10 text-caption text-muted rounded-tl-sm flex items-center gap-2.5 shadow-xs backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-concept-fg animate-ping" />
               <span className="font-medium text-fg">{t("chat.thinking.step2")}</span>
             </div>
@@ -485,14 +484,14 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
       </div>
 
       {/* Floating Prompt Composer Footer */}
-      <div className="p-3.5 sm:p-4 border-t border-line/60 dark:border-white/10 bg-surface/60 dark:bg-white/[0.03] backdrop-blur-md shrink-0 space-y-2.5">
+      <div className="p-3.5 sm:p-4 border-t border-line/60 dark:border-white/10 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md shrink-0 space-y-2.5">
         {/* Suggestion Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {promptSuggestions.map((s, idx) => (
             <button
               key={idx}
               onClick={() => onSendMessage(s.text)}
-              className="px-2.5 py-1 rounded-full bg-surface/90 dark:bg-white/[0.05] hover:bg-hover border border-line-soft dark:border-white/10 text-[11px] font-medium text-muted hover:text-fg whitespace-nowrap transition-all shadow-2xs hover:scale-[1.02] active:scale-95 cursor-pointer"
+              className="px-2.5 py-1 rounded-full glass-pill hover:bg-hover text-[11px] font-medium text-muted hover:text-fg whitespace-nowrap transition-all shadow-2xs hover:scale-[1.02] active:scale-95 cursor-pointer focus-ring"
             >
               {s.label}
             </button>
@@ -502,7 +501,15 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         {/* Composer Form */}
         <form
           onSubmit={handleSend}
-          className="relative flex items-end bg-surface/90 dark:bg-zinc-900/90 border border-line/80 dark:border-white/10 rounded-2xl shadow-xs focus-within:ring-2 focus-within:ring-concept-fg/40 focus-within:border-concept-fg transition-all p-1.5"
+          className="
+            relative flex items-end
+            bg-surface/85 dark:bg-white/[0.04]
+            border border-line/80 dark:border-white/10
+            rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
+            dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
+            focus-within:ring-2 focus-within:ring-concept-fg/25 focus-within:border-concept-fg
+            transition-all p-1.5 backdrop-blur-md
+          "
         >
           <textarea
             value={inputText}
@@ -510,12 +517,17 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={t("chat.composer.placeholder")}
             rows={2}
-            className="w-full bg-transparent text-fg text-caption p-2 pr-11 placeholder:text-muted outline-none resize-none font-normal"
+            className="w-full bg-transparent text-fg text-caption p-2 pr-11 placeholder:text-muted/60 outline-none resize-none font-normal"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || isThinking}
-            className="absolute right-2 bottom-2 p-2 rounded-xl bg-gradient-to-br from-concept-fg to-concept-fg/90 text-white disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer"
+            className="
+              absolute right-2 bottom-2 p-2 rounded-xl
+              bg-gradient-to-br from-concept-fg to-concept-fg/90 text-white
+              disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all
+              shadow-sm cursor-pointer focus-ring
+            "
             aria-label={t("chat.composer.send")}
           >
             <Send className="w-3.5 h-3.5" />

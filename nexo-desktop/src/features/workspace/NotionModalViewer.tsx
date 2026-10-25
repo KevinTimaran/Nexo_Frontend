@@ -89,7 +89,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="notion-document-title"
-      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-md animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -97,22 +97,20 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
       <div
         className="
           w-full sm:w-[560px] md:w-[640px] max-w-full h-full
-          bg-surface/98 dark:bg-zinc-950/98
-          border-l border-line
-          shadow-2xl backdrop-blur-2xl
-          flex flex-col justify-between
+          glass-modal border-l border-white/20 dark:border-white/10
+          shadow-2xl flex flex-col justify-between
           overflow-hidden animate-sheet-in
-          text-fg select-text
+          text-fg select-text specular-sheen
         "
       >
         {/* Top Header Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-line flex items-center justify-between bg-sunken/40 dark:bg-white/[0.02] shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="p-4 sm:p-5 border-b border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs shrink-0">
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shadow-2xs">
               <FileText className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[11px] font-bold text-muted uppercase tracking-wider block">
+              <span className="text-[10px] font-bold text-muted/80 uppercase tracking-wider block">
                 Documento de Investigación
               </span>
               <span className="text-caption font-mono text-muted">ID: {node.id}</span>
@@ -123,7 +121,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             {onViewInGraph && (
               <button
                 onClick={() => onViewInGraph(node.id)}
-                className="h-8 px-2.5 rounded-xl border border-line hover:border-concept-fg bg-surface hover:bg-hover text-caption font-medium flex items-center gap-1.5 text-muted hover:text-fg transition-all"
+                className="h-8 px-2.5 rounded-xl border border-line-soft hover:border-concept-fg/50 bg-surface-secondary/70 hover:bg-surface-secondary text-caption font-medium flex items-center gap-1.5 text-muted hover:text-fg transition-all"
                 title="Localizar en la constelación Obsidian"
               >
                 <Network className="w-3.5 h-3.5 text-concept-fg" />
@@ -207,7 +205,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 {relatedNodes.map((rel) => (
                   <div
                     key={rel.id}
-                    className="p-3 rounded-xl bg-sunken/60 hover:bg-hover border border-line-soft text-left space-y-1 transition-all"
+                    className="p-3 rounded-2xl glass-card border border-white/10 text-left space-y-1 transition-all hover:border-concept-fg/40"
                   >
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="font-semibold text-muted uppercase">{t(`kinds.${rel.kind}`)}</span>
@@ -222,7 +220,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-line flex items-center justify-between bg-sunken/40 dark:bg-white/[0.02] shrink-0">
+        <div className="p-4 sm:p-5 border-t border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs shrink-0">
           {onRemoveNode ? (
             <button
               onClick={() => onRemoveNode(node.id)}

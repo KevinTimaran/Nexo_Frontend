@@ -1,100 +1,121 @@
 @import "tailwindcss";
 
 /*
- * Nexo design tokens (Apple HIG style)
+ * Nexo Desktop Design System — "Creative Glass" Identity
+ * Production-quality translucent surfaces, subtle depth, refined hairline borders,
+ * specular reflections, and deliberate Light and Dark themes.
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --app: #ececec;
-  --surface: #ffffff;
-  --elevated: #ffffff;
-  --sunken: #f5f5f7;
+  /* Canvas & Structural Foundations (Light) */
+  --app: #f1f3f7;
+  --surface: rgba(255, 255, 255, 0.72);
+  --elevated: rgba(255, 255, 255, 0.86);
+  --sunken: rgba(235, 239, 245, 0.75);
   
-  --fg: #1d1d1f;
-  --muted: #86868b;
-  --line: #d2d2d7;
-  --line-soft: #e5e5ea;
+  /* Text & Hierarchies */
+  --fg: #0f172a;
+  --muted: #64748b;
+  --line: rgba(15, 23, 42, 0.08);
+  --line-soft: rgba(15, 23, 42, 0.04);
   
-  --hover: rgb(0 0 0 / 0.04);
-  --selected: rgb(0 0 0 / 0.08);
-  --ring: #0071e3;
-  --inverse: #1d1d1f;
+  /* Interactive States */
+  --hover: rgba(15, 23, 42, 0.04);
+  --selected: rgba(15, 23, 42, 0.08);
+  --ring: #2563eb;
+  --inverse: #0f172a;
   --on-inverse: #ffffff;
   
-  --dot: #d2d2d7;
+  --dot: rgba(15, 23, 42, 0.12);
 
-  /* Liquid Glass */
-  --glass-bg: rgb(255 255 255 / 0.65);
-  --glass-border: rgb(0 0 0 / 0.05);
-  --glass-edge: rgb(0 0 0 / 0.02);
-  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.06);
-
-  /* Semantic Colors */
-  --concept-fg: #0071e3;
-  --positive-fg: #34c759;
-  --risk-fg: #ff9f0a;
+  /* Creative Glass Surfaces (Light) */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-edge: rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 12px 36px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -4px rgba(15, 23, 42, 0.03);
   
-  --sidebar-bg: rgb(236 236 236 / 0.6);
+  --glass-card-bg: rgba(255, 255, 255, 0.78);
+  --glass-card-border: rgba(255, 255, 255, 0.85);
+  --glass-card-shadow: 0 10px 30px -8px rgba(15, 23, 42, 0.07), 0 2px 8px -2px rgba(15, 23, 42, 0.03);
 
-  /* Refactored Priority & Category Semantic Palette */
+  --glass-modal-bg: rgba(255, 255, 255, 0.88);
+  --glass-modal-border: rgba(255, 255, 255, 0.9);
+  --glass-modal-shadow: 0 24px 64px -12px rgba(15, 23, 42, 0.16), 0 8px 24px -4px rgba(15, 23, 42, 0.06);
+
+  --sidebar-bg: rgba(246, 248, 252, 0.65);
+
+  /* Semantic Palette (Light) */
+  --concept-fg: #2563eb;
+  --positive-fg: #10b981;
+  --risk-fg: #f59e0b;
+  --danger-fg: #ef4444;
+
   --primary: #1e293b;
-  --priority-high: #991b1b;
-  --priority-medium: #b45309;
-  --priority-low: #475569;
+  --priority-high: #dc2626;
+  --priority-medium: #d97706;
+  --priority-low: #64748b;
 
-  --category-legal: #6b21a8;
-  --category-economic: #065f46;
-  --category-political: #1e3a8a;
-  --category-technical: #0f766e;
-
-  --card-shadow: 0 8px 30px rgb(0 0 0 / 0.04);
+  --category-legal: #8b5cf6;
+  --category-economic: #10b981;
+  --category-political: #0ea5e9;
+  --category-technical: #06b6d4;
 }
 
 .dark {
-  --app: #1c1c1e;
-  --surface: #2c2c2e;
-  --elevated: #3a3a3c;
-  --sunken: #151516;
+  /* Canvas & Structural Foundations (Dark - Deep Obsidian / Midnight Slate) */
+  --app: #080c15;
+  --surface: rgba(18, 24, 38, 0.72);
+  --elevated: rgba(24, 32, 50, 0.82);
+  --sunken: rgba(10, 14, 24, 0.75);
   
-  --fg: #f5f5f7;
-  --muted: #98989d;
-  --line: #38383a;
-  --line-soft: #2c2c2e;
+  /* Text & Hierarchies */
+  --fg: #f8fafc;
+  --muted: #94a3b8;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-soft: rgba(255, 255, 255, 0.05);
   
-  --hover: rgb(255 255 255 / 0.06);
-  --selected: rgb(255 255 255 / 0.1);
-  --ring: #0a84ff;
-  --inverse: #f5f5f7;
-  --on-inverse: #1d1d1f;
+  /* Interactive States */
+  --hover: rgba(255, 255, 255, 0.06);
+  --selected: rgba(255, 255, 255, 0.1);
+  --ring: #3b82f6;
+  --inverse: #f8fafc;
+  --on-inverse: #0f172a;
   
-  --dot: #38383a;
+  --dot: rgba(255, 255, 255, 0.14);
 
-  /* Liquid Glass Dark */
-  --glass-bg: rgb(44 44 46 / 0.65);
-  --glass-border: rgb(255 255 255 / 0.1);
-  --glass-edge: rgb(0 0 0 / 0.2);
-  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.24);
+  /* Creative Glass Surfaces (Dark) */
+  --glass-bg: rgba(18, 24, 38, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-edge: rgba(255, 255, 255, 0.15);
+  --glass-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 4px 16px -4px rgba(0, 0, 0, 0.4);
 
-  --concept-fg: #0a84ff;
-  --positive-fg: #30d158;
-  --risk-fg: #ff9f0a;
-  
-  --sidebar-bg: rgb(28 28 30 / 0.6);
+  --glass-card-bg: rgba(22, 30, 48, 0.75);
+  --glass-card-border: rgba(255, 255, 255, 0.09);
+  --glass-card-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55), 0 2px 10px -2px rgba(0, 0, 0, 0.35);
 
-  /* Refactored Priority & Category Semantic Palette (Dark) */
+  --glass-modal-bg: rgba(16, 22, 36, 0.9);
+  --glass-modal-border: rgba(255, 255, 255, 0.12);
+  --glass-modal-shadow: 0 32px 80px -16px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+  --sidebar-bg: rgba(12, 17, 28, 0.65);
+
+  /* Semantic Palette (Dark) */
+  --concept-fg: #3b82f6;
+  --positive-fg: #34d399;
+  --risk-fg: #fbbf24;
+  --danger-fg: #f87171;
+
   --primary: #0f172a;
-  --priority-high: #ef4444;
-  --priority-medium: #f59e0b;
+  --priority-high: #f87171;
+  --priority-medium: #fbbf24;
   --priority-low: #94a3b8;
 
-  --category-legal: #a855f7;
-  --category-economic: #10b981;
-  --category-political: #3b82f6;
-  --category-technical: #14b8a6;
-
-  --card-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+  --category-legal: #a78bfa;
+  --category-economic: #34d399;
+  --category-political: #38bdf8;
+  --category-technical: #22d3ee;
 }
 
 @theme inline {
@@ -115,9 +136,11 @@
   --color-concept: var(--concept-fg);
   --color-positive: var(--positive-fg);
   --color-risk: var(--risk-fg);
+  --color-danger: var(--danger-fg);
   --color-concept-fg: var(--concept-fg);
   --color-positive-fg: var(--positive-fg);
   --color-risk-fg: var(--risk-fg);
+  --color-danger-fg: var(--danger-fg);
   
   --color-sidebar-bg: var(--sidebar-bg);
 
@@ -133,22 +156,24 @@
 }
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Type scale */
+  /* Typography scale */
   --text-caption: 0.75rem; /* 12px */
-  --text-caption--line-height: 1.1rem;
+  --text-caption--line-height: 1.125rem;
   --text-body: 0.8125rem; /* 13px */
   --text-body--line-height: 1.25rem;
+  --text-title: 1.25rem; /* 20px */
+  --text-title--line-height: 1.75rem;
 
-  --ease-nexo: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-nexo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --animate-fade-in: fade-in 300ms var(--ease-nexo) both;
-  --animate-rise-in: rise-in 400ms var(--ease-nexo) both;
-  --animate-scale-in: scale-in 300ms var(--ease-nexo) both;
-  --animate-sheet-in: sheet-in 400ms var(--ease-nexo) both;
-  --animate-toast-in: toast-in 400ms var(--ease-nexo) both;
+  --animate-fade-in: fade-in 240ms var(--ease-nexo) both;
+  --animate-rise-in: rise-in 320ms var(--ease-nexo) both;
+  --animate-scale-in: scale-in 260ms var(--ease-nexo) both;
+  --animate-sheet-in: sheet-in 340ms var(--ease-nexo) both;
+  --animate-toast-in: toast-in 320ms var(--ease-nexo) both;
   --animate-thinking: thinking 1.4s ease-in-out infinite;
   --animate-node-pulse: node-pulse 1.2s var(--ease-nexo) 1;
 
@@ -157,44 +182,78 @@
     to { opacity: 1; }
   }
   @keyframes rise-in {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
   @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.97); }
+    from { opacity: 0; transform: scale(0.96); }
     to { opacity: 1; transform: scale(1); }
   }
   @keyframes sheet-in {
-    from { opacity: 0; transform: translateY(24px) scale(0.985); }
+    from { opacity: 0; transform: translateY(16px) scale(0.985); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
   @keyframes toast-in {
-    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
   @keyframes thinking {
-    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
-    40% { opacity: 1; transform: translateY(-2px); }
+    0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
   }
   @keyframes node-pulse {
-    0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-concept) 35%, transparent); }
-    100% { box-shadow: 0 0 0 12px transparent; }
+    0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-concept) 40%, transparent); }
+    100% { box-shadow: 0 0 0 14px transparent; }
   }
 }
 
+/* ─── Creative Glass Utilities ─── */
+
 @utility glass {
   background-color: var(--glass-bg);
-  border: 0.5px solid var(--glass-border);
-  box-shadow: inset 0 0 0 0.5px var(--glass-edge), var(--glass-shadow);
-  -webkit-backdrop-filter: blur(40px) saturate(1.8);
-  backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 0 var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+
+@utility glass-card {
+  background-color: var(--glass-card-bg);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: inset 0 1px 0 0 var(--glass-edge), var(--glass-card-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(175%);
+  backdrop-filter: blur(24px) saturate(175%);
+  transition: transform 220ms var(--ease-nexo), box-shadow 220ms var(--ease-nexo), border-color 220ms var(--ease-nexo);
+}
+
+@utility glass-modal {
+  background-color: var(--glass-modal-bg);
+  border: 1px solid var(--glass-modal-border);
+  box-shadow: inset 0 1px 0 0 var(--glass-edge), var(--glass-modal-shadow);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  backdrop-filter: blur(36px) saturate(190%);
+}
+
+@utility glass-pill {
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 0 var(--glass-edge), 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
 }
 
 @utility sidebar-glass {
   background-color: var(--sidebar-bg);
-  border-right: 0.5px solid var(--line);
-  -webkit-backdrop-filter: blur(60px) saturate(2);
-  backdrop-filter: blur(60px) saturate(2);
+  border-right: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+}
+
+@utility titlebar-glass {
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
 }
 
 @utility canvas-dots {
@@ -204,7 +263,21 @@
 @utility focus-ring {
   outline: none;
   &:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-concept) 40%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-concept) 45%, transparent);
+  }
+}
+
+/* Hairline specular light sheen on top of surfaces */
+@utility specular-sheen {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-edge), transparent);
+    pointer-events: none;
   }
 }
 
@@ -239,7 +312,21 @@
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--ring) transparent;
+    scrollbar-color: var(--line) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
   }
 }
 
@@ -251,6 +338,7 @@
     scroll-behavior: auto !important;
   }
 }
+
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
@@ -259,22 +347,16 @@
 }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .glass {
+  .glass, .glass-card, .glass-modal, .glass-pill, .sidebar-glass, .titlebar-glass {
     background-color: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     border-color: var(--line);
     box-shadow: none;
   }
-  .sidebar-glass {
-    background-color: var(--app);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    border-color: var(--line);
-  }
 }
 
 @media (prefers-contrast: more) {
-  :root { --muted: #52525b; --line: #a1a1aa; }
-  .dark { --muted: #d4d4d8; --line: #52525b; }
+  :root { --muted: #475569; --line: #94a3b8; }
+  .dark { --muted: #cbd5e1; --line: #64748b; }
 }

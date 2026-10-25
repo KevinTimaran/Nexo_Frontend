@@ -66,15 +66,15 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
     >
       <div className="space-y-4">
         {/* Document Preview Box */}
-        <div className="p-4 rounded-2xl bg-elevated border border-line font-mono text-caption text-fg max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface-secondary/70 border border-line-soft/80 font-mono text-xs text-fg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner backdrop-blur-xs">
           {markdownContent}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-2 border-t border-line-soft">
-          <span className="text-caption text-muted flex items-center gap-1.5">
+        <div className="flex items-center justify-between pt-3 border-t border-line-soft">
+          <span className="glass-pill text-[11px] font-mono text-muted flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-concept-fg" />
-            {map.nodes.length} concepts included
+            {map.nodes.length} {t("dashboard.concepts", { defaultValue: "conceptos incluidos" })}
           </span>
 
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
               onClick={handleCopy}
               icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             >
-              {copied ? t("common.copied") : "Copy Markdown"}
+              {copied ? t("common.copied") : t("common.copy", { defaultValue: "Copiar Markdown" })}
             </Button>
           </div>
         </div>

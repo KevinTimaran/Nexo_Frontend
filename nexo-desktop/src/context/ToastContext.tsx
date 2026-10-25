@@ -36,30 +36,47 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       <div
         role="region"
-        aria-label="Notifications"
-        className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full"
+        aria-label="Notificaciones"
+        className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none max-w-sm w-full"
       >
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl glass border border-line shadow-xl text-fg text-body animate-toast-in"
+            className="
+              pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-2xl
+              glass-card border border-line/80 dark:border-white/10
+              shadow-[0_16px_36px_-8px_rgba(15,23,42,0.18)] dark:shadow-[0_20px_48px_-10px_rgba(0,0,0,0.7)]
+              text-fg text-body animate-toast-in select-text relative overflow-hidden
+            "
           >
+            {/* Specular hairline top reflection */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent"
+            />
+
             <div className="flex items-center gap-2.5 min-w-0">
               {toast.type === "success" && (
-                <CheckCircle2 className="w-4 h-4 text-positive-fg shrink-0" />
+                <div className="w-6 h-6 rounded-lg bg-positive-fg/15 text-positive-fg flex items-center justify-center shrink-0 border border-positive-fg/25">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
               )}
               {toast.type === "error" && (
-                <AlertCircle className="w-4 h-4 text-risk-fg shrink-0" />
+                <div className="w-6 h-6 rounded-lg bg-danger-fg/15 text-danger-fg flex items-center justify-center shrink-0 border border-danger-fg/25">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                </div>
               )}
               {toast.type === "info" && (
-                <Info className="w-4 h-4 text-concept-fg shrink-0" />
+                <div className="w-6 h-6 rounded-lg bg-concept-fg/15 text-concept-fg flex items-center justify-center shrink-0 border border-concept-fg/25">
+                  <Info className="w-3.5 h-3.5" />
+                </div>
               )}
-              <span className="truncate">{toast.message}</span>
+              <span className="truncate text-body font-medium">{toast.message}</span>
             </div>
             <button
               onClick={() => dismissToast(toast.id)}
-              className="text-muted hover:text-fg p-1 rounded-lg hover:bg-hover transition-colors"
-              aria-label="Dismiss"
+              className="w-7 h-7 rounded-lg text-muted hover:text-fg hover:bg-hover active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+              aria-label="Cerrar notificación"
             >
               <X className="w-3.5 h-3.5" />
             </button>

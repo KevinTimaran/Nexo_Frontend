@@ -40,61 +40,72 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ isOpen, onClose, onA
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Concept Node">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("canvas.node.addTitle", { defaultValue: "Añadir Concepto al Lienzo" })}
+      description={t("canvas.node.addSubtitle", { defaultValue: "Incorpora una nueva idea, validación o riesgo a tu constelación." })}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Concept Title"
+          label={t("canvas.node.titleLabel", { defaultValue: "Título del Concepto" })}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Peer-to-peer textbook resale"
+          placeholder={t("canvas.node.titlePlaceholder", { defaultValue: "ej. Sistema de recomendación inteligente" })}
           autoFocus
         />
 
         <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-caption font-medium text-muted">Description</label>
+          <label className="text-caption font-medium text-muted">
+            {t("canvas.node.descLabel", { defaultValue: "Descripción" })}
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Details about this concept..."
-            rows={2}
-            className="w-full bg-elevated border border-line rounded-xl text-fg text-body p-3 placeholder:text-muted focus-ring transition-colors resize-none"
+            placeholder={t("canvas.node.descPlaceholder", { defaultValue: "Detalles e hipótesis de este concepto..." })}
+            rows={3}
+            className="w-full bg-surface-secondary/70 border border-line-soft rounded-2xl text-fg text-body p-3 placeholder:text-muted focus-ring transition-colors resize-none backdrop-blur-xs"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-caption font-medium text-muted">Kind</label>
+            <label className="text-caption font-medium text-muted">
+              {t("canvas.node.kindLabel", { defaultValue: "Tipo de Nodo" })}
+            </label>
             <select
               value={kind}
               onChange={(e) => setKind(e.target.value as ConceptKind)}
-              className="bg-elevated border border-line rounded-xl text-fg text-body p-2 focus-ring"
+              className="bg-surface-secondary/70 border border-line-soft rounded-xl text-fg text-body p-2.5 focus-ring backdrop-blur-xs"
             >
-              <option value="concept">Concept</option>
-              <option value="viability">Viability</option>
-              <option value="risk">Risk</option>
+              <option value="concept">{t("kinds.concept")}</option>
+              <option value="viability">{t("kinds.viability")}</option>
+              <option value="risk">{t("kinds.risk")}</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-caption font-medium text-muted">Status</label>
+            <label className="text-caption font-medium text-muted">
+              {t("canvas.node.statusLabel", { defaultValue: "Estado Inicial" })}
+            </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ConceptStatus)}
-              className="bg-elevated border border-line rounded-xl text-fg text-body p-2 focus-ring"
+              className="bg-surface-secondary/70 border border-line-soft rounded-xl text-fg text-body p-2.5 focus-ring backdrop-blur-xs"
             >
-              <option value="exploring">Exploring</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="review">Needs Review</option>
+              <option value="exploring">{t("nodeStatus.exploring")}</option>
+              <option value="confirmed">{t("nodeStatus.confirmed")}</option>
+              <option value="review">{t("nodeStatus.review")}</option>
             </select>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-line-soft">
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button type="submit" variant="primary" icon={<Plus className="w-4 h-4" />}>
-            Add Concept
+            {t("canvas.node.submit", { defaultValue: "Crear Concepto" })}
           </Button>
         </div>
       </form>

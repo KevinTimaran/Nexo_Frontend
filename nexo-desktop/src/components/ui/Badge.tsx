@@ -30,8 +30,8 @@ export const Badge: React.FC<BadgeProps> = ({
   className = "",
 }) => {
   const sizeStyles = {
-    sm: "px-2 py-0.5 text-[11px] font-medium rounded-md gap-1",
-    md: "px-2.5 py-1 text-caption font-semibold rounded-lg gap-1.5",
+    sm: "px-2 py-0.5 text-[10px] font-semibold rounded-full gap-1 tracking-tight",
+    md: "px-2.5 py-1 text-caption font-semibold rounded-full gap-1.5 tracking-tight",
   };
 
   // If a priority is passed, render a priority badge
@@ -41,19 +41,19 @@ export const Badge: React.FC<BadgeProps> = ({
         label: "Prioridad Alta",
         icon: <Flame className="w-3 h-3 text-priority-high shrink-0" />,
         style:
-          "bg-priority-high/10 text-priority-high border border-priority-high/25 dark:bg-priority-high/15",
+          "bg-priority-high/10 text-priority-high border border-priority-high/25 dark:bg-priority-high/15 backdrop-blur-sm shadow-[0_0_12px_-2px_rgba(220,38,38,0.2)]",
       },
       medium: {
         label: "Prioridad Media",
         icon: <AlertCircle className="w-3 h-3 text-priority-medium shrink-0" />,
         style:
-          "bg-priority-medium/10 text-priority-medium border border-priority-medium/25 dark:bg-priority-medium/15",
+          "bg-priority-medium/10 text-priority-medium border border-priority-medium/25 dark:bg-priority-medium/15 backdrop-blur-sm shadow-[0_0_12px_-2px_rgba(217,119,6,0.18)]",
       },
       low: {
         label: "Prioridad Baja",
         icon: <Clock className="w-3 h-3 text-priority-low shrink-0" />,
         style:
-          "bg-priority-low/10 text-priority-low border border-priority-low/25 dark:bg-priority-low/15",
+          "bg-priority-low/10 text-priority-low border border-priority-low/25 dark:bg-priority-low/15 backdrop-blur-sm",
       },
     };
 
@@ -75,25 +75,25 @@ export const Badge: React.FC<BadgeProps> = ({
         label: "Legal / Regulatorio",
         icon: <Scale className="w-3 h-3 text-category-legal shrink-0" />,
         style:
-          "bg-category-legal/10 text-category-legal border border-category-legal/25 dark:bg-category-legal/15",
+          "bg-category-legal/10 text-category-legal border border-category-legal/25 dark:bg-category-legal/15 backdrop-blur-sm",
       },
       economic: {
         label: "Económico / Financiero",
         icon: <TrendingUp className="w-3 h-3 text-category-economic shrink-0" />,
         style:
-          "bg-category-economic/10 text-category-economic border border-category-economic/25 dark:bg-category-economic/15",
+          "bg-category-economic/10 text-category-economic border border-category-economic/25 dark:bg-category-economic/15 backdrop-blur-sm",
       },
       political: {
         label: "Político / Social",
         icon: <Users className="w-3 h-3 text-category-political shrink-0" />,
         style:
-          "bg-category-political/10 text-category-political border border-category-political/25 dark:bg-category-political/15",
+          "bg-category-political/10 text-category-political border border-category-political/25 dark:bg-category-political/15 backdrop-blur-sm",
       },
       technical: {
         label: "Técnico / Operacional",
         icon: <Cpu className="w-3 h-3 text-category-technical shrink-0" />,
         style:
-          "bg-category-technical/10 text-category-technical border border-category-technical/25 dark:bg-category-technical/15",
+          "bg-category-technical/10 text-category-technical border border-category-technical/25 dark:bg-category-technical/15 backdrop-blur-sm",
       },
     };
 
@@ -111,10 +111,10 @@ export const Badge: React.FC<BadgeProps> = ({
   // Default / Kind-based badge
   const effectiveKind = kind || "default";
   const kindStyles = {
-    default: "bg-elevated text-muted border border-line",
-    concept: "bg-concept-fg/10 text-concept-fg border border-concept-fg/20",
-    viability: "bg-positive-fg/10 text-positive-fg border border-positive-fg/20",
-    risk: "bg-risk-fg/10 text-risk-fg border border-risk-fg/20",
+    default: "bg-surface/80 text-muted border border-line backdrop-blur-sm",
+    concept: "bg-concept-fg/10 text-concept-fg border border-concept-fg/25 dark:bg-concept-fg/15 backdrop-blur-sm shadow-[0_0_12px_-2px_rgba(37,99,235,0.2)]",
+    viability: "bg-positive-fg/10 text-positive-fg border border-positive-fg/25 dark:bg-positive-fg/15 backdrop-blur-sm shadow-[0_0_12px_-2px_rgba(16,185,129,0.2)]",
+    risk: "bg-risk-fg/10 text-risk-fg border border-risk-fg/25 dark:bg-risk-fg/15 backdrop-blur-sm shadow-[0_0_12px_-2px_rgba(245,158,11,0.2)]",
   };
 
   const statusDot = {

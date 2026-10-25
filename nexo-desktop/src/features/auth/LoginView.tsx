@@ -53,71 +53,64 @@ export const LoginView: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-app relative overflow-hidden select-none">
-      {/* ─── Ambient iOS-style wallpaper: multi-color soft orbs ─── */}
-      <div className="pointer-events-none absolute -top-40 -left-40 w-[640px] h-[640px] rounded-full blur-[160px] opacity-70 bg-concept-fg/25" />
-      <div className="pointer-events-none absolute -bottom-40 -right-40 w-[640px] h-[640px] rounded-full blur-[160px] opacity-60 bg-concept-fg/20" />
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full blur-[200px] opacity-40 bg-concept-fg/10" />
-
-      {/* Fine grain noise for the frosted look */}
+      {/* Ambient background soft light orbs for Creative Glass depth */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-        }}
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full blur-[160px] opacity-60 dark:opacity-30 bg-concept-fg/25"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[680px] h-[680px] rounded-full blur-[160px] opacity-50 dark:opacity-25 bg-concept-fg/20"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[850px] rounded-full blur-[200px] opacity-30 dark:opacity-15 bg-concept-fg/10"
       />
 
-      {/* ─── Outer glass card (iOS sheet) ─── */}
+      {/* Outer Creative Glass Card */}
       <div className="relative z-10 w-full max-w-[420px] animate-rise-in">
-        {/* Soft halo behind the card */}
-        <div className="pointer-events-none absolute -inset-8 rounded-[56px] bg-concept-fg/10 blur-3xl opacity-60" />
+        {/* Soft luminous halo */}
+        <div className="pointer-events-none absolute -inset-6 rounded-[48px] bg-concept-fg/10 blur-3xl opacity-60" />
 
         <div
           className="
-            relative rounded-[40px]
-            border border-white/40 dark:border-white/10
-            bg-white/55 dark:bg-white/[0.06]
+            relative rounded-[36px] overflow-hidden
+            border border-line/80 dark:border-white/12
+            bg-surface/90 dark:bg-zinc-950/90
             backdrop-blur-3xl backdrop-saturate-[180%]
-            shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25),0_8px_24px_-8px_rgba(0,0,0,0.15),inset_0_1px_0_0_rgba(255,255,255,0.6)]
-            overflow-hidden
+            shadow-[0_24px_64px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_0_rgba(255,255,255,0.85)]
+            dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)]
           "
         >
-          {/* Top specular highlight */}
+          {/* Specular hairline top reflection */}
           <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/50 to-transparent dark:from-white/10"
-          />
-          {/* Inner thin ring */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-[1px] rounded-[39px] border border-white/25 dark:border-white/5"
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
           />
 
-          {/* ─── Content ─── */}
+          {/* Card Content */}
           <div className="relative p-7 sm:p-9">
-            {/* Brand */}
+            {/* Brand Header */}
             <div className="flex flex-col items-center text-center mb-7">
               <div
                 className="
                   relative w-16 h-16 rounded-[22px]
                   bg-gradient-to-b from-concept-fg to-concept-fg/85
                   flex items-center justify-center text-white
-                  shadow-[0_8px_24px_-6px_var(--concept-fg),inset_0_1px_0_0_rgba(255,255,255,0.35)]
+                  shadow-[0_8px_24px_-6px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.4)]
                   ring-1 ring-white/30
-                  transition-transform duration-500 hover:scale-[1.04]
+                  transition-transform duration-300 hover:scale-[1.03]
                   mb-4
                 "
               >
                 <Sparkles className="w-7 h-7 drop-shadow-sm" />
-                {/* Glossy top sheen */}
                 <span
-                  aria-hidden
+                  aria-hidden="true"
                   className="pointer-events-none absolute inset-x-2 top-1 h-6 rounded-full bg-white/25 blur-md"
                 />
               </div>
 
-              <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em] text-fg">
+              <h1 className="text-[26px] leading-tight font-extrabold tracking-tight text-fg">
                 {t("app.name")}
               </h1>
               <p className="text-caption text-muted mt-1.5 max-w-[280px] leading-relaxed">
@@ -126,7 +119,7 @@ export const LoginView: React.FC = () => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div className="space-y-1">
                 <Input
                   label={t("auth.email")}
@@ -161,9 +154,9 @@ export const LoginView: React.FC = () => {
                   className="
                     absolute right-2.5 top-8
                     w-8 h-8 flex items-center justify-center
-                    rounded-full text-muted hover:text-fg
-                    hover:bg-white/40 dark:hover:bg-white/10
-                    transition-all duration-200 focus-ring
+                    rounded-lg text-muted hover:text-fg
+                    hover:bg-hover active:scale-95
+                    transition-all duration-200 focus-ring cursor-pointer
                     disabled:opacity-50
                   "
                   aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
@@ -176,7 +169,7 @@ export const LoginView: React.FC = () => {
               <div className="flex justify-end -mt-1">
                 <button
                   type="button"
-                  className="text-[12px] font-medium text-concept-fg hover:opacity-80 transition-opacity focus-ring rounded-md px-1"
+                  className="text-[12px] font-medium text-concept-fg hover:underline underline-offset-4 transition-all focus-ring rounded-md px-1 cursor-pointer"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -187,10 +180,9 @@ export const LoginView: React.FC = () => {
                   role="alert"
                   className="
                     p-3 rounded-2xl
-                    bg-risk-fg/10 border border-risk-fg/25
-                    text-risk-fg text-caption
-                    flex items-start gap-2 animate-fade-in
-                    backdrop-blur-sm
+                    bg-danger-fg/10 border border-danger-fg/25
+                    text-danger-fg text-caption font-medium
+                    flex items-start gap-2 animate-fade-in backdrop-blur-sm
                   "
                 >
                   <span className="font-semibold text-xs leading-none mt-0.5">•</span>
@@ -203,49 +195,39 @@ export const LoginView: React.FC = () => {
                 variant="primary"
                 size="lg"
                 loading={isLoading}
-                className="
-                  group w-full mt-3
-                  !rounded-2xl
-                  shadow-[0_10px_30px_-10px_var(--concept-fg),inset_0_1px_0_0_rgba(255,255,255,0.3)]
-                  hover:shadow-[0_14px_36px_-10px_var(--concept-fg),inset_0_1px_0_0_rgba(255,255,255,0.4)]
-                  hover:-translate-y-[1px]
-                  active:translate-y-0
-                  transition-all duration-200
-                "
-                icon={
-                  <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                }
+                className="w-full mt-2 !rounded-2xl"
+                icon={<ArrowRight className="w-4 h-4" />}
               >
                 {isLoading ? t("auth.submitting") : t("auth.submit")}
               </Button>
             </form>
 
-            {/* Divider + secondary hint */}
+            {/* Divider */}
             <div className="mt-5 flex items-center gap-3 text-[11px] text-muted">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-line to-transparent" />
-              <span className="tracking-wide uppercase">o</span>
+              <span className="tracking-wider uppercase font-semibold text-[10px]">o</span>
               <span className="h-px flex-1 bg-gradient-to-l from-transparent via-line to-transparent" />
             </div>
 
-            <p className="mt-3 text-center text-[12px] text-muted">
+            <p className="mt-3.5 text-center text-[12px] text-muted">
               ¿No tienes cuenta?{" "}
               <button
                 type="button"
-                className="font-medium text-concept-fg hover:underline underline-offset-4 focus-ring rounded"
+                className="font-semibold text-concept-fg hover:underline underline-offset-4 focus-ring rounded cursor-pointer"
               >
                 Solicita acceso
               </button>
             </p>
 
-            {/* Secure dev note with truthful adapter transparency */}
+            {/* Adapter transparency note */}
             <div
               className="
                 mt-6 p-3 rounded-2xl
-                bg-white/40 dark:bg-white/[0.04]
-                border border-white/50 dark:border-white/10
-                backdrop-blur-xl
+                bg-surface/60 dark:bg-white/[0.03]
+                border border-line/60 dark:border-white/10
+                backdrop-blur-md
                 text-[11px] text-muted
-                flex items-start gap-2.5 leading-normal
+                flex items-start gap-2.5 leading-normal shadow-2xs
               "
             >
               <ShieldCheck className="w-4 h-4 text-concept-fg shrink-0 mt-0.5" />
@@ -257,16 +239,7 @@ export const LoginView: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Bottom specular reflection */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-8 bottom-0 h-24 bg-gradient-to-t from-white/20 to-transparent dark:from-white/5"
-          />
         </div>
-
-        {/* iOS home indicator */}
-        <div className="mx-auto mt-5 h-[5px] w-32 rounded-full bg-fg/20 backdrop-blur-sm" />
       </div>
     </div>
   );

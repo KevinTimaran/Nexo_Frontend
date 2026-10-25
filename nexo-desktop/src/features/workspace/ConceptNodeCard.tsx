@@ -12,19 +12,19 @@ const PHASE_CONFIG: Record<
   planning: {
     label: "Planificación",
     bar: "bg-emerald-500",
-    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
     text: "text-emerald-500",
   },
   execution: {
     label: "Ejecución",
     bar: "bg-blue-500",
-    badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
     text: "text-blue-500",
   },
   validation: {
     label: "Validación",
     bar: "bg-amber-500",
-    badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
     text: "text-amber-500",
   },
 };
@@ -32,15 +32,15 @@ const PHASE_CONFIG: Record<
 const PRIORITY_BADGE: Record<NodePriority, { label: string; style: string }> = {
   high: {
     label: "Alta",
-    style: "bg-rose-500/10 text-rose-500 border-rose-500/20",
+    style: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
   },
   medium: {
     label: "Media",
-    style: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    style: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
   },
   low: {
     label: "Baja",
-    style: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20",
+    style: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
   },
 };
 
@@ -64,61 +64,77 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
 
     return (
       <div
-        className={`w-[260px] rounded-2xl bg-white dark:bg-zinc-950 border transition-all duration-200 group relative select-none shadow-sm hover:shadow-xl ${
-          selected
-            ? "border-concept-fg ring-2 ring-concept-fg/40 shadow-lg scale-[1.01]"
-            : "border-line-soft hover:border-line dark:border-zinc-800"
-        }`}
+        className={`
+          w-[264px] rounded-2xl
+          bg-surface/90 dark:bg-zinc-950/90
+          backdrop-blur-2xl backdrop-saturate-150
+          border transition-all duration-200 group relative select-none
+          shadow-[0_8px_20px_-6px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)]
+          dark:shadow-[0_10px_24px_-6px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+          hover:shadow-[0_16px_32px_-8px_rgba(15,23,42,0.14),inset_0_1px_0_0_rgba(255,255,255,0.9)]
+          dark:hover:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.12)]
+          ${
+            selected
+              ? "border-concept-fg ring-2 ring-concept-fg/40 shadow-[0_0_24px_-4px_rgba(37,99,235,0.35)] scale-[1.02]"
+              : "border-line/80 dark:border-white/10 hover:border-concept-fg/40"
+          }
+        `}
       >
+        {/* Specular hairline reflection */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10"
+        />
+
         {/* React Flow Handles */}
         <Handle
           type="target"
           position={Position.Top}
-          className="!w-2.5 !h-2.5 !bg-zinc-400 dark:!bg-zinc-500 !border-2 !border-white dark:!border-zinc-950 transition-transform group-hover:scale-125"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 transition-transform group-hover:scale-125 shadow-xs"
         />
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!w-2.5 !h-2.5 !bg-zinc-400 dark:!bg-zinc-500 !border-2 !border-white dark:!border-zinc-950 transition-transform group-hover:scale-125"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 transition-transform group-hover:scale-125 shadow-xs"
         />
         <Handle
           type="target"
           id="left"
           position={Position.Left}
-          className="!w-2.5 !h-2.5 !bg-zinc-400 dark:!bg-zinc-500 !border-2 !border-white dark:!border-zinc-950"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 shadow-xs"
         />
         <Handle
           type="source"
           id="right"
           position={Position.Right}
-          className="!w-2.5 !h-2.5 !bg-zinc-400 dark:!bg-zinc-500 !border-2 !border-white dark:!border-zinc-950"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 shadow-xs"
         />
 
         {/* 1. Barra superior muy fina con el color de su fase */}
-        <div className={`h-1.5 w-full rounded-t-2xl ${phaseInfo.bar}`} />
+        <div className={`h-1.5 w-full rounded-t-2xl ${phaseInfo.bar} transition-colors duration-200`} />
 
         {/* 2. Contenido de la mini-tarjeta */}
         <div className="p-3.5 space-y-2">
-          {/* Header con Badge de Fase y Botón Ghost de Acción (Hover) */}
+          {/* Header con Badges de Fase y Prioridad + Botón Ghost de Acción */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${phaseInfo.badge}`}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border backdrop-blur-xs ${phaseInfo.badge}`}
               >
                 {phaseInfo.label}
               </span>
               <span
-                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${priorityInfo.style}`}
+                className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border backdrop-blur-xs ${priorityInfo.style}`}
               >
                 {priorityInfo.label}
               </span>
             </div>
 
-            {/* CRÍTICO: Botón tipo "ghost" con ícono Maximize2 visible en hover */}
+            {/* Botón tipo ghost con ícono Maximize2 visible en hover */}
             <button
               type="button"
               onClick={handleOpenDetails}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted hover:text-fg hover:bg-hover active:scale-95 cursor-pointer"
+              className="opacity-0 group-hover:opacity-100 transition-all duration-150 p-1 rounded-lg text-muted hover:text-fg hover:bg-hover active:scale-95 cursor-pointer focus-ring"
               title="Abrir Detalles (Notion Deep-Dive)"
               aria-label="Abrir Detalles"
             >
@@ -126,27 +142,27 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
             </button>
           </div>
 
-          {/* 3. Título de la idea en el centro */}
+          {/* 3. Título de la idea */}
           <h3 className="text-body font-bold text-fg leading-snug line-clamp-2">
             {data.title}
           </h3>
 
-          {/* 4. Descripción breve o preview */}
+          {/* 4. Descripción breve */}
           {data.description && (
             <p className="text-[12px] text-muted line-clamp-2 leading-relaxed">
               {data.description}
             </p>
           )}
 
-          {/* Footer con metadata / evidencia empírica si existe */}
+          {/* 5. Footer con metadata */}
           {data.metadata && (
-            <div className="pt-1 border-t border-line-soft/60 flex items-center justify-between text-[11px] text-muted">
-              <span className="truncate max-w-[210px] font-mono text-[10px]">
+            <div className="pt-2 border-t border-line/60 dark:border-white/5 flex items-center justify-between text-[11px] text-muted">
+              <span className="truncate max-w-[200px] font-mono text-[10px]">
                 {data.metadata}
               </span>
-              {data.kind === "concept" && <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />}
-              {data.kind === "viability" && <CheckCircle2 className="w-3 h-3 text-blue-500 shrink-0" />}
-              {data.kind === "risk" && <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />}
+              {data.kind === "concept" && <Sparkles className="w-3.5 h-3.5 text-concept-fg shrink-0" />}
+              {data.kind === "viability" && <CheckCircle2 className="w-3.5 h-3.5 text-positive-fg shrink-0" />}
+              {data.kind === "risk" && <AlertTriangle className="w-3.5 h-3.5 text-risk-fg shrink-0" />}
             </div>
           )}
         </div>

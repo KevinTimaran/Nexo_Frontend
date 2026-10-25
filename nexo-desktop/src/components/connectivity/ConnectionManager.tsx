@@ -199,17 +199,17 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
       role="dialog"
       aria-modal="true"
       aria-labelledby="connection-manager-title"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-black/40 backdrop-blur-md animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         ref={panelRef}
-        className="w-full max-w-lg rounded-3xl bg-surface/95 dark:bg-zinc-900/95 border border-line shadow-2xl backdrop-blur-2xl overflow-hidden animate-sheet-in text-fg select-none"
+        className="w-full max-w-lg rounded-3xl glass-modal border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden animate-sheet-in text-fg select-none specular-sheen"
       >
         {/* Header */}
-        <div className="p-5 border-b border-line flex items-center justify-between bg-sunken/40 dark:bg-white/[0.02]">
+        <div className="p-5 border-b border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shadow-xs">
               <Server className="w-4 h-4" />
@@ -233,9 +233,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
         </div>
 
         {/* Body content */}
-        <div className="p-5 space-y-5 max-h-[75vh] overflow-y-auto">
+        <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Mode Switcher Banner */}
-          <div className="p-4 rounded-2xl bg-sunken border border-line-soft space-y-3">
+          <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-caption font-bold text-fg uppercase tracking-wider">
@@ -250,7 +250,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
               <div
                 role="radiogroup"
                 aria-label="Modo de servicio"
-                className="inline-flex p-1 rounded-xl bg-surface border border-line shadow-2xs"
+                className="inline-flex p-1 rounded-xl bg-surface-secondary/70 border border-line-soft shadow-2xs backdrop-blur-md"
               >
                 <button
                   type="button"
@@ -290,13 +290,13 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                     type="url"
                     value={inputUrl}
                     onChange={(e) => setInputUrl(e.target.value)}
-                    className="flex-1 px-2 py-0.5 text-xs bg-surface border border-line rounded-lg font-mono focus-ring"
+                    className="flex-1 px-2.5 py-1 text-xs bg-surface-secondary/80 border border-line-soft rounded-lg font-mono focus-ring text-fg"
                     placeholder="http://localhost:8080/api/v1"
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="px-2 py-0.5 bg-concept-fg text-white text-xs font-semibold rounded-lg hover:brightness-110 cursor-pointer"
+                    className="px-2.5 py-1 bg-concept-fg text-white text-xs font-semibold rounded-lg hover:brightness-110 cursor-pointer shadow-xs"
                   >
                     Guardar
                   </button>
@@ -306,14 +306,14 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                       setInputUrl(apiUrl);
                       setIsUrlEditing(false);
                     }}
-                    className="px-2 py-0.5 text-muted hover:text-fg text-xs font-medium cursor-pointer"
+                    className="px-2.5 py-1 text-muted hover:text-fg text-xs font-medium cursor-pointer"
                   >
                     Cancelar
                   </button>
                 </form>
               ) : (
                 <div className="flex items-center gap-2 truncate">
-                  <span className="font-mono text-fg bg-surface px-2 py-0.5 rounded border border-line-soft truncate text-xs">
+                  <span className="font-mono text-fg bg-surface-secondary/60 px-2 py-0.5 rounded-lg border border-line-soft/80 truncate text-xs">
                     {apiUrl}
                   </span>
                   <button
@@ -333,10 +333,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
               <button
                 type="button"
                 onClick={() => handleQuickSetUrl("http://localhost:8080/api/v1")}
-                className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg border font-mono text-[10px] transition-all cursor-pointer ${
                   apiUrl.includes(":8080")
                     ? "bg-concept-fg/15 text-concept-fg border-concept-fg/30 font-bold"
-                    : "bg-surface hover:bg-hover border-line-soft text-muted hover:text-fg"
+                    : "bg-surface-secondary/60 hover:bg-surface-secondary border-line-soft text-muted hover:text-fg"
                 }`}
               >
                 :8080 (Spring Boot)
@@ -344,10 +344,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
               <button
                 type="button"
                 onClick={() => handleQuickSetUrl("http://localhost:8000/api/v1")}
-                className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg border font-mono text-[10px] transition-all cursor-pointer ${
                   apiUrl.includes(":8000")
                     ? "bg-concept-fg/15 text-concept-fg border-concept-fg/30 font-bold"
-                    : "bg-surface hover:bg-hover border-line-soft text-muted hover:text-fg"
+                    : "bg-surface-secondary/60 hover:bg-surface-secondary border-line-soft text-muted hover:text-fg"
                 }`}
               >
                 :8000
@@ -358,14 +358,16 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
           {/* 3 Services Cards */}
           <div className="space-y-3">
             {/* Service 1: Backend Java / Spring Boot */}
-            <div className="p-4 rounded-2xl bg-surface border border-line space-y-2.5 shadow-2xs">
+            <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Server className="w-4 h-4 text-concept-fg" />
+                  <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
+                    <Server className="w-3.5 h-3.5" />
+                  </div>
                   <span className="text-body font-bold text-fg">Backend (Spring Boot)</span>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${backendBadge.style}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border backdrop-blur-md ${backendBadge.style}`}
                 >
                   {backendBadge.icon}
                   <span>{backendBadge.label}</span>
@@ -404,14 +406,16 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
             </div>
 
             {/* Service 2: AI Service */}
-            <div className="p-4 rounded-2xl bg-surface border border-line space-y-2.5 shadow-2xs">
+            <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-concept-fg" />
+                  <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
                   <span className="text-body font-bold text-fg">Servicio de Inteligencia Artificial</span>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${aiBadge.style}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border backdrop-blur-md ${aiBadge.style}`}
                 >
                   {aiBadge.icon}
                   <span>{aiBadge.label}</span>
@@ -437,14 +441,16 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
             </div>
 
             {/* Service 3: Neo4j Synchronization */}
-            <div className="p-4 rounded-2xl bg-surface border border-line space-y-2.5 shadow-2xs">
+            <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-concept-fg" />
+                  <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
+                    <Database className="w-3.5 h-3.5" />
+                  </div>
                   <span className="text-body font-bold text-fg">Sincronización Neo4j</span>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${neo4jBadge.style}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border backdrop-blur-md ${neo4jBadge.style}`}
                 >
                   {neo4jBadge.icon}
                   <span>{neo4jBadge.label}</span>
@@ -476,7 +482,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-line flex items-center justify-between bg-sunken/40 dark:bg-white/[0.02]">
+        <div className="p-4 px-5 border-t border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs">
           <div className="text-[11px] text-muted">
             {mode === "mock"
               ? "Datos aislados en memoria/localStorage"

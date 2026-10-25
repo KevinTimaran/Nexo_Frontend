@@ -10,7 +10,6 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { Plus, Layers, Info } from "lucide-react";
 import { ConceptNodeCard } from "./ConceptNodeCard";
-import { DeepDiveModal } from "./DeepDiveModal";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { useTheme } from "../../app/providers/ThemeProvider";
 
@@ -54,10 +53,10 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
     }
   }, [workspace, nodes.length, syncFlowElements]);
 
-  const dotColor = isDark ? "#3f3f46" : "#cbd5e1";
+  const dotColor = isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)";
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-canvas select-none">
+    <div className="w-full h-full relative overflow-hidden bg-app select-none">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -80,7 +79,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
           },
         }}
       >
-        {/* Fondo con patrón de puntos sutil adaptado a Tailwind */}
+        {/* Pattern de puntos sutil en el lienzo */}
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}
@@ -88,14 +87,14 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
           color={dotColor}
         />
 
-        {/* Controles de Zoom y Ajuste */}
+        {/* Controles de Zoom y Ajuste (Creative Glass) */}
         <Controls
           position="bottom-right"
-          className="!bg-surface !border !border-line !shadow-lg !rounded-2xl !overflow-hidden !m-4"
+          className="!bg-surface/85 dark:!bg-zinc-950/85 !border !border-line/80 dark:!border-white/10 !backdrop-blur-2xl !shadow-lg !rounded-2xl !overflow-hidden !m-4"
           showInteractive={false}
         />
 
-        {/* MiniMap minimalista */}
+        {/* MiniMap minimalista (Creative Glass) */}
         <MiniMap
           position="bottom-left"
           nodeColor={(n) => {
@@ -105,18 +104,18 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
             if (phase === "validation") return "#f59e0b";
             return "#64748b";
           }}
-          maskColor={isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(240, 240, 240, 0.7)"}
-          className="!bg-surface/80 !border !border-line !shadow-md !rounded-2xl !overflow-hidden !m-4 !w-36 !h-24 hidden md:block"
+          maskColor={isDark ? "rgba(8, 12, 21, 0.75)" : "rgba(241, 243, 247, 0.75)"}
+          className="!bg-surface/85 dark:!bg-zinc-950/85 !border !border-line/80 dark:!border-white/10 !backdrop-blur-2xl !shadow-md !rounded-2xl !overflow-hidden !m-4 !w-36 !h-24 hidden md:block"
         />
 
-        {/* Barra superior de estado / acciones rápidas */}
+        {/* Barra superior izquierda: Estado del Lienzo */}
         <Panel position="top-left" className="!m-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-surface/90 dark:bg-zinc-900/90 border border-line shadow-sm backdrop-blur-md text-caption">
-            <div className="flex items-center gap-1.5 text-concept-fg font-semibold">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl glass-pill shadow-xs border border-line/80 dark:border-white/10 text-caption">
+            <div className="flex items-center gap-1.5 text-concept-fg font-bold">
               <Layers className="w-3.5 h-3.5" />
               <span>Mapa Conceptual</span>
             </div>
-            <span className="text-line">•</span>
+            <span className="text-muted/60">•</span>
             <span className="text-[11px] text-muted font-medium">
               {nodes.length} {nodes.length === 1 ? "concepto" : "conceptos"}
             </span>
@@ -125,7 +124,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
               <button
                 type="button"
                 onClick={onOpenAddNode}
-                className="ml-2 px-2.5 py-1 rounded-xl bg-concept-fg/10 text-concept-fg hover:bg-concept-fg/20 active:scale-95 transition-all text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                className="ml-2 px-2.5 py-1 rounded-xl bg-concept-fg/10 text-concept-fg hover:bg-concept-fg/20 active:scale-95 transition-all text-[11px] font-semibold flex items-center gap-1 cursor-pointer focus-ring"
               >
                 <Plus className="w-3 h-3" />
                 Agregar
@@ -136,15 +135,12 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
 
         {/* Tip flotante discreto */}
         <Panel position="top-right" className="!m-4 hidden sm:block">
-          <div className="px-3 py-1.5 rounded-2xl bg-surface/80 dark:bg-zinc-900/80 border border-line-soft text-[11px] text-muted flex items-center gap-1.5 backdrop-blur-xs">
+          <div className="px-3 py-1.5 rounded-2xl glass-pill border border-line-soft dark:border-white/10 text-[11px] text-muted flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5 text-muted" />
-            <span>Pasa el cursor sobre un nodo y haz clic en el ícono para abrir detalles</span>
+            <span>Haz clic en un nodo para abrir su detalle profundo</span>
           </div>
         </Panel>
       </ReactFlow>
-
-      {/* Carta Flotante Superpuesta (Deep-Dive Modal estilo Notion) */}
-      <DeepDiveModal />
     </div>
   );
 };

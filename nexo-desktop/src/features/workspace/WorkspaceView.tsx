@@ -9,7 +9,6 @@ import {
   FolderKanban,
   PanelRightClose,
   PanelRightOpen,
-  Sparkles,
 } from "lucide-react";
 import { services } from "../../services";
 import { currentLanguage } from "../../i18n";
@@ -47,7 +46,6 @@ export const WorkspaceView: React.FC = () => {
     moveNode,
     addNode,
     removeNode,
-    setCanvasMode,
   } = useWorkspaceStore();
 
   const [loading, setLoading] = useState(true);
@@ -148,24 +146,28 @@ export const WorkspaceView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-app space-y-3">
-        <Loader2 className="w-6 h-6 text-concept-fg animate-spin" />
-        <p className="text-caption text-muted font-medium">{t("workspace.loading")}</p>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-transparent space-y-3 select-none">
+        <div className="p-4 rounded-2xl glass-card flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-concept-fg animate-spin" />
+          <p className="text-caption text-muted font-medium">{t("workspace.loading")}</p>
+        </div>
       </div>
     );
   }
 
   if (!workspace) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-app text-center p-6">
-        <div className="w-12 h-12 rounded-2xl bg-sunken flex items-center justify-center text-muted mb-3 border border-line">
-          <FolderKanban className="w-6 h-6" />
+      <div className="w-full h-full flex flex-col items-center justify-center bg-transparent text-center p-6 select-none">
+        <div className="p-8 rounded-3xl glass-card max-w-sm flex flex-col items-center">
+          <div className="w-12 h-12 rounded-2xl bg-surface/80 border border-line flex items-center justify-center text-muted mb-3 shadow-xs">
+            <FolderKanban className="w-6 h-6" />
+          </div>
+          <h3 className="text-body font-bold text-fg">{t("workspace.notFound.title")}</h3>
+          <p className="text-caption text-muted mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
+          <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4">
+            {t("workspace.notFound.action")}
+          </Button>
         </div>
-        <h3 className="text-body font-semibold text-fg">{t("workspace.notFound.title")}</h3>
-        <p className="text-caption text-muted mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
-        <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4">
-          {t("workspace.notFound.action")}
-        </Button>
       </div>
     );
   }
@@ -184,27 +186,43 @@ export const WorkspaceView: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-app">
-      {/* Workspace Top Toolbar Header */}
-      <div className="h-12 shrink-0 bg-surface border-b border-line px-4 flex items-center justify-between z-20">
+      {/* Workspace Top Toolbar Header (Creative Glass) */}
+      <div
+        className="
+          h-12 shrink-0
+          bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-2xl backdrop-saturate-150
+          border-b border-line/80 dark:border-white/10
+          px-4 flex items-center justify-between z-20 relative select-none
+        "
+      >
+        {/* Specular hairline reflection */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent"
+        />
+
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-1 text-body font-medium text-concept-fg hover:brightness-110 p-1 -ml-1 rounded-lg transition-colors focus-ring"
+            className="
+              flex items-center gap-1.5 text-body font-semibold text-concept-fg hover:brightness-110
+              px-2.5 py-1 -ml-1 rounded-xl hover:bg-concept-fg/10 transition-all focus-ring cursor-pointer
+            "
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Proyectos</span>
           </button>
 
-          <div className="h-4 w-px bg-line" />
+          <div className="h-4 w-px bg-line/80 dark:bg-white/10" />
 
-          <div>
-            <h2 className="text-body font-semibold text-fg flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-body font-bold text-fg flex items-center gap-2">
               {workspace.project.name}
-              <span className="text-[10px] font-medium text-muted flex items-center gap-1 bg-sunken px-1.5 py-0.5 rounded-md border border-line ml-1">
-                <Check className="w-3 h-3 text-positive-fg" />
-                {t("workspace.saved")}
-              </span>
             </h2>
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-positive-fg bg-positive-fg/10 px-2 py-0.5 rounded-full border border-positive-fg/20 backdrop-blur-xs">
+              <Check className="w-3 h-3 text-positive-fg" />
+              {t("workspace.saved")}
+            </span>
           </div>
         </div>
 
@@ -212,7 +230,12 @@ export const WorkspaceView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsDocModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium bg-sunken hover:bg-hover border border-line text-fg transition-colors focus-ring"
+            className="
+              flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+              text-caption font-semibold bg-surface/85 dark:bg-white/[0.06]
+              border border-line/80 dark:border-white/10 text-fg hover:bg-hover hover:border-concept-fg/40
+              backdrop-blur-md shadow-xs transition-all duration-200 focus-ring cursor-pointer
+            "
           >
             <FileText className="w-3.5 h-3.5 text-concept-fg" />
             <span>{t("canvas.generate")}</span>
@@ -220,11 +243,15 @@ export const WorkspaceView: React.FC = () => {
 
           <button
             onClick={toggleChat}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium transition-colors border focus-ring ${
-              isChatOpen
-                ? "bg-concept-fg text-white border-transparent shadow-xs"
-                : "bg-sunken hover:bg-hover border-line text-fg"
-            }`}
+            className={`
+              flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-caption font-semibold
+              transition-all duration-200 focus-ring cursor-pointer border
+              ${
+                isChatOpen
+                  ? "bg-gradient-to-b from-concept-fg to-concept-fg/90 text-white border-transparent shadow-[0_4px_14px_-3px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.3)]"
+                  : "bg-surface/85 dark:bg-white/[0.06] hover:bg-hover border-line/80 dark:border-white/10 text-fg backdrop-blur-md shadow-xs"
+              }
+            `}
           >
             {isChatOpen ? (
               <PanelRightClose className="w-3.5 h-3.5" />
@@ -261,69 +288,50 @@ export const WorkspaceView: React.FC = () => {
             />
           )}
 
-          {/* Deep-Dive Document Viewer (NotionModalViewer) */}
+          {/* Document Detail Overlay (expanded Markdown / editorial view) */}
           {docNode && (
             <NotionModalViewer
               node={docNode}
               onClose={() => setExpandedDocNodeId(null)}
-              onViewInGraph={(nodeId) => {
-                setCanvasMode("obsidian");
-                selectNode(nodeId);
+              onViewInGraph={() => {
+                setExpandedDocNodeId(null);
+                selectNode(docNode.id);
+              }}
+              onAskAI={() => handleAskAIAboutNode(docNode.title)}
+              onRemoveNode={() => {
+                handleRemoveNode(docNode.id);
                 setExpandedDocNodeId(null);
               }}
-              onAskAI={handleAskAIAboutNode}
-              onRemoveNode={handleRemoveNode}
               relatedNodes={docRelatedNodes}
             />
           )}
-
-          {/* Botón flotante para reabrir el chat cuando está cerrado */}
-          {!isChatOpen && (
-            <button
-              onClick={toggleChat}
-              className="
-                absolute bottom-4 right-4 z-20
-                flex items-center gap-2.5 px-4 py-2.5 rounded-2xl
-                bg-surface/90 dark:bg-zinc-900/90
-                border border-line/80 dark:border-white/10
-                text-fg shadow-xl backdrop-blur-xl
-                hover:bg-surface hover:shadow-2xl hover:scale-105 active:scale-95
-                transition-all duration-200 cursor-pointer group focus-ring
-              "
-              title="Abrir Nexo AI"
-            >
-              <div className="w-6 h-6 rounded-xl bg-gradient-to-br from-concept-fg to-concept-fg/80 text-white flex items-center justify-center shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-              </div>
-              <span className="text-caption font-semibold">
-                {t("chat.aiName")}
-              </span>
-            </button>
-          )}
-
-          {/* Floating AI Chat Card */}
-          <AIChatDrawer
-            isOpen={isChatOpen}
-            onClose={toggleChat}
-            messages={workspace.messages}
-            isThinking={isThinking}
-            onSendMessage={handleSendMessage}
-            onSelectNode={(nodeId) => selectNode(nodeId)}
-            onRetry={() => {
-              const lastUserMsg = [...workspace.messages].reverse().find((m) => m.role === "user");
-              if (lastUserMsg) void handleSendMessage(lastUserMsg.text);
-            }}
-          />
         </div>
+
+        {/* AI Copilot Drawer (Floating Creative Glass Drawer) */}
+        <AIChatDrawer
+          isOpen={isChatOpen}
+          onClose={toggleChat}
+          messages={workspace.messages}
+          isThinking={isThinking}
+          onSendMessage={handleSendMessage}
+          onSelectNode={(nodeId) => selectNode(nodeId)}
+          onRetry={() => {
+            const lastUserMsg = [...workspace.messages]
+              .reverse()
+              .find((m) => m.role === "user");
+            if (lastUserMsg) void handleSendMessage(lastUserMsg.text);
+          }}
+        />
       </div>
 
-      {/* Modals */}
+      {/* Add Concept Node Modal */}
       <AddNodeModal
         isOpen={isAddNodeOpen}
         onClose={() => setIsAddNodeOpen(false)}
         onAdd={handleAddNode}
       />
 
+      {/* Executive Summary Export Modal */}
       <GenerateDocumentModal
         isOpen={isDocModalOpen}
         onClose={() => setIsDocModalOpen(false)}

@@ -72,13 +72,11 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
       className={`
         absolute top-3 bottom-3 sm:top-4 sm:bottom-4
         ${isChatOpen ? "right-3 sm:right-[444px]" : "right-3 sm:right-4"}
-        w-80 max-w-[calc(100vw-2rem)]
-        rounded-[26px] overflow-hidden
-        border border-line/80 dark:border-white/10
-        bg-surface/90 dark:bg-zinc-950/90
-        backdrop-blur-2xl backdrop-saturate-150
-        p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.18)]
-        dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)]
+        w-84 max-w-[calc(100vw-2rem)]
+        rounded-3xl overflow-hidden
+        border border-white/20 dark:border-white/10
+        glass-modal specular-sheen
+        p-5 shadow-2xl
         z-30 flex flex-col justify-between
         transition-all duration-300 ease-out animate-sheet-in select-text
       `}
@@ -87,7 +85,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10" />
       {/* Header */}
       <div>
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-line-soft">
+        <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-line-soft/80">
           <div className="flex items-center gap-1.5 flex-wrap">
             {getPhaseBadge(phase)}
             <Badge kind={node.kind} status={node.status}>
@@ -113,16 +111,16 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
             <p className="text-caption text-muted mt-2 leading-relaxed">{node.description}</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-elevated/60 border border-line-soft space-y-2">
+          <div className="p-3.5 rounded-2xl bg-surface-secondary/70 border border-line-soft/80 space-y-2.5 backdrop-blur-xs">
             <div className="flex items-center justify-between text-caption">
-              <span className="text-muted">Estado:</span>
-              <span className="font-semibold text-fg uppercase tracking-wider text-[10px]">
+              <span className="text-muted font-medium">Estado:</span>
+              <span className="font-semibold text-fg uppercase tracking-wider text-[10px] glass-pill">
                 {t(`nodeStatus.${node.status}`)}
               </span>
             </div>
             {node.metadata && (
               <div className="flex items-center justify-between text-caption">
-                <span className="text-muted">Métrica / Evidencia:</span>
+                <span className="text-muted font-medium">Métrica / Evidencia:</span>
                 <span className="font-medium text-fg">{node.metadata}</span>
               </div>
             )}

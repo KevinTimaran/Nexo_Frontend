@@ -7,33 +7,35 @@ import { SettingsModal } from "../../features/settings/SettingsModal";
 import { CreateProjectModal } from "../../features/dashboard/CreateProjectModal";
 import { services } from "../../services";
 import { useToast } from "../../context/ToastContext";
-import { currentLanguage } from "../../i18n";
-import type { NewProjectInput, Project } from "../../domain/types";
+import type { Project, NewProjectInput } from "../../domain/types";
 
 export const AppLayout: React.FC = () => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
 
-  const navigate = useNavigate();
-  const lang = currentLanguage();
-  const { showToast } = useToast();
-
+  // Load recent projects once on layout mount for Command Palette and global context
   useEffect(() => {
     services.projects
-      .list(lang)
-      .then(setRecentProjects)
+      .list("es")
+      .then((data) => setRecentProjects(data))
       .catch(() => {});
-  }, [lang, location.pathname]);
+  }, []);
 
-  // Global Cmd+K keyboard shortcut listener
+  // Global Keyboard shortcuts: Cmd+K / Ctrl+K for Palette, Cmd+N / Ctrl+N for New Project
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setCreateProjectOpen(true);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -48,7 +50,17 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-app text-fg overflow-hidden select-none">
+    <div className="flex flex-col h-screen w-screen bg-app text-fg overflow-hidden select-none relative">
+      {/* Ambient background soft light orbs for Creative Glass depth & refraction */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed -top-48 -left-48 w-[720px] h-[720px] rounded-full blur-[160px] opacity-40 dark:opacity-25 bg-concept-fg/20 z-0"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed -bottom-48 -right-48 w-[720px] h-[720px] rounded-full blur-[160px] opacity-35 dark:opacity-20 bg-concept-fg/15 z-0"
+      />
+
       {/* Native Desktop Titlebar */}
       <Titlebar
         onOpenCommand={() => setCommandPaletteOpen(true)}
@@ -56,9 +68,9 @@ export const AppLayout: React.FC = () => {
       />
 
       {/* Main Workspace Frame */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 overflow-hidden relative z-10">
         {/* View Content Area */}
-        <main className="flex-1 h-full overflow-hidden relative bg-app">
+        <main className="flex-1 h-full overflow-hidden relative bg-transparent">
           <Outlet
             context={{
               onOpenSettings: () => setSettingsOpen(true),

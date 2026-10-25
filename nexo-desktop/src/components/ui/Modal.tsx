@@ -39,52 +39,67 @@ export const Modal: React.FC<ModalProps> = ({
   const widthClasses = {
     sm: "max-w-sm",
     md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-2xl",
+    lg: "max-w-xl",
+    xl: "max-w-3xl",
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none overflow-hidden">
+      {/* Frosted Glass Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/45 dark:bg-black/70 backdrop-blur-md animate-fade-in cursor-pointer"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal Dialog Sheet */}
+      {/* Creative Glass Modal Sheet */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
         aria-describedby={description ? "modal-description" : undefined}
-        className={`relative z-10 w-full ${widthClasses[maxWidth]} bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden animate-sheet-in`}
+        className={`
+          relative z-10 w-full ${widthClasses[maxWidth]}
+          rounded-[28px] overflow-hidden
+          border border-line/80 dark:border-white/12
+          bg-surface/92 dark:bg-zinc-950/92
+          backdrop-blur-3xl backdrop-saturate-[180%]
+          shadow-[0_24px_64px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_0_rgba(255,255,255,0.85)]
+          dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+          animate-sheet-in select-text
+        `}
       >
+        {/* Specular Top Reflection */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
+        />
+
         {(title || description) && (
-          <div className="flex items-start justify-between p-5 pb-3 border-b border-line-soft">
-            <div>
+          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-line/60 dark:border-white/10 bg-surface/40 dark:bg-white/[0.02]">
+            <div className="pr-4">
               {title && (
-                <h3 id="modal-title" className="text-body font-semibold text-fg">
+                <h3 id="modal-title" className="text-lg font-bold tracking-tight text-fg leading-snug">
                   {title}
                 </h3>
               )}
               {description && (
-                <p id="modal-description" className="text-caption text-muted mt-1">
+                <p id="modal-description" className="text-caption text-muted mt-1 leading-relaxed">
                   {description}
                 </p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="text-muted hover:text-fg p-1.5 rounded-lg hover:bg-hover transition-colors"
-              aria-label="Close"
+              className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer focus-ring"
+              aria-label="Cerrar modal"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
