@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import type { Node, Edge, NodeChange, EdgeChange, Connection } from "reactflow";
+import { applyNodeChanges, applyEdgeChanges, addEdge } from "reactflow";
 import type {
   CanvasMode,
   ConceptKind,
@@ -13,6 +15,10 @@ import type {
 } from "../domain/types";
 import { services } from "../services";
 
+export interface ConceptNodeData extends ConceptNode {
+  onOpenDeepDive?: (id: string) => void;
+}
+
 interface WorkspaceState {
   // Data
   workspace: Workspace | null;
@@ -22,6 +28,11 @@ interface WorkspaceState {
   isThinking: boolean;
   isChatOpen: boolean;
 
+  // React Flow State
+  nodes: Node<ConceptNodeData>[];
+  edges: Edge[];
+  isDeepDiveModalOpen: boolean;
+
   // Actions
   setWorkspace: (workspace: Workspace | null) => void;
   setCanvasMode: (mode: CanvasMode) => void;
@@ -30,6 +41,19 @@ interface WorkspaceState {
   setThinking: (thinking: boolean) => void;
   setChatOpen: (isOpen: boolean) => void;
   toggleChat: () => void;
+
+  // Deep-Dive Modal Actions
+  openDeepDive: (nodeId: string) => void;
+  closeDeepDive: () => void;
+  updateNodeContent: (id: string, updates: Partial<ConceptNode>) => void;
+
+  // React Flow Handlers
+  setNodes: (nodes: Node<ConceptNodeData>[] | ((nds: Node<ConceptNodeData>[]) => Node<ConceptNodeData>[])) => void;
+  setEdges: (edges: Edge[] | ((eds: Edge[]) => Edge[])) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  onConnect: (connection: Connection) => void;
+  syncFlowElements: () => void;
 
   // Node operations
   addNode: (nodeData: Omit<ConceptNode, "id">) => ConceptNode;
@@ -62,6 +86,35 @@ const persistSession = (projectId: string, map: ConceptMap, messages: Message[])
   }
 };
 
+function convertMapToFlow(
+  map: ConceptMap,
+  openDeepDive: (id: string) => void
+): { nodes: Node<ConceptNodeData>[]; edges: Edge[] } {
+  const nodes: Node<ConceptNodeData>[] = map.nodes.map((n) => ({
+    id: n.id,
+    type: "conceptNode",
+    position: { x: n.x, y: n.y },
+    data: {
+      ...n,
+      onOpenDeepDive: openDeepDive,
+    },
+  }));
+
+  const edges: Edge[] = map.relations.map((r) => ({
+    id: r.id,
+    source: r.from,
+    target: r.to,
+    type: "smoothstep",
+    animated: true,
+    style: {
+      stroke: "#3b82f6",
+      strokeWidth: 2,
+    },
+  }));
+
+  return { nodes, edges };
+}
+
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspace: null,
   canvasMode: "notion",
@@ -70,7 +123,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   isThinking: false,
   isChatOpen: true,
 
-  setWorkspace: (workspace) => set({ workspace }),
+  nodes: [],
+  edges: [],
+  isDeepDiveModalOpen: false,
+
+  setWorkspace: (workspace) => {
+    if (!workspace) {
+      set({ workspace: null, nodes: [], edges: [] });
+      return;
+    }
+    const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
+    set({ workspace, nodes, edges });
+  },
 
   setCanvasMode: (canvasMode) => set({ canvasMode }),
 
@@ -84,6 +148,117 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
 
+  openDeepDive: (nodeId) => set({ selectedNodeId: nodeId, isDeepDiveModalOpen: true }),
+
+  closeDeepDive: () => set({ isDeepDiveModalOpen: false }),
+
+  updateNodeContent: (id, updates) => {
+    const { workspace, nodes } = get();
+    if (!workspace) return;
+
+    const nextNodes = workspace.map.nodes.map((node) =>
+      node.id === id ? { ...node, ...updates } : node
+    );
+    const nextMap = { ...workspace.map, nodes: nextNodes };
+    const nextWorkspace = { ...workspace, map: nextMap };
+
+    const nextFlowNodes = nodes.map((fn) =>
+      fn.id === id
+        ? {
+            ...fn,
+            data: {
+              ...fn.data,
+              ...updates,
+            },
+          }
+        : fn
+    );
+
+    set({
+      workspace: nextWorkspace,
+      nodes: nextFlowNodes,
+    });
+
+    persistSession(workspace.project.id, nextMap, workspace.messages);
+  },
+
+  setNodes: (nodesOrUpdater) => {
+    const nextNodes =
+      typeof nodesOrUpdater === "function" ? nodesOrUpdater(get().nodes) : nodesOrUpdater;
+    set({ nodes: nextNodes });
+  },
+
+  setEdges: (edgesOrUpdater) => {
+    const nextEdges =
+      typeof edgesOrUpdater === "function" ? edgesOrUpdater(get().edges) : edgesOrUpdater;
+    set({ edges: nextEdges });
+  },
+
+  onNodesChange: (changes: NodeChange[]) => {
+    const updatedNodes = applyNodeChanges(changes, get().nodes);
+    set({ nodes: updatedNodes });
+
+    const { workspace } = get();
+    if (!workspace) return;
+
+    let moved = false;
+    const currentNodes = [...workspace.map.nodes];
+    for (const change of changes) {
+      if (change.type === "position" && change.position) {
+        const idx = currentNodes.findIndex((n) => n.id === change.id);
+        if (idx !== -1) {
+          currentNodes[idx] = {
+            ...currentNodes[idx],
+            x: Math.round(change.position.x),
+            y: Math.round(change.position.y),
+          };
+          moved = true;
+        }
+      }
+    }
+
+    if (moved) {
+      const nextMap = { ...workspace.map, nodes: currentNodes };
+      set({ workspace: { ...workspace, map: nextMap } });
+      persistSession(workspace.project.id, nextMap, workspace.messages);
+    }
+  },
+
+  onEdgesChange: (changes: EdgeChange[]) => {
+    set({ edges: applyEdgeChanges(changes, get().edges) });
+  },
+
+  onConnect: (connection: Connection) => {
+    if (!connection.source || !connection.target) return;
+    const newEdge: Edge = {
+      id: `r-${Date.now()}`,
+      source: connection.source,
+      target: connection.target,
+      type: "smoothstep",
+      animated: true,
+      style: { stroke: "#3b82f6", strokeWidth: 2 },
+    };
+    set({ edges: addEdge(newEdge, get().edges) });
+
+    const { workspace } = get();
+    if (workspace) {
+      const nextRelations = [
+        ...workspace.map.relations,
+        { id: newEdge.id, from: connection.source, to: connection.target },
+      ];
+      const nextMap = { ...workspace.map, relations: nextRelations };
+      set({ workspace: { ...workspace, map: nextMap } });
+      persistSession(workspace.project.id, nextMap, workspace.messages);
+    }
+  },
+
+  syncFlowElements: () => {
+    const { workspace } = get();
+    if (!workspace) return;
+    const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
+    set({ nodes, edges });
+  },
+
   addNode: (nodeData) => {
     const { workspace } = get();
     const id = "n-" + Math.random().toString(36).substring(2, 9);
@@ -96,7 +271,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const nextNodes = [...workspace.map.nodes, newNode];
       const nextMap = { ...workspace.map, nodes: nextNodes };
       const nextWorkspace = { ...workspace, map: nextMap };
-      set({ workspace: nextWorkspace, selectedNodeId: id });
+      const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
+      set({ workspace: nextWorkspace, selectedNodeId: id, nodes, edges });
       persistSession(workspace.project.id, nextMap, workspace.messages);
     }
 
@@ -104,16 +280,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   updateNode: (nodeId, patch) => {
-    const { workspace } = get();
-    if (!workspace) return;
-
-    const nextNodes = workspace.map.nodes.map((node) =>
-      node.id === nodeId ? { ...node, ...patch } : node
-    );
-    const nextMap = { ...workspace.map, nodes: nextNodes };
-    const nextWorkspace = { ...workspace, map: nextMap };
-    set({ workspace: nextWorkspace });
-    persistSession(workspace.project.id, nextMap, workspace.messages);
+    get().updateNodeContent(nodeId, patch);
   },
 
   removeNode: (nodeId) => {
@@ -126,11 +293,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     );
     const nextMap = { nodes: nextNodes, relations: nextRelations };
     const nextWorkspace = { ...workspace, map: nextMap };
+    const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
 
     set({
       workspace: nextWorkspace,
       selectedNodeId: selectedNodeId === nodeId ? null : selectedNodeId,
       expandedDocNodeId: expandedDocNodeId === nodeId ? null : expandedDocNodeId,
+      nodes,
+      edges,
     });
 
     persistSession(workspace.project.id, nextMap, workspace.messages);
@@ -265,10 +435,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const nextMap: ConceptMap = { nodes: nextNodes, relations };
     const nextWorkspace = { ...workspace, map: nextMap };
+    const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
 
     set({
       workspace: nextWorkspace,
       selectedNodeId: id,
+      nodes,
+      edges,
     });
 
     persistSession(workspace.project.id, nextMap, workspace.messages);
