@@ -24,4 +24,15 @@ export {
   DEFAULT_API_URL,
 };
 
+export {
+  getGeminiApiKey,
+  getGeminiModel,
+  setGeminiConfig,
+  isGeminiConfigured,
+  isGeminiEnabled,
+  setGeminiEnabled,
+  testGeminiConnection,
+  DEFAULT_GEMINI_MODEL,
+} from "./gemini";
+
 export type * from "./contracts";

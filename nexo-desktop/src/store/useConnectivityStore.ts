@@ -12,6 +12,7 @@ import {
   setActiveServiceMode,
   setStoredApiUrl,
 } from "../services";
+import { isGeminiEnabled, getGeminiModel } from "../services/gemini";
 
 interface ConnectivityState {
   // Service mode ('mock' | 'server')
@@ -42,6 +43,7 @@ interface ConnectivityState {
   setApiUrl: (url: string) => void;
   testConnection: () => Promise<void>;
   setAiStatus: (status: AIServiceStatus) => void;
+  refreshAiStatus: () => void;
   setNeo4jStatus: (status: Neo4jStatus) => void;
   setManagerOpen: (open: boolean) => void;
   toggleManager: () => void;
@@ -49,6 +51,21 @@ interface ConnectivityState {
 
 const initialMode = getActiveServiceMode();
 const initialApiUrl = getStoredApiUrl();
+
+function getActiveAiInfo(currentMode: ServiceMode) {
+  if (isGeminiEnabled()) {
+    return {
+      status: "ready" as AIServiceStatus,
+      provider: `Google Gemini (${getGeminiModel()})`,
+    };
+  }
+  return {
+    status: (currentMode === "mock" ? "simulated" : "ready") as AIServiceStatus,
+    provider: currentMode === "mock" ? "Simulador de Desarrollo" : "Nexo LLM Engine",
+  };
+}
+
+const initialAi = getActiveAiInfo(initialMode);
 
 export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
   mode: initialMode,
@@ -59,8 +76,8 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
   backendLastChecked: null,
   backendError: null,
 
-  aiStatus: initialMode === "mock" ? "simulated" : "ready",
-  aiProvider: initialMode === "mock" ? "Simulador de Desarrollo" : "Nexo LLM Engine",
+  aiStatus: initialAi.status,
+  aiProvider: initialAi.provider,
   aiLastActivity: null,
 
   neo4jStatus: "unknown",
@@ -69,22 +86,32 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
   isChecking: false,
   isManagerOpen: false,
 
+  refreshAiStatus: () => {
+    const aiInfo = getActiveAiInfo(get().mode);
+    set({
+      aiStatus: aiInfo.status,
+      aiProvider: aiInfo.provider,
+    });
+  },
+
   setMode: async (mode: ServiceMode) => {
     setActiveServiceMode(mode);
     set({ mode });
+    const aiInfo = getActiveAiInfo(mode);
 
     if (mode === "mock") {
       set({
         backendStatus: "mock",
         backendError: null,
-        aiStatus: "simulated",
-        aiProvider: "Simulador de Desarrollo",
+        aiStatus: aiInfo.status,
+        aiProvider: aiInfo.provider,
         neo4jStatus: "unknown",
       });
     } else {
       set({
         backendStatus: "checking",
-        aiProvider: "Nexo LLM Engine",
+        aiProvider: aiInfo.provider,
+        aiStatus: aiInfo.status,
       });
       await get().testConnection();
     }

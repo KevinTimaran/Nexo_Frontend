@@ -5,6 +5,7 @@
  */
 import type { ServiceMode } from "../domain/types";
 import type { Services } from "./contracts";
+import { geminiAiService, isGeminiEnabled } from "./gemini";
 import { httpServices } from "./http";
 import { mockServices } from "./mock";
 
@@ -36,16 +37,27 @@ class ServiceRegistry {
     } catch {
       // Ignore storage error
     }
-    this.listeners.forEach((listener) => listener(mode));
+    this.notify();
+  }
+
+  notify(): void {
+    this.listeners.forEach((listener) => listener(this.currentMode));
   }
 
   /**
    * Returns the actual active services adapter:
-   * - When in 'mock' mode: returns deterministic mockServices.
+   * - When in 'mock' mode: returns deterministic mockServices, upgraded with Gemini if enabled.
    * - When in 'server' mode: returns real httpServices connecting to the backend.
    */
   getServices(): Services {
-    return this.currentMode === "server" ? httpServices : mockServices;
+    const base = this.currentMode === "server" ? httpServices : mockServices;
+    if (isGeminiEnabled()) {
+      return {
+        ...base,
+        ai: geminiAiService,
+      };
+    }
+    return base;
   }
 
   subscribe(listener: (mode: ServiceMode) => void): () => void {
