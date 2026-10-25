@@ -37,8 +37,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       setName("");
       setDescription("");
       onClose();
-    } catch {
-      setError("Failed to create project");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t("projects.create.error", "Error al crear el proyecto");
+      setError(msg);
     } finally {
       setLoading(false);
     }
