@@ -68,6 +68,13 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
     void testConnection();
   };
 
+  const handleQuickSetUrl = (url: string) => {
+    setInputUrl(url);
+    setApiUrl(url);
+    setIsUrlEditing(false);
+    void testConnection();
+  };
+
   const getBackendBadge = (status: BackendStatus) => {
     switch (status) {
       case "connected":
@@ -284,12 +291,12 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                     value={inputUrl}
                     onChange={(e) => setInputUrl(e.target.value)}
                     className="flex-1 px-2 py-0.5 text-xs bg-surface border border-line rounded-lg font-mono focus-ring"
-                    placeholder="http://localhost:8000/api/v1"
+                    placeholder="http://localhost:8080/api/v1"
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="px-2 py-0.5 bg-concept-fg text-white text-xs font-semibold rounded-lg hover:brightness-110"
+                    className="px-2 py-0.5 bg-concept-fg text-white text-xs font-semibold rounded-lg hover:brightness-110 cursor-pointer"
                   >
                     Guardar
                   </button>
@@ -299,7 +306,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                       setInputUrl(apiUrl);
                       setIsUrlEditing(false);
                     }}
-                    className="px-2 py-0.5 text-muted hover:text-fg text-xs font-medium"
+                    className="px-2 py-0.5 text-muted hover:text-fg text-xs font-medium cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -312,12 +319,39 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                   <button
                     type="button"
                     onClick={() => setIsUrlEditing(true)}
-                    className="text-concept-fg text-[11px] font-semibold hover:underline shrink-0"
+                    className="text-concept-fg text-[11px] font-semibold hover:underline shrink-0 cursor-pointer"
                   >
                     Editar
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Quick Port Helpers */}
+            <div className="flex items-center gap-1.5 pt-0.5 text-[11px]">
+              <span className="text-muted text-[10px]">Puertos:</span>
+              <button
+                type="button"
+                onClick={() => handleQuickSetUrl("http://localhost:8080/api/v1")}
+                className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-all cursor-pointer ${
+                  apiUrl.includes(":8080")
+                    ? "bg-concept-fg/15 text-concept-fg border-concept-fg/30 font-bold"
+                    : "bg-surface hover:bg-hover border-line-soft text-muted hover:text-fg"
+                }`}
+              >
+                :8080 (Spring Boot)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSetUrl("http://localhost:8000/api/v1")}
+                className={`px-2 py-0.5 rounded-md border font-mono text-[10px] transition-all cursor-pointer ${
+                  apiUrl.includes(":8000")
+                    ? "bg-concept-fg/15 text-concept-fg border-concept-fg/30 font-bold"
+                    : "bg-surface hover:bg-hover border-line-soft text-muted hover:text-fg"
+                }`}
+              >
+                :8000
+              </button>
             </div>
           </div>
 

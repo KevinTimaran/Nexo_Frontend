@@ -28,12 +28,18 @@ import type {
   WorkspaceService,
 } from "../contracts";
 
-export const DEFAULT_API_URL = "http://localhost:8000/api/v1";
+export const DEFAULT_API_URL = "http://localhost:8080/api/v1";
 const API_URL_STORAGE_KEY = "nexo.api.url";
 
 export function getStoredApiUrl(): string {
   try {
-    return localStorage.getItem(API_URL_STORAGE_KEY) || DEFAULT_API_URL;
+    const saved = localStorage.getItem(API_URL_STORAGE_KEY);
+    if (!saved || saved.includes(":8000")) {
+      // Migración automática: puerto estándar de Spring Boot es 8080
+      localStorage.setItem(API_URL_STORAGE_KEY, DEFAULT_API_URL);
+      return DEFAULT_API_URL;
+    }
+    return saved;
   } catch {
     return DEFAULT_API_URL;
   }
@@ -58,82 +64,111 @@ export interface HealthCheckResult {
 
 /**
  * Performs a real health check against the configured backend URL.
- * Applies a strict timeout to prevent hanging or overlapping requests.
+ * Applies a strict timeout and checks ports 8080 / 8000 automatically.
  */
 export async function checkBackendHealth(apiUrl: string, timeoutMs = 3000): Promise<HealthCheckResult> {
   const start = performance.now();
   const timestamp = new Date().toISOString();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  // Normalize baseUrl (strip trailing slashes)
+  // Normalize baseUrl candidates: check primary URL, plus port 8080/8000 fallback
   const cleanUrl = apiUrl.trim().replace(/\/+$/, "");
-
-  // Candidate health endpoints
-  const healthUrl = `${cleanUrl}/health`;
-
-  try {
-    const res = await fetch(healthUrl, {
-      method: "GET",
-      signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    clearTimeout(timeoutId);
-    const latencyMs = Math.round(performance.now() - start);
-
-    if (res.ok) {
-      let neo4jStatus: Neo4jStatus = "unknown";
-      try {
-        const body = await res.json();
-        // Only report Neo4j as connected if the backend response explicitly confirms it
-        if (body?.components?.neo4j?.status === "UP" || body?.neo4j === "UP" || body?.neo4j === "connected") {
-          neo4jStatus = "connected";
-        } else if (body?.neo4j === "error" || body?.components?.neo4j?.status === "DOWN") {
-          neo4jStatus = "error";
-        } else {
-          neo4jStatus = "unknown";
-        }
-      } catch {
-        // Response wasn't json, but server is alive
-        neo4jStatus = "unknown";
-      }
-
-      return {
-        connected: true,
-        status: "connected",
-        latencyMs,
-        neo4jStatus,
-        timestamp,
-      };
-    } else {
-      return {
-        connected: false,
-        status: "error",
-        latencyMs,
-        neo4jStatus: "disconnected",
-        errorMessage: `Respuesta HTTP ${res.status}: ${res.statusText}`,
-        timestamp,
-      };
-    }
-  } catch (err: unknown) {
-    clearTimeout(timeoutId);
-    const latencyMs = Math.round(performance.now() - start);
-    const isTimeout = err instanceof Error && err.name === "AbortError";
-
-    return {
-      connected: false,
-      status: "disconnected",
-      latencyMs,
-      neo4jStatus: "disconnected",
-      errorMessage: isTimeout
-        ? `Tiempo de espera agotado tras ${timeoutMs}ms al conectar a ${cleanUrl}`
-        : `Servidor inaccesible en ${cleanUrl}. Verifica que el backend Spring Boot esté ejecutándose.`,
-      timestamp,
-    };
+  const candidates = [cleanUrl];
+  if (cleanUrl.includes(":8000")) {
+    candidates.push(cleanUrl.replace(":8000", ":8080"));
+  } else if (cleanUrl.includes(":8080")) {
+    candidates.push(cleanUrl.replace(":8080", ":8000"));
   }
+
+  let lastError = `Servidor inaccesible en ${cleanUrl}.`;
+
+  for (const candidate of candidates) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const healthUrl = `${candidate}/health`;
+
+    try {
+      const res = await fetch(healthUrl, {
+        method: "GET",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      clearTimeout(timeoutId);
+      const latencyMs = Math.round(performance.now() - start);
+
+      if (res.ok) {
+        // If candidate succeeded on 8080 instead of 8000, save the working URL
+        if (candidate !== cleanUrl) {
+          setStoredApiUrl(candidate);
+        }
+
+        let neo4jStatus: Neo4jStatus = "unknown";
+        try {
+          const body = await res.json();
+          if (body?.components?.neo4j?.status === "UP" || body?.neo4j === "UP" || body?.neo4j === "connected") {
+            neo4jStatus = "connected";
+          } else if (body?.neo4j === "error" || body?.components?.neo4j?.status === "DOWN") {
+            neo4jStatus = "error";
+          }
+        } catch {
+          // Response wasn't json, but server is alive
+        }
+
+        return {
+          connected: true,
+          status: "connected",
+          latencyMs,
+          neo4jStatus,
+          timestamp,
+        };
+      } else {
+        // Check if response is from Spring Boot itself (even if 404 on missing routes)
+        let isSpringBoot = false;
+        try {
+          const body = await res.json();
+          if (body?.status || body?.error || body?.timestamp) {
+            isSpringBoot = true;
+          }
+        } catch {
+          // not json
+        }
+
+        if (isSpringBoot) {
+          if (candidate !== cleanUrl) {
+            setStoredApiUrl(candidate);
+          }
+          return {
+            connected: true,
+            status: "connected",
+            latencyMs,
+            neo4jStatus: "unknown",
+            errorMessage: undefined,
+            timestamp,
+          };
+        }
+
+        lastError = `Respuesta HTTP ${res.status}: ${res.statusText}`;
+      }
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      const isTimeout = err instanceof Error && err.name === "AbortError";
+      lastError = isTimeout
+        ? `Tiempo de espera agotado tras ${timeoutMs}ms al conectar a ${candidate}`
+        : `Servidor inaccesible en ${candidate}. Verifica que el backend Spring Boot esté ejecutándose.`;
+    }
+  }
+
+  const latencyMs = Math.round(performance.now() - start);
+  return {
+    connected: false,
+    status: "disconnected",
+    latencyMs,
+    neo4jStatus: "disconnected",
+    errorMessage: lastError,
+    timestamp,
+  };
 }
 
 /* ----------------- Real HTTP API Service Implementation ----------------- */
