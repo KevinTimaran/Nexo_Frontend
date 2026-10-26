@@ -10,6 +10,7 @@ import { WorkspaceView } from "./features/workspace/WorkspaceView";
 import "./i18n";
 
 import { ProtectedRoute } from "./features/auth/ProtectedRoute";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -48,11 +49,14 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </ErrorBoundary>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
   );
 }
+

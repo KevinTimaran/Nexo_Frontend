@@ -144,6 +144,18 @@ export const WorkspaceView: React.FC = () => {
     void handleSendMessage(t("canvas.node.askText", { title: nodeTitle }));
   };
 
+  // Global keyboard shortcut: Escape deselects active node or closes inspector
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (selectedNodeId) selectNode(null);
+        if (expandedDocNodeId) setExpandedDocNodeId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeId, expandedDocNodeId, selectNode]);
+
   if (loading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-transparent space-y-3 select-none">
@@ -155,7 +167,7 @@ export const WorkspaceView: React.FC = () => {
     );
   }
 
-  if (!workspace) {
+  if (!workspace || !workspace.map) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-transparent text-center p-6 select-none">
         <div className="p-8 rounded-3xl glass-card max-w-sm flex flex-col items-center">
@@ -172,29 +184,20 @@ export const WorkspaceView: React.FC = () => {
     );
   }
 
-  const selectedNode = workspace.map.nodes.find((n) => n.id === selectedNodeId) || null;
-  const docNode = workspace.map.nodes.find((n) => n.id === expandedDocNodeId) || null;
+  const nodesList = workspace.map.nodes || [];
+  const relationsList = workspace.map.relations || [];
+
+  const selectedNode = nodesList.find((n) => n.id === selectedNodeId) || null;
+  const docNode = nodesList.find((n) => n.id === expandedDocNodeId) || null;
 
   // Find related nodes for doc overlay
   const docRelatedNodes = docNode
-    ? workspace.map.relations
+    ? relationsList
         .filter((r) => r.from === docNode.id || r.to === docNode.id)
         .map((r) => (r.from === docNode.id ? r.to : r.from))
-        .map((id) => workspace.map.nodes.find((n) => n.id === id))
+        .map((id) => nodesList.find((n) => n.id === id))
         .filter((n): n is ConceptNode => !!n)
     : [];
-
-  // Global keyboard shortcut: Escape deselects active node or closes inspector
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (selectedNodeId) selectNode(null);
-        if (expandedDocNodeId) setExpandedDocNodeId(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId, expandedDocNodeId, selectNode]);
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-app">

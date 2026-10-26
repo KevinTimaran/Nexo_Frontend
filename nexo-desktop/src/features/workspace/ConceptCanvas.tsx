@@ -51,18 +51,21 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
     return "validation";
   };
 
+  const safeNodes = map?.nodes || [];
+
   const planningNodes = useMemo(
-    () => map.nodes.filter((n) => resolvePhase(n) === "planning"),
-    [map.nodes]
+    () => safeNodes.filter((n) => resolvePhase(n) === "planning"),
+    [safeNodes]
   );
   const executionNodes = useMemo(
-    () => map.nodes.filter((n) => resolvePhase(n) === "execution"),
-    [map.nodes]
+    () => safeNodes.filter((n) => resolvePhase(n) === "execution"),
+    [safeNodes]
   );
   const validationNodes = useMemo(
-    () => map.nodes.filter((n) => resolvePhase(n) === "validation"),
-    [map.nodes]
+    () => safeNodes.filter((n) => resolvePhase(n) === "validation"),
+    [safeNodes]
   );
+
 
   const kindIcons = {
     concept: <Sparkles className="w-3.5 h-3.5 text-concept-fg" />,

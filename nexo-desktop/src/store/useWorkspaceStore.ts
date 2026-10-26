@@ -87,10 +87,13 @@ const persistSession = (projectId: string, map: ConceptMap, messages: Message[])
 };
 
 function convertMapToFlow(
-  map: ConceptMap,
+  map: ConceptMap | undefined,
   openDeepDive: (id: string) => void
 ): { nodes: Node<ConceptNodeData>[]; edges: Edge[] } {
-  const nodes: Node<ConceptNodeData>[] = map.nodes.map((n) => ({
+  const nodesList = map?.nodes || [];
+  const relationsList = map?.relations || [];
+
+  const nodes: Node<ConceptNodeData>[] = nodesList.map((n) => ({
     id: n.id,
     type: "conceptNode",
     position: { x: n.x, y: n.y },
@@ -100,7 +103,7 @@ function convertMapToFlow(
     },
   }));
 
-  const edges: Edge[] = map.relations.map((r) => ({
+  const edges: Edge[] = relationsList.map((r) => ({
     id: r.id,
     source: r.from,
     target: r.to,
@@ -114,6 +117,7 @@ function convertMapToFlow(
 
   return { nodes, edges };
 }
+
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspace: null,
