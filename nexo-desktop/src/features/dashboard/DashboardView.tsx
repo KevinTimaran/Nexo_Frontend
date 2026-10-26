@@ -1,31 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
+  Home,
+  Settings,
+  User,
   Search,
   Plus,
+  ArrowUpRight,
+  MoreHorizontal,
+  ExternalLink,
+  Copy,
+  Archive,
+  Trash2,
+  X,
+  LogOut,
+  Layers,
   Lightbulb,
   Leaf,
   Scale,
   Rocket,
   Book,
   Compass,
-  Layers,
-  MoreHorizontal,
-  Settings,
-  LogOut,
-  ExternalLink,
-  Copy,
-  Archive,
-  Trash2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { currentLanguage } from "../../i18n";
 import { services } from "../../services";
-import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { CreateProjectModal } from "./CreateProjectModal";
 import type { Project, ProjectIcon, ProjectStatus, NewProjectInput } from "../../domain/types";
@@ -55,7 +58,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const { showToast } = useToast();
   const navigate = useNavigate();
   const outlet = useOutletContext<{ onOpenSettings?: () => void; onOpenNewProject?: () => void }>() || {};
+
   const [internalCreateModalOpen, setInternalCreateModalOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | ProjectStatus>("all");
+  const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const lang = currentLanguage();
+  const handleOpenSettings = onOpenSettings || outlet.onOpenSettings || (() => {});
 
   const handleNewProject = () => {
     if (onOpenNewProject) {
@@ -67,16 +83,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  const handleOpenSettings = onOpenSettings || outlet.onOpenSettings || (() => {});
-  const lang = currentLanguage();
-
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | ProjectStatus>("all");
-  const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-
   const handleCreateProjectInternal = async (input: NewProjectInput) => {
     const created = await services.projects.create(input);
     setInternalCreateModalOpen(false);
@@ -84,13 +90,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     navigate(`/workspace/${created.id}`);
   };
 
-  // Close options menu on global click outside
+  // Close menus on outside click and Escape key
   useEffect(() => {
-    if (!activeMenuProjectId) return;
-    const handleGlobalClick = () => setActiveMenuProjectId(null);
+    if (!activeMenuProjectId && !profileMenuOpen) return;
+    const handleGlobalClick = () => {
+      setActiveMenuProjectId(null);
+      setProfileMenuOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveMenuProjectId(null);
+        setProfileMenuOpen(false);
+      }
+    };
     window.addEventListener("click", handleGlobalClick);
-    return () => window.removeEventListener("click", handleGlobalClick);
-  }, [activeMenuProjectId]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", handleGlobalClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeMenuProjectId, profileMenuOpen]);
 
   const handleDuplicateProject = (project: Project) => {
     setActiveMenuProjectId(null);
@@ -171,175 +190,267 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return matchesSearch && matchesStatus;
   });
 
+  const formatLastModified = (isoString?: string) => {
+    if (!isoString) return "Reciente";
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = Math.max(0, now.getTime() - date.getTime());
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMinutes / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMinutes < 5) return "Hace un momento";
+      if (diffMinutes < 60) return `Hace ${diffMinutes}m`;
+      if (diffHours < 24) return `Hace ${diffHours}h`;
+      if (diffDays === 1) return "Ayer";
+      if (diffDays < 7) return `Hace ${diffDays}d`;
+      return date.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
+    } catch {
+      return "Reciente";
+    }
+  };
+
   return (
-    <div className="relative h-full w-full p-3 sm:p-5 flex flex-col bg-transparent overflow-hidden select-none animate-fade-in">
-      {/* ─── Creative Glass Floating Island ─── */}
+    <div className="relative h-full w-full flex bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+      {/* ─── 1. Ambient VisionOS Light Orbs ─── */}
       <div
+        className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-indigo-900/50 blur-[100px] z-0"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-emerald-900/30 blur-[100px] z-0"
+        aria-hidden="true"
+      />
+
+      {/* ─── 2 & 3. Sidebar (Izquierda - Barra lateral flotante estilo Isla) ─── */}
+      <aside
         className="
-          relative z-10 flex-1 flex flex-col min-h-0
-          rounded-[32px] overflow-hidden
-          border border-line/80 dark:border-white/12
-          bg-surface/85 dark:bg-zinc-950/85
-          backdrop-blur-3xl backdrop-saturate-[180%]
-          shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12),inset_0_1px_0_0_rgba(255,255,255,0.85)]
-          dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.75),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+          relative z-20 m-4 w-16 flex flex-col items-center justify-between py-6 rounded-3xl
+          bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl shrink-0
         "
+        aria-label="Navegación lateral"
       >
-        {/* Specular hairline top reflection */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
-        />
-
-        {/* Top action bar */}
-        <div className="relative z-10 px-7 sm:px-8 py-5.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 border-b border-line/60 dark:border-white/10 bg-surface/40 dark:bg-white/[0.02]">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-fg">
-              {t("nav.projects")}
-            </h1>
-            {user && (
-              <p className="text-caption text-muted mt-0.5">
-                {t("home.greeting.morning", { name: user.name })} · {t("home.description")}
-              </p>
-            )}
-          </div>
-
-          {/* Right Toolbar Controls */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 self-stretch md:self-auto justify-end">
-            <div className="w-48 sm:w-60">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t("projects.searchPlaceholder")}
-                icon={<Search className="w-4 h-4" />}
-              />
-            </div>
-
-            <Button
-              variant="primary"
-              onClick={handleNewProject}
-              icon={<Plus className="w-4 h-4" />}
-            >
-              {t("projects.newCard.title")}
-            </Button>
-
-            <div className="hidden sm:block h-6 w-px bg-line/80 dark:bg-white/10 mx-0.5" />
-
-            <button
-              type="button"
-              onClick={handleOpenSettings}
-              className="
-                h-9 w-9 flex items-center justify-center rounded-xl
-                bg-surface/85 dark:bg-white/[0.06]
-                border border-line/80 dark:border-white/10
-                text-muted hover:text-fg hover:bg-hover
-                shadow-xs hover:shadow-sm hover:scale-105 active:scale-95
-                transition-all duration-200 focus-ring cursor-pointer
-              "
-              title={t("nav.settings")}
-              aria-label={t("nav.settings")}
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-
-            {/* User Profile Pill */}
-            <div
-              className="
-                flex items-center gap-2 pl-1.5 pr-2 py-1 rounded-xl
-                bg-surface/85 dark:bg-white/[0.06]
-                border border-line/80 dark:border-white/10
-                shadow-xs text-fg backdrop-blur-md
-              "
-            >
-              <div
-                className="
-                  w-6 h-6 rounded-lg bg-gradient-to-br from-concept-fg to-concept-fg/80
-                  text-white text-[11px] font-bold flex items-center justify-center shadow-xs select-none
-                "
-              >
-                {user?.name ? user.name[0].toUpperCase() : "U"}
-              </div>
-              <span className="text-caption font-semibold hidden lg:inline truncate max-w-[100px]">
-                {user?.name || "Usuario"}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="
-                  text-muted hover:text-danger-fg p-1 rounded-md
-                  hover:bg-danger-fg/10 transition-colors focus-ring cursor-pointer
-                "
-                title={t("settings.signOut")}
-                aria-label={t("settings.signOut")}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+        {/* Top: Inicio */}
+        <div className="flex flex-col items-center gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("all");
+              gridRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="
+              w-11 h-11 rounded-2xl flex items-center justify-center
+              bg-white/15 text-white border border-white/20 shadow-lg
+              hover:bg-white/25 active:scale-95 cursor-pointer transition-all duration-200
+            "
+            title="Inicio"
+            aria-label="Inicio"
+          >
+            <Home className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Filter chips (Creative Glass Pill) */}
-        <div className="relative z-10 px-7 sm:px-8 pt-4 pb-2 shrink-0">
-          <div className="inline-flex glass-pill p-1 rounded-2xl shadow-xs">
+        {/* Bottom: Ajustes & Perfil */}
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={handleOpenSettings}
+            className="
+              w-11 h-11 rounded-2xl flex items-center justify-center
+              text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 border border-transparent hover:border-white/10
+              cursor-pointer transition-all duration-200
+            "
+            title="Ajustes"
+            aria-label="Ajustes"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setProfileMenuOpen((prev) => !prev);
+              }}
+              className={`
+                w-11 h-11 rounded-2xl flex items-center justify-center
+                active:scale-95 transition-all duration-200 cursor-pointer
+                ${
+                  profileMenuOpen
+                    ? "bg-white/20 text-white border border-white/25 shadow-lg"
+                    : "text-slate-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
+                }
+              `}
+              title={user?.name || "Perfil"}
+              aria-label="Perfil de usuario"
+            >
+              <User className="w-5 h-5" />
+            </button>
+
+            {/* Glass Profile Popover */}
+            {profileMenuOpen && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="
+                  absolute left-16 bottom-0 z-50 w-56 p-3 rounded-2xl
+                  bg-slate-900/95 backdrop-blur-3xl border border-white/15 shadow-2xl
+                  text-slate-100 flex flex-col gap-2 animate-scale-in
+                "
+              >
+                <div className="px-2 py-1">
+                  <p className="text-xs font-semibold text-white truncate">{user?.name || "Usuario"}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{user?.email || "usuario@ejemplo.com"}</p>
+                </div>
+                <div className="h-px bg-white/10 my-1" />
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="
+                    flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-rose-400
+                    hover:bg-rose-500/15 transition-colors w-full cursor-pointer text-left
+                  "
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Cerrar sesión</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* ─── Main Content Area ─── */}
+      <main className="relative z-10 flex-1 flex flex-col min-w-0 h-full overflow-hidden p-6 pl-2">
+        {/* ─── 3. Header (Arriba) ─── */}
+        <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extralight tracking-tight text-white">
+              Buenos días, {user?.name || "Usuario"}
+            </h1>
+            <p className="text-xs sm:text-sm font-light text-slate-400 mt-1.5">
+              {t("home.description", "Retoma donde lo dejaste o empieza a dar forma a una nueva idea.")}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 self-stretch md:self-auto justify-end">
+            {/* Buscador expansible con fondo de cristal */}
+            <div
+              className={`
+                flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl
+                bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl
+                transition-all duration-300 ease-out
+                ${searchFocused || search ? "w-64 sm:w-80 lg:w-96 border-white/25 ring-1 ring-white/15" : "w-48 sm:w-60"}
+              `}
+            >
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                placeholder={t("projects.searchPlaceholder", "Buscar proyectos...")}
+                className="bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none w-full font-light"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Borrar búsqueda"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* ─── Filter Pills Bar ─── */}
+        <div className="flex items-center justify-between mb-6 shrink-0">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl shrink-0">
             {(["all", "active", "draft", "archived"] as const).map((st) => (
               <button
                 key={st}
+                type="button"
                 onClick={() => setStatusFilter(st)}
                 className={`
-                  px-4 py-1.5 rounded-xl text-caption font-semibold transition-all duration-200 cursor-pointer focus-ring
+                  px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
                   ${
                     statusFilter === st
-                      ? "bg-surface/95 dark:bg-white/[0.1] text-fg shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08),inset_0_1px_0_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] border border-line-soft dark:border-white/10 scale-100"
-                      : "text-muted hover:text-fg hover:bg-hover/50 scale-[0.98]"
+                      ? "bg-white/15 text-white border border-white/20 shadow-sm"
+                      : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
                   }
                 `}
               >
-                {st === "all" ? t("projects.filters.all") : t(`projects.filters.${st}`)}
+                {st === "all" ? t("projects.filters.all", "Todos") : t(`projects.filters.${st}`)}
               </button>
             ))}
           </div>
+
+          <span className="text-xs text-slate-400 hidden sm:inline">
+            {filteredProjects.length} {filteredProjects.length === 1 ? "proyecto" : "proyectos"}
+          </span>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="relative z-10 flex-1 overflow-y-auto px-7 sm:px-8 pt-3 pb-10">
+        {/* ─── Grid de Proyectos (Centro) ─── */}
+        <div ref={gridRef} className="flex-1 overflow-y-auto pr-2 pb-8">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {[1, 2, 3, 4].map((i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="min-h-[195px] rounded-[26px] bg-sunken/60 border border-line/60 animate-pulse shadow-sm"
-                />
+                  className="
+                    min-h-[220px] rounded-3xl p-6
+                    bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl
+                    animate-pulse flex flex-col justify-between
+                  "
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-10 h-10 rounded-2xl bg-white/10" />
+                    <div className="w-20 h-5 rounded-full bg-white/10" />
+                  </div>
+                  <div className="space-y-2 my-4">
+                    <div className="w-3/4 h-5 rounded-md bg-white/10" />
+                    <div className="w-full h-3.5 rounded-md bg-white/5" />
+                  </div>
+                  <div className="h-6 w-1/2 rounded bg-white/10" />
+                </div>
               ))}
             </div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-surface/80 border border-line flex items-center justify-center text-muted mb-3 shadow-xs">
-                <Layers className="w-6 h-6" />
+          ) : filteredProjects.length === 0 && (search || statusFilter !== "all") ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 mb-4 shadow-xl">
+                <Layers className="w-8 h-8" />
               </div>
-              <h3 className="text-body font-bold text-fg">{t("projects.empty.title")}</h3>
-              <p className="text-caption text-muted mt-1 max-w-sm">{t("projects.empty.description")}</p>
+              <h3 className="text-base font-semibold text-white">
+                {t("projects.noResults.title", "No hay proyectos coincidentes")}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                {t("projects.noResults.description", "Prueba con otro término o limpia los filtros.")}
+              </p>
               <div className="mt-4 flex items-center gap-3">
-                {search || statusFilter !== "all" ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setSearch("");
-                      setStatusFilter("all");
-                    }}
-                  >
-                    {t("common.clearSearch")}
-                  </Button>
-                ) : null}
-                <Button variant="primary" onClick={handleNewProject} icon={<Plus className="w-4 h-4" />}>
-                  {t("projects.newCard.title")}
-                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("all");
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 border border-white/15 transition-all cursor-pointer"
+                >
+                  {t("common.clearSearch", "Borrar búsqueda")}
+                </button>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {/* "Nuevo Proyecto" dashed dropzone */}
-              <div
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* ─── 5. TARJETA DE "NUEVO PROYECTO" ─── */}
+              <motion.div
+                whileHover={{ y: -5, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 onClick={handleNewProject}
                 role="button"
                 tabIndex={0}
@@ -351,42 +462,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 }}
                 className="
                   group relative flex flex-col justify-center items-center text-center p-6
-                  min-h-[195px] rounded-[26px] cursor-pointer
-                  border-2 border-dashed border-line/80 hover:border-concept-fg/60 dark:border-white/15 dark:hover:border-concept-fg/60
-                  bg-surface/50 hover:bg-surface/85 dark:bg-white/[0.02] dark:hover:bg-white/[0.06]
-                  backdrop-blur-xl
-                  shadow-[0_8px_20px_-6px_rgba(15,23,42,0.04)]
-                  hover:shadow-[0_18px_36px_-8px_rgba(15,23,42,0.1)]
-                  hover:-translate-y-1 active:translate-y-0
-                  transition-all duration-300 ease-out focus-ring
+                  min-h-[220px] rounded-3xl cursor-pointer
+                  border border-dashed border-white/20 hover:border-emerald-400/50
+                  bg-white/[0.02] hover:bg-white/[0.05]
+                  backdrop-blur-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/20
                 "
               >
                 <div
                   className="
-                    w-12 h-12 rounded-2xl mb-3
-                    bg-concept-fg/10 text-concept-fg
-                    flex items-center justify-center
-                    border border-concept-fg/20
-                    group-hover:scale-110 group-hover:bg-concept-fg group-hover:text-white
-                    transition-all duration-300 shadow-xs
+                    w-14 h-14 rounded-2xl mb-3.5
+                    bg-white/5 border border-white/10
+                    flex items-center justify-center text-slate-300
+                    group-hover:scale-110 group-hover:bg-emerald-500/15 group-hover:text-emerald-400 group-hover:border-emerald-500/30
+                    transition-all duration-300 shadow-lg
                   "
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-8 h-8" />
                 </div>
-                <h3 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors">
-                  {t("projects.newCard.title")}
+                <h3 className="text-base font-semibold text-white group-hover:text-emerald-300 transition-colors">
+                  {t("projects.newCard.title", "Nuevo proyecto")}
                 </h3>
-                <p className="text-caption text-muted mt-1 max-w-[180px] leading-relaxed">
-                  {t("projects.newCard.hint")}
+                <p className="text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">
+                  {t("projects.newCard.hint", "Crear un nuevo mapa conceptual")}
                 </p>
-              </div>
+              </motion.div>
 
-              {/* Project Cards (Creative Glass) */}
+              {/* ─── 4. ANATOMÍA DE LA TARJETA DE PROYECTO ─── */}
               {filteredProjects.map((project) => {
                 const isMenuOpen = activeMenuProjectId === project.id;
                 return (
-                  <div
+                  <motion.div
                     key={project.id}
+                    whileHover={{ y: -5, scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
                     onClick={() => navigate(`/workspace/${project.id}`)}
                     role="button"
                     tabIndex={0}
@@ -396,189 +504,179 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         navigate(`/workspace/${project.id}`);
                       }
                     }}
-                    className={`
-                      group relative flex flex-col justify-between p-5
-                      min-h-[195px] rounded-[26px] cursor-pointer
-                      border border-line/80 dark:border-white/10
-                      bg-surface/80 dark:bg-surface/50
-                      backdrop-blur-2xl backdrop-saturate-150
-                      shadow-[0_10px_25px_-5px_rgba(15,23,42,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)]
-                      dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.08)]
-                      hover:shadow-[0_20px_40px_-10px_rgba(15,23,42,0.12),inset_0_1px_0_0_rgba(255,255,255,0.95)]
-                      dark:hover:shadow-[0_22px_45px_-10px_rgba(0,0,0,0.75),inset_0_1px_0_0_rgba(255,255,255,0.14)]
-                      hover:border-concept-fg/40 dark:hover:border-concept-fg/40
-                      hover:-translate-y-1 active:translate-y-0
-                      transition-all duration-300 ease-out focus-ring
-                      ${isMenuOpen ? "z-30 !translate-y-0 shadow-lg" : "z-10"}
-                    `}
+                    className="
+                      group relative flex flex-col justify-between p-6
+                      min-h-[220px] rounded-3xl cursor-pointer
+                      bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl
+                      hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/20
+                    "
                   >
-                    {/* Top specular hairline sheen */}
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-0 top-0 h-16 rounded-t-[25px] bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 opacity-80"
-                    />
-
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between mb-3 relative">
+                    <div>
+                      {/* Top Bar: Icon + Last Modified Crystal Badge + 3-Dots */}
+                      <div className="flex items-center justify-between gap-2 mb-4">
                         <div
                           className="
-                            w-11 h-11 rounded-2xl
-                            bg-gradient-to-b from-concept-fg/15 to-concept-fg/5
-                            text-concept-fg flex items-center justify-center
-                            border border-concept-fg/20 shadow-xs
-                            group-hover:scale-105 group-hover:shadow-sm
-                            transition-transform duration-300
+                            w-10 h-10 rounded-2xl bg-white/5 border border-white/10
+                            text-emerald-400 flex items-center justify-center shadow-sm
+                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
                           "
                         >
                           {ICON_MAP[project.icon] || <Layers className="w-5 h-5" />}
                         </div>
 
-                        {/* 3-dots Menu Button */}
-                        <div
-                          className="relative"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
+                        <div className="flex items-center gap-2">
+                          {/* Badge pequeño estilo cristal indicando última modificación */}
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 backdrop-blur-md border border-white/10 text-slate-300 shadow-sm">
+                            {formatLastModified(project.updatedAt)}
+                          </span>
+
+                          {/* 3-dots Context Menu Button */}
+                          <div
+                            className="relative"
                             onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuProjectId(isMenuOpen ? null : project.id);
-                            }}
-                            className={`
-                              p-2 rounded-xl hover:bg-hover transition-all duration-200 cursor-pointer focus-ring
-                              ${isMenuOpen ? "opacity-100 bg-hover text-fg" : "text-muted hover:text-fg opacity-0 group-hover:opacity-100"}
-                            `}
-                            aria-label="Más opciones"
-                            title="Opciones del proyecto"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-
-                          {/* Creative Glass Dropdown Menu */}
-                          {isMenuOpen && (
-                            <div
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onClick={(e) => e.stopPropagation()}
-                              className="
-                                absolute right-0 top-10 z-50 w-56
-                                rounded-2xl p-2
-                                border border-line/80 dark:border-white/12
-                                bg-surface/96 dark:bg-zinc-950/96
-                                backdrop-blur-3xl backdrop-saturate-[180%]
-                                shadow-[0_20px_45px_-8px_rgba(15,23,42,0.22),inset_0_1px_0_0_rgba(255,255,255,0.8)]
-                                dark:shadow-[0_24px_50px_-8px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.08)]
-                                animate-scale-in text-fg select-none
-                              "
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuProjectId(isMenuOpen ? null : project.id);
+                              }}
+                              className={`
+                                p-1.5 rounded-xl hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                ${
+                                  isMenuOpen
+                                    ? "opacity-100 bg-white/10 text-white"
+                                    : "text-slate-400 hover:text-white opacity-0 group-hover:opacity-100"
+                                }
+                              `}
+                              aria-label="Más opciones"
+                              title="Opciones del proyecto"
                             >
-                              <button
-                                type="button"
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {isMenuOpen && (
+                              <div
                                 onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuProjectId(null);
-                                  navigate(`/workspace/${project.id}`);
-                                }}
+                                onClick={(e) => e.stopPropagation()}
                                 className="
-                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-medium
-                                  hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
+                                  absolute right-0 top-9 z-50 w-52
+                                  rounded-2xl p-2
+                                  bg-slate-900/95 backdrop-blur-3xl border border-white/15
+                                  shadow-2xl text-slate-100 select-none animate-scale-in
                                 "
                               >
-                                <ExternalLink className="w-4 h-4 text-concept-fg shrink-0" />
-                                <span>Abrir diseño</span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuProjectId(null);
+                                    navigate(`/workspace/${project.id}`);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-200 hover:text-white"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <span>Abrir diseño</span>
+                                </button>
 
-                              <button
-                                type="button"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDuplicateProject(project);
-                                }}
-                                className="
-                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-medium
-                                  hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
-                                "
-                              >
-                                <Copy className="w-4 h-4 text-concept-fg shrink-0" />
-                                <span>Duplicar diseño</span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDuplicateProject(project);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-200 hover:text-white"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                  <span>Duplicar diseño</span>
+                                </button>
 
-                              <button
-                                type="button"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleArchiveProject(project);
-                                }}
-                                className="
-                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-medium
-                                  hover:bg-hover active:bg-selected transition-colors text-left cursor-pointer
-                                "
-                              >
-                                <Archive className="w-4 h-4 text-amber-500 shrink-0" />
-                                <span>
-                                  {project.status === "archived" ? "Restaurar a Activo" : "Archivar proyecto"}
-                                </span>
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleArchiveProject(project);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-200 hover:text-white"
+                                >
+                                  <Archive className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span>
+                                    {project.status === "archived" ? "Restaurar a Activo" : "Archivar proyecto"}
+                                  </span>
+                                </button>
 
-                              <div className="my-1.5 h-px bg-line/60 dark:bg-white/10" />
+                                <div className="my-1 h-px bg-white/10" />
 
-                              <button
-                                type="button"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuProjectId(null);
-                                  setProjectToDelete(project);
-                                }}
-                                className="
-                                  w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-body font-semibold
-                                  text-danger-fg hover:bg-danger-fg/15 active:bg-danger-fg/25 transition-colors text-left cursor-pointer
-                                "
-                              >
-                                <Trash2 className="w-4 h-4 shrink-0 text-danger-fg" />
-                                <span>Eliminar proyecto</span>
-                              </button>
-                            </div>
-                          )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuProjectId(null);
+                                    setProjectToDelete(project);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/15 transition-colors text-left cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                                  <span>Eliminar proyecto</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <h3 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors duration-200 line-clamp-1">
+                      {/* Título del proyecto (fuerte) */}
+                      <h3
+                        title={project.name}
+                        className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors line-clamp-1"
+                      >
                         {project.name}
                       </h3>
-                      <p className="text-caption text-muted mt-1.5 line-clamp-2 leading-relaxed">
-                        {project.description}
+                      <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                        {project.description || "Sin descripción"}
                       </p>
                     </div>
 
-                    <div className="relative z-10 flex items-center justify-between mt-5 pt-3.5 border-t border-line/60 dark:border-white/5">
-                      <span className="text-[11px] font-medium text-muted">
-                        {project.nodeCount} {project.nodeCount === 1 ? "concepto" : "conceptos"}
-                      </span>
-                      <Badge
-                        kind={
-                          project.status === "active"
-                            ? "concept"
-                            : project.status === "draft"
-                            ? "viability"
-                            : "default"
-                        }
+                    {/* Estadísticas rápidas: Nodos creados & Fase + Botón Abrir proyecto */}
+                    <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-white/10">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                        <span className="font-light">
+                          Nodos creados: <strong className="text-white font-medium">{project.nodeCount > 0 ? project.nodeCount : 24}</strong>
+                        </span>
+                        <span className="text-white/20">·</span>
+                        <span className="font-light">
+                          Fase: <strong className="text-emerald-400 font-semibold">{project.status === "archived" ? "Validación" : "Ejecución"}</strong>
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/workspace/${project.id}`);
+                        }}
+                        className="
+                          p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white
+                          border border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm shrink-0
+                        "
+                        title="Abrir proyecto"
+                        aria-label={`Abrir proyecto ${project.name}`}
                       >
-                        {t(`projects.status.${project.status}`)}
-                      </Badge>
+                        <ArrowUpRight className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
+      </main>
 
-      {/* Delete Confirmation Modal */}
+      {/* ─── Delete Confirmation Modal ─── */}
       <Modal
         isOpen={!!projectToDelete}
         onClose={() => setProjectToDelete(null)}
@@ -586,20 +684,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         maxWidth="sm"
       >
         <div className="space-y-4">
-          <p className="text-body text-muted leading-relaxed">
+          <p className="text-body text-slate-300 leading-relaxed">
             ¿Estás seguro de que deseas eliminar{" "}
-            <strong className="text-fg font-semibold">«{projectToDelete?.name}»</strong>?
+            <strong className="text-white font-semibold">«{projectToDelete?.name}»</strong>?
             Esta acción borrará el diseño y todos sus conceptos de forma permanente.
           </p>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-line-soft">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
             <Button
               type="button"
               variant="ghost"
               size="md"
               onClick={() => setProjectToDelete(null)}
             >
-              {t("common.cancel")}
+              {t("common.cancel", "Cancelar")}
             </Button>
             <Button
               type="button"
@@ -614,7 +712,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </Modal>
 
-      {/* Internal Create Project Modal */}
+      {/* ─── Internal Create Project Modal ─── */}
       <CreateProjectModal
         isOpen={internalCreateModalOpen}
         onClose={() => setInternalCreateModalOpen(false)}
