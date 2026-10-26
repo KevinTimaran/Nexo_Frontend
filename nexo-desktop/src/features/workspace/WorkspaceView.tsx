@@ -184,6 +184,18 @@ export const WorkspaceView: React.FC = () => {
         .filter((n): n is ConceptNode => !!n)
     : [];
 
+  // Global keyboard shortcut: Escape deselects active node or closes inspector
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (selectedNodeId) selectNode(null);
+        if (expandedDocNodeId) setExpandedDocNodeId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeId, expandedDocNodeId, selectNode]);
+
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-app">
       {/* Workspace Top Toolbar Header (Creative Glass) */}
@@ -274,6 +286,7 @@ export const WorkspaceView: React.FC = () => {
             onNodeMove={handleNodeMove}
             onOpenAddNode={() => setIsAddNodeOpen(true)}
             onOpenDocDetail={(node) => setExpandedDocNodeId(node.id)}
+            isChatOpen={isChatOpen}
           />
 
           {/* Node Inspector Sheet overlay (when in Obsidian mode and a node is selected) */}

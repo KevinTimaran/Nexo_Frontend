@@ -171,7 +171,7 @@ export const LoginView: React.FC = () => {
                   type="button"
                   className="text-[12px] font-medium text-concept-fg hover:underline underline-offset-4 transition-all focus-ring rounded-md px-1 cursor-pointer"
                 >
-                  ¿Olvidaste tu contraseña?
+                  {t("auth.forgotPassword", { defaultValue: "¿Olvidaste tu contraseña?" })}
                 </button>
               </div>
 
@@ -205,17 +205,19 @@ export const LoginView: React.FC = () => {
             {/* Divider */}
             <div className="mt-5 flex items-center gap-3 text-[11px] text-muted">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-line to-transparent" />
-              <span className="tracking-wider uppercase font-semibold text-[10px]">o</span>
+              <span className="tracking-wider uppercase font-semibold text-[10px]">
+                {t("auth.or", { defaultValue: "o" })}
+              </span>
               <span className="h-px flex-1 bg-gradient-to-l from-transparent via-line to-transparent" />
             </div>
 
             <p className="mt-3.5 text-center text-[12px] text-muted">
-              ¿No tienes cuenta?{" "}
+              {t("auth.noAccount", { defaultValue: "¿No tienes cuenta?" })}{" "}
               <button
                 type="button"
                 className="font-semibold text-concept-fg hover:underline underline-offset-4 focus-ring rounded cursor-pointer"
               >
-                Solicita acceso
+                {t("auth.requestAccess", { defaultValue: "Solicita acceso" })}
               </button>
             </p>
 
@@ -223,18 +225,23 @@ export const LoginView: React.FC = () => {
             <div
               className="
                 mt-6 p-3 rounded-2xl
-                bg-surface/60 dark:bg-white/[0.03]
+                bg-surface/60 dark:bg-white/[0.04]
                 border border-line/60 dark:border-white/10
                 backdrop-blur-md
-                text-[11px] text-muted
+                text-[11px] text-slate-600 dark:text-slate-300
                 flex items-start gap-2.5 leading-normal shadow-2xs
               "
             >
               <ShieldCheck className="w-4 h-4 text-concept-fg shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-fg">Adaptador de Autenticación: </span>
+                <span className="font-semibold text-fg">
+                  {t("auth.adapterTitle", { defaultValue: "Adaptador de Autenticación:" })}{" "}
+                </span>
                 <span>
-                  Modo activo gestionado por el registro de servicios. En entorno local utiliza simulación determinista para desarrollo y pruebas de interfaz.
+                  {t("auth.adapterDescription", {
+                    defaultValue:
+                      "Modo activo gestionado por el registro de servicios. En entorno local utiliza simulación determinista para desarrollo y pruebas de interfaz.",
+                  })}
                 </span>
               </div>
             </div>

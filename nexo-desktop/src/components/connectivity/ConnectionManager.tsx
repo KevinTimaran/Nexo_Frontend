@@ -206,10 +206,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
     >
       <div
         ref={panelRef}
-        className="w-full max-w-lg rounded-3xl glass-modal border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden animate-sheet-in text-fg select-none specular-sheen"
+        className="w-full max-w-lg rounded-[32px] glass-modal border border-line/80 dark:border-white/12 shadow-[0_32px_80px_-16px_rgba(15,23,42,0.22)] dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.85)] overflow-hidden animate-sheet-in text-fg select-none specular-sheen"
       >
         {/* Header */}
-        <div className="p-5 border-b border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs">
+        <div className="p-5 border-b border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shadow-xs">
               <Server className="w-4 h-4" />
@@ -225,7 +225,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover flex items-center justify-center transition-colors focus-ring"
+            className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover flex items-center justify-center transition-colors focus-ring cursor-pointer"
             aria-label="Cerrar panel"
           >
             <X className="w-4 h-4" />
@@ -235,7 +235,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
         {/* Body content */}
         <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Mode Switcher Banner */}
-          <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-3">
+          <div className="p-4 rounded-2xl glass-card border border-line/80 dark:border-white/10 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-caption font-bold text-fg uppercase tracking-wider">
@@ -250,14 +250,14 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
               <div
                 role="radiogroup"
                 aria-label="Modo de servicio"
-                className="inline-flex p-1 rounded-xl bg-surface-secondary/70 border border-line-soft shadow-2xs backdrop-blur-md"
+                className="inline-flex p-1 rounded-xl glass-pill shadow-2xs backdrop-blur-md"
               >
                 <button
                   type="button"
                   role="radio"
                   aria-checked={mode === "mock"}
                   onClick={() => void setMode("mock")}
-                  className={`px-3 py-1 rounded-lg text-caption font-semibold transition-all ${
+                  className={`px-3 py-1 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
                     mode === "mock"
                       ? "bg-amber-500 text-white shadow-xs"
                       : "text-muted hover:text-fg"
@@ -270,7 +270,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                   role="radio"
                   aria-checked={mode === "server"}
                   onClick={() => void setMode("server")}
-                  className={`px-3 py-1 rounded-lg text-caption font-semibold transition-all ${
+                  className={`px-3 py-1 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
                     mode === "server"
                       ? "bg-concept-fg text-white shadow-xs"
                       : "text-muted hover:text-fg"
@@ -282,7 +282,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
             </div>
 
             {/* Configured API URL (editable in Server Mode) */}
-            <div className="pt-2 border-t border-line-soft/80 text-[12px] flex items-center justify-between gap-2">
+            <div className="pt-2 border-t border-line/60 dark:border-white/10 text-[12px] flex items-center justify-between gap-2">
               <span className="text-muted font-medium shrink-0">URL del Backend:</span>
               {isUrlEditing ? (
                 <form onSubmit={handleSaveUrl} className="flex items-center gap-1.5 flex-1">
@@ -290,7 +290,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                     type="url"
                     value={inputUrl}
                     onChange={(e) => setInputUrl(e.target.value)}
-                    className="flex-1 px-2.5 py-1 text-xs bg-surface-secondary/80 border border-line-soft rounded-lg font-mono focus-ring text-fg"
+                    className="flex-1 px-2.5 py-1 text-xs bg-surface/85 dark:bg-white/[0.06] border border-line dark:border-white/10 rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg text-fg"
                     placeholder="http://localhost:8080/api/v1"
                     autoFocus
                   />
@@ -313,7 +313,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                 </form>
               ) : (
                 <div className="flex items-center gap-2 truncate">
-                  <span className="font-mono text-fg bg-surface-secondary/60 px-2 py-0.5 rounded-lg border border-line-soft/80 truncate text-xs">
+                  <span className="font-mono text-fg bg-surface/80 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-lg border border-line-soft dark:border-white/10 truncate text-xs">
                     {apiUrl}
                   </span>
                   <button
@@ -336,7 +336,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                 className={`px-2 py-0.5 rounded-lg border font-mono text-[10px] transition-all cursor-pointer ${
                   apiUrl.includes(":8080")
                     ? "bg-concept-fg/15 text-concept-fg border-concept-fg/30 font-bold"
-                    : "bg-surface-secondary/60 hover:bg-surface-secondary border-line-soft text-muted hover:text-fg"
+                    : "bg-surface/80 dark:bg-white/[0.06] hover:bg-hover border-line-soft dark:border-white/10 text-muted hover:text-fg"
                 }`}
               >
                 :8080 (Spring Boot)
@@ -347,7 +347,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                 className={`px-2 py-0.5 rounded-lg border font-mono text-[10px] transition-all cursor-pointer ${
                   apiUrl.includes(":8000")
                     ? "bg-concept-fg/15 text-concept-fg border-concept-fg/30 font-bold"
-                    : "bg-surface-secondary/60 hover:bg-surface-secondary border-line-soft text-muted hover:text-fg"
+                    : "bg-surface/80 dark:bg-white/[0.06] hover:bg-hover border-line-soft dark:border-white/10 text-muted hover:text-fg"
                 }`}
               >
                 :8000
@@ -358,7 +358,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
           {/* 3 Services Cards */}
           <div className="space-y-3">
             {/* Service 1: Backend Java / Spring Boot */}
-            <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-2.5 shadow-2xs">
+            <div className="p-4 rounded-2xl glass-card border border-line/80 dark:border-white/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
@@ -406,7 +406,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
             </div>
 
             {/* Service 2: AI Service */}
-            <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-2.5 shadow-2xs">
+            <div className="p-4 rounded-2xl glass-card border border-line/80 dark:border-white/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
@@ -441,7 +441,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
             </div>
 
             {/* Service 3: Neo4j Synchronization */}
-            <div className="p-4 rounded-2xl glass-card border border-white/15 dark:border-white/10 space-y-2.5 shadow-2xs">
+            <div className="p-4 rounded-2xl glass-card border border-line/80 dark:border-white/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
@@ -482,7 +482,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 px-5 border-t border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs">
+        <div className="p-4 px-5 border-t border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md">
           <div className="text-[11px] text-muted">
             {mode === "mock"
               ? "Datos aislados en memoria/localStorage"

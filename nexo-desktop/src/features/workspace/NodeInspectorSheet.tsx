@@ -74,7 +74,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
         ${isChatOpen ? "right-3 sm:right-[444px]" : "right-3 sm:right-4"}
         w-84 max-w-[calc(100vw-2rem)]
         rounded-3xl overflow-hidden
-        border border-white/20 dark:border-white/10
+        border border-line/80 dark:border-white/12
         glass-modal specular-sheen
         p-5 shadow-2xl
         z-30 flex flex-col justify-between
@@ -85,7 +85,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-10" />
       {/* Header */}
       <div>
-        <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-line-soft/80">
+        <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-line/60 dark:border-white/10">
           <div className="flex items-center gap-1.5 flex-wrap">
             {getPhaseBadge(phase)}
             <Badge kind={node.kind} status={node.status}>
@@ -97,7 +97,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-muted hover:text-fg p-1.5 rounded-lg hover:bg-hover transition-colors focus-ring"
+            className="text-muted hover:text-fg p-1.5 rounded-lg hover:bg-hover transition-colors focus-ring cursor-pointer"
             aria-label={t("common.close")}
           >
             <X className="w-4 h-4" />
@@ -111,7 +111,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
             <p className="text-caption text-muted mt-2 leading-relaxed">{node.description}</p>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-surface-secondary/70 border border-line-soft/80 space-y-2.5 backdrop-blur-xs">
+          <div className="p-3.5 rounded-2xl bg-surface/75 dark:bg-white/[0.04] border border-line/80 dark:border-white/10 space-y-2.5 backdrop-blur-md shadow-2xs">
             <div className="flex items-center justify-between text-caption">
               <span className="text-muted font-medium">Estado:</span>
               <span className="font-semibold text-fg uppercase tracking-wider text-[10px] glass-pill">
@@ -129,7 +129,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-2 pt-4 border-t border-line-soft">
+      <div className="space-y-2 pt-4 border-t border-line/60 dark:border-white/10">
         {onOpenDoc && (
           <Button
             variant="secondary"

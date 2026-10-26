@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl
               text-caption font-semibold text-concept-fg
               bg-concept-fg/10 hover:bg-concept-fg/15 border border-concept-fg/20
-              backdrop-blur-xs shadow-2xs hover:shadow-xs active:scale-[0.98]
+              backdrop-blur-md shadow-2xs hover:shadow-xs active:scale-[0.98]
               transition-all duration-200 cursor-pointer focus-ring
               ${collapsed ? "justify-center px-0" : ""}
             `}

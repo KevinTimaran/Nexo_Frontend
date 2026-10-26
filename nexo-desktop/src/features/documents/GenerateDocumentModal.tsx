@@ -66,12 +66,12 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
     >
       <div className="space-y-4">
         {/* Document Preview Box */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-surface-secondary/70 border border-line-soft/80 font-mono text-xs text-fg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner backdrop-blur-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface/85 dark:bg-white/[0.04] border border-line/80 dark:border-white/10 font-mono text-xs text-fg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner backdrop-blur-md">
           {markdownContent}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-3 border-t border-line-soft">
+        <div className="flex items-center justify-between pt-3 border-t border-line/60 dark:border-white/10">
           <span className="glass-pill text-[11px] font-mono text-muted flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-concept-fg" />
             {map.nodes.length} {t("dashboard.concepts", { defaultValue: "conceptos incluidos" })}

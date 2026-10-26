@@ -47,7 +47,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       elements.push(
         <pre
           key={`code-${elements.length}`}
-          className="p-3.5 my-2.5 rounded-2xl bg-surface-secondary/70 border border-line-soft/80 font-mono text-xs overflow-x-auto text-fg backdrop-blur-xs shadow-inner"
+          className="p-3.5 my-2.5 rounded-2xl bg-surface/85 dark:bg-white/[0.04] border border-line/80 dark:border-white/10 font-mono text-xs overflow-x-auto text-fg backdrop-blur-md shadow-inner"
         >
           <code>{codeBuffer.join("\n")}</code>
         </pre>
@@ -69,7 +69,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         return (
           <code
             key={index}
-            className="px-1.5 py-0.5 rounded-md bg-surface-secondary/80 border border-line-soft font-mono text-[11px] text-concept-fg shadow-2xs"
+            className="px-1.5 py-0.5 rounded-md bg-surface/90 dark:bg-white/[0.08] border border-line-soft dark:border-white/10 font-mono text-[11px] text-concept-fg shadow-2xs"
           >
             {part.slice(1, -1)}
           </code>

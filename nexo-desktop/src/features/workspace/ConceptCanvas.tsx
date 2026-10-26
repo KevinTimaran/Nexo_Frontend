@@ -28,11 +28,13 @@ interface ConceptCanvasProps {
   onNodeMove?: (nodeId: string, x: number, y: number) => void;
   onOpenAddNode: () => void;
   onOpenDocDetail?: (node: ConceptNode) => void;
+  isChatOpen?: boolean;
 }
 
 export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   map,
   onOpenAddNode,
+  isChatOpen = false,
 }) => {
   const { t } = useTranslation();
   const { canvasMode, setCanvasMode, openDeepDive } = useWorkspaceStore();
@@ -100,7 +102,11 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
       {/* MODE 1: KNOWLEDGE VIEW ('notion') - Structured Editorial Board */}
       {/* ============================================================== */}
       {canvasMode === "notion" && (
-        <div className="w-full h-full overflow-y-auto px-6 sm:px-10 pt-20 pb-12 animate-fade-in select-text">
+        <div
+          className={`w-full h-full overflow-y-auto px-6 sm:px-10 pt-20 pb-12 animate-fade-in select-text transition-all duration-300 ease-out ${
+            isChatOpen ? "xl:pr-[460px] lg:pr-[420px]" : ""
+          }`}
+        >
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Editorial Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line/80 dark:border-white/10">

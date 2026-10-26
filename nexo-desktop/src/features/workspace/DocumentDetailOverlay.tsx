@@ -101,7 +101,7 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
         className="w-full max-w-2xl h-full glass-modal border-l border-white/20 dark:border-white/10 shadow-2xl flex flex-col justify-between overflow-hidden animate-sheet-in z-50 text-fg specular-sheen"
       >
         {/* Document Top Bar */}
-        <div className="h-14 px-6 border-b border-line-soft flex items-center justify-between shrink-0 bg-surface-primary/20 backdrop-blur-xs">
+        <div className="h-14 px-6 border-b border-line/60 dark:border-white/10 flex items-center justify-between shrink-0 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md">
           <div className="flex items-center gap-2">
             <button
               ref={closeButtonRef}
@@ -121,7 +121,7 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onViewInGraph(node.id)}
-              className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-xl text-caption font-medium bg-surface-secondary/70 hover:bg-surface-secondary border border-line-soft text-fg transition-colors focus-ring"
+              className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-xl text-caption font-medium glass-pill hover:bg-hover border border-line/80 dark:border-white/10 text-fg transition-colors focus-ring"
               title="Centrar y ver en el grafo"
             >
               <Network className="w-3.5 h-3.5 text-concept-fg" />
@@ -165,7 +165,7 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
 
           {/* Quick Fact Callout */}
           {node.metadata && (
-            <div className="p-4 rounded-2xl bg-surface-secondary/70 border border-line-soft flex items-center justify-between text-caption text-fg backdrop-blur-xs">
+            <div className="p-4 rounded-2xl bg-surface/80 dark:bg-white/[0.04] border border-line/80 dark:border-white/10 flex items-center justify-between text-caption text-fg backdrop-blur-md">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-concept-fg shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
                 <span className="font-semibold text-muted">Evidencia / Métrica:</span>
@@ -190,20 +190,20 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
 
             {/* Structured Long-form Details */}
             {node.details ? (
-              <div className="space-y-4 pt-4 border-t border-line-soft">
+              <div className="space-y-4 pt-4 border-t border-line/60 dark:border-white/10">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">
                   Detalles y Plan de Ejecución
                 </h3>
-                <div className="whitespace-pre-wrap text-caption sm:text-body leading-relaxed font-normal bg-surface-secondary/50 p-5 rounded-2xl border border-line-soft space-y-3 backdrop-blur-xs">
+                <div className="whitespace-pre-wrap text-caption sm:text-body leading-relaxed font-normal bg-surface/60 dark:bg-white/[0.03] p-5 rounded-2xl border border-line/80 dark:border-white/10 space-y-3 backdrop-blur-md">
                   {node.details}
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 pt-4 border-t border-line-soft">
+              <div className="space-y-4 pt-4 border-t border-line/60 dark:border-white/10">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">
                   Estructura de la Idea
                 </h3>
-                <div className="space-y-3 text-caption leading-relaxed bg-surface-secondary/50 p-4 rounded-2xl border border-line-soft backdrop-blur-xs">
+                <div className="space-y-3 text-caption leading-relaxed bg-surface/60 dark:bg-white/[0.03] p-4 rounded-2xl border border-line/80 dark:border-white/10 backdrop-blur-md">
                   <p>
                     • <strong>Objetivo clave:</strong> Resolver la fricción identificada en el mercado mediante la adopción de herramientas digitales centradas en el usuario.
                   </p>
@@ -216,7 +216,7 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
 
             {/* Connected Concepts Section */}
             {relatedNodes.length > 0 && (
-              <div className="pt-4 border-t border-line-soft space-y-3">
+              <div className="pt-4 border-t border-line/60 dark:border-white/10 space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-concept-fg" />
                   <span>Conceptos Relacionados ({relatedNodes.length})</span>
@@ -226,7 +226,7 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
                     <button
                       key={rel.id}
                       onClick={() => onViewInGraph(rel.id)}
-                      className="p-3.5 rounded-2xl glass-card border border-white/10 text-left transition-all group flex flex-col justify-between hover:border-concept-fg/40 shadow-2xs"
+                      className="p-3.5 rounded-2xl glass-card border border-line/80 dark:border-white/10 text-left transition-all group flex flex-col justify-between hover:border-concept-fg/40 shadow-2xs"
                     >
                       <div className="flex items-center justify-between text-[11px] font-semibold text-muted mb-1">
                         <span>{t(`kinds.${rel.kind}`)}</span>
@@ -244,7 +244,7 @@ export const DocumentDetailOverlay: React.FC<DocumentDetailOverlayProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 px-8 border-t border-line-soft bg-surface-primary/20 backdrop-blur-xs flex items-center justify-between gap-3 shrink-0">
+        <div className="p-4 px-8 border-t border-line/60 dark:border-white/10 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
           <Button
             variant="ghost"
             size="sm"

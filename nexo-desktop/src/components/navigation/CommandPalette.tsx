@@ -73,26 +73,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onClick={onClose}
       />
 
-      <div className="relative z-10 w-full max-w-xl glass-modal specular-sheen rounded-2xl shadow-2xl overflow-hidden animate-scale-in border border-white/20 dark:border-white/10">
+      <div className="relative z-10 w-full max-w-xl glass-modal specular-sheen rounded-[28px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.25)] dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.85)] overflow-hidden animate-scale-in border border-line/80 dark:border-white/12">
         {/* Search Header */}
-        <div className="flex items-center px-4 py-3 border-b border-line-soft/80 bg-surface-primary/20 backdrop-blur-xs gap-3">
+        <div className="flex items-center px-4 py-3.5 border-b border-line/60 dark:border-white/10 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md gap-3">
           <Search className="w-4 h-4 text-concept-fg shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("command.placeholder")}
-            className="w-full bg-transparent border-none text-fg text-body placeholder:text-muted focus:outline-none"
+            className="w-full bg-transparent border-none text-fg text-body placeholder:text-muted/60 focus:outline-none"
           />
-          <kbd className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-surface-secondary/70 border border-line-soft text-muted shadow-2xs shrink-0">
+          <kbd className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-surface/80 dark:bg-white/[0.06] border border-line-soft dark:border-white/10 text-muted shadow-2xs shrink-0">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
-        <div className="max-h-80 overflow-y-auto p-2.5 space-y-1">
+        <div className="max-h-80 overflow-y-auto p-2.5 pb-4 space-y-1">
           {/* Quick Actions */}
-          <div className="px-3 py-1.5 text-[10px] font-bold text-muted/80 uppercase tracking-wider">
+          <div className="px-3 py-1.5 text-[10px] font-bold text-muted uppercase tracking-wider">
             {t("command.actions")}
           </div>
 
@@ -101,7 +101,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               onClose();
               onOpenNewProject();
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface-secondary/80 hover:border-line-soft/60 border border-transparent transition-all text-left group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
             <div className="w-7 h-7 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 group-hover:scale-105 transition-transform">
               <Plus className="w-4 h-4" />
@@ -111,7 +111,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
           <button
             onClick={handleToggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface-secondary/80 hover:border-line-soft/60 border border-transparent transition-all text-left group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
             <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 group-hover:scale-105 transition-transform">
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -121,7 +121,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
           <button
             onClick={handleToggleLang}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface-secondary/80 hover:border-line-soft/60 border border-transparent transition-all text-left group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
             <div className="w-7 h-7 rounded-lg bg-positive-fg/10 text-positive-fg flex items-center justify-center border border-positive-fg/20 group-hover:scale-105 transition-transform">
               <Globe className="w-4 h-4" />
@@ -134,9 +134,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               onClose();
               onOpenSettings();
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface-secondary/80 hover:border-line-soft/60 border border-transparent transition-all text-left group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
-            <div className="w-7 h-7 rounded-lg bg-surface-secondary text-muted flex items-center justify-center border border-line-soft group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-surface/80 dark:bg-white/[0.06] text-muted flex items-center justify-center border border-line-soft dark:border-white/10 group-hover:scale-105 transition-transform">
               <Settings className="w-4 h-4" />
             </div>
             <span className="font-medium">{t("command.openSettings")}</span>
@@ -145,14 +145,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {/* Projects Section */}
           {filteredProjects.length > 0 && (
             <>
-              <div className="px-3 pt-3 pb-1 text-[10px] font-bold text-muted/80 uppercase tracking-wider">
+              <div className="px-3 pt-3 pb-1 text-[10px] font-bold text-muted uppercase tracking-wider">
                 {t("command.projects")}
               </div>
               {filteredProjects.map((project) => (
                 <button
                   key={project.id}
                   onClick={() => handleSelectProject(project.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-body text-fg hover:bg-surface-secondary/80 hover:border-line-soft/60 border border-transparent transition-all text-left group"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-7 h-7 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shrink-0 group-hover:scale-105 transition-transform">
@@ -181,7 +181,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer Hint */}
-        <div className="p-2.5 px-4 border-t border-line-soft/80 text-[11px] text-muted flex items-center justify-between bg-surface-primary/30">
+        <div className="p-2.5 px-4 border-t border-line/60 dark:border-white/10 text-[11px] text-muted flex items-center justify-between bg-surface/50 dark:bg-white/[0.02]">
           <span className="font-mono">{t("command.hint")}</span>
           <span className="font-semibold text-muted/60 text-[10px] uppercase tracking-wider">Nexo Spotlight</span>
         </div>

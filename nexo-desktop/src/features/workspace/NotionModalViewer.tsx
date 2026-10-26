@@ -97,14 +97,14 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
       <div
         className="
           w-full sm:w-[560px] md:w-[640px] max-w-full h-full
-          glass-modal border-l border-white/20 dark:border-white/10
+          glass-modal border-l border-line/80 dark:border-white/12
           shadow-2xl flex flex-col justify-between
           overflow-hidden animate-sheet-in
           text-fg select-text specular-sheen
         "
       >
         {/* Top Header Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs shrink-0">
+        <div className="p-4 sm:p-5 border-b border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shadow-2xs">
               <FileText className="w-4 h-4" />
@@ -121,7 +121,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             {onViewInGraph && (
               <button
                 onClick={() => onViewInGraph(node.id)}
-                className="h-8 px-2.5 rounded-xl border border-line-soft hover:border-concept-fg/50 bg-surface-secondary/70 hover:bg-surface-secondary text-caption font-medium flex items-center gap-1.5 text-muted hover:text-fg transition-all"
+                className="h-8 px-2.5 rounded-xl border border-line/80 dark:border-white/10 hover:border-concept-fg/50 bg-surface/85 dark:bg-white/[0.06] hover:bg-hover text-caption font-medium flex items-center gap-1.5 text-muted hover:text-fg transition-all cursor-pointer focus-ring"
                 title="Localizar en la constelación Obsidian"
               >
                 <Network className="w-3.5 h-3.5 text-concept-fg" />
@@ -132,7 +132,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             <button
               ref={closeButtonRef}
               onClick={onClose}
-              className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover flex items-center justify-center transition-colors focus-ring"
+              className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover flex items-center justify-center transition-colors focus-ring cursor-pointer"
               aria-label="Cerrar documento"
             >
               <X className="w-4 h-4" />
@@ -143,7 +143,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         {/* Scrollable Document Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           {/* Metadata Bar */}
-          <div className="flex items-center gap-2 flex-wrap pb-4 border-b border-line-soft">
+          <div className="flex items-center gap-2 flex-wrap pb-4 border-b border-line/60 dark:border-white/10">
             <Badge kind={node.kind} status={node.status} size="md">
               <span className="flex items-center gap-1 text-xs">
                 {kindIcons[node.kind]}
@@ -156,7 +156,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             {getPhaseBadge(node.phase)}
 
             {node.metadata && (
-              <span className="text-caption font-mono text-muted bg-sunken px-2.5 py-0.5 rounded-md border border-line-soft ml-auto">
+              <span className="text-caption font-mono text-muted bg-surface/80 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-lg border border-line-soft dark:border-white/10 ml-auto">
                 {node.metadata}
               </span>
             )}
@@ -178,7 +178,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
           </div>
 
           {/* Markdown Content Section */}
-          <div className="pt-4 border-t border-line-soft">
+          <div className="pt-4 border-t border-line/60 dark:border-white/10">
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-concept-fg" />
               <span>Memoria y Especificaciones Detalladas</span>
@@ -196,7 +196,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
 
           {/* Related Connected Concepts */}
           {relatedNodes.length > 0 && (
-            <div className="pt-6 border-t border-line-soft space-y-3">
+            <div className="pt-6 border-t border-line/60 dark:border-white/10 space-y-3">
               <div className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
                 <Share2 className="w-3.5 h-3.5 text-concept-fg" />
                 <span>Conceptos Relacionados ({relatedNodes.length})</span>
@@ -205,7 +205,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 {relatedNodes.map((rel) => (
                   <div
                     key={rel.id}
-                    className="p-3 rounded-2xl glass-card border border-white/10 text-left space-y-1 transition-all hover:border-concept-fg/40"
+                    className="p-3 rounded-2xl glass-card border border-line/80 dark:border-white/10 text-left space-y-1 transition-all hover:border-concept-fg/40"
                   >
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="font-semibold text-muted uppercase">{t(`kinds.${rel.kind}`)}</span>
@@ -220,11 +220,11 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-line-soft flex items-center justify-between bg-surface-primary/20 backdrop-blur-xs shrink-0">
+        <div className="p-4 sm:p-5 border-t border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
           {onRemoveNode ? (
             <button
               onClick={() => onRemoveNode(node.id)}
-              className="text-risk-fg hover:bg-risk-fg/10 px-3 py-1.5 rounded-xl text-caption font-semibold inline-flex items-center gap-1.5 transition-colors focus-ring"
+              className="text-danger-fg hover:bg-danger-fg/10 px-3 py-1.5 rounded-xl text-caption font-semibold inline-flex items-center gap-1.5 transition-colors focus-ring cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               <span>Eliminar</span>

@@ -64,7 +64,7 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ isOpen, onClose, onA
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("canvas.node.descPlaceholder", { defaultValue: "Detalles e hipótesis de este concepto..." })}
             rows={3}
-            className="w-full bg-surface-secondary/70 border border-line-soft rounded-2xl text-fg text-body p-3 placeholder:text-muted focus-ring transition-colors resize-none backdrop-blur-xs"
+            className="w-full bg-surface/85 dark:bg-white/[0.04] border border-line dark:border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-2xl text-fg text-body p-3 placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg transition-all resize-none"
           />
         </div>
 
@@ -76,7 +76,7 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ isOpen, onClose, onA
             <select
               value={kind}
               onChange={(e) => setKind(e.target.value as ConceptKind)}
-              className="bg-surface-secondary/70 border border-line-soft rounded-xl text-fg text-body p-2.5 focus-ring backdrop-blur-xs"
+              className="bg-surface/85 dark:bg-white/[0.04] border border-line dark:border-white/10 backdrop-blur-md rounded-xl text-fg text-body p-2.5 focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg transition-all cursor-pointer"
             >
               <option value="concept">{t("kinds.concept")}</option>
               <option value="viability">{t("kinds.viability")}</option>
@@ -91,7 +91,7 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ isOpen, onClose, onA
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ConceptStatus)}
-              className="bg-surface-secondary/70 border border-line-soft rounded-xl text-fg text-body p-2.5 focus-ring backdrop-blur-xs"
+              className="bg-surface/85 dark:bg-white/[0.04] border border-line dark:border-white/10 backdrop-blur-md rounded-xl text-fg text-body p-2.5 focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg transition-all cursor-pointer"
             >
               <option value="exploring">{t("nodeStatus.exploring")}</option>
               <option value="confirmed">{t("nodeStatus.confirmed")}</option>
@@ -100,7 +100,7 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ isOpen, onClose, onA
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-line-soft">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-line/60 dark:border-white/10">
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>

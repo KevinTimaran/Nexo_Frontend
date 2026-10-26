@@ -112,7 +112,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       title={t("settings.title")}
       maxWidth="lg"
     >
-      <div className="space-y-6 max-h-[72vh] overflow-y-auto pr-1">
+      <div className="space-y-6 max-h-[68vh] overflow-y-auto pr-2 pb-6">
         {/* Appearance Section */}
         <div>
           <h4 className="text-body font-bold text-fg mb-1">{t("settings.appearance")}</h4>
