@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -156,6 +156,15 @@ export const WorkspaceView: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId, expandedDocNodeId, selectNode]);
 
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+
+  // Keep workspace container strictly anchored to top (prevent accidental scroll displacement)
+  useEffect(() => {
+    if (workspaceContainerRef.current) {
+      workspaceContainerRef.current.scrollTop = 0;
+    }
+  }, [projectId, loading]);
+
   if (loading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 space-y-3 select-none font-sans relative overflow-hidden">
@@ -218,7 +227,10 @@ export const WorkspaceView: React.FC = () => {
     : [];
 
   return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 font-sans select-none">
+    <div
+      ref={workspaceContainerRef}
+      className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 font-sans select-none"
+    >
       {/* ─── Ambient VisionOS Light Orbs for Glass Refraction ─── */}
       <div
         className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
