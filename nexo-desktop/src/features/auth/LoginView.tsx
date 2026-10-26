@@ -57,6 +57,10 @@ export const LoginView: React.FC = () => {
       {/* ─── 1. Elegant Mesh Gradient & VisionOS Ambient Orbs ─── */}
       <div
         aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(at_0%_0%,rgba(191,219,254,0.45)_0px,transparent_50%),radial-gradient(at_100%_0%,rgba(167,243,208,0.4)_0px,transparent_50%),radial-gradient(at_100%_100%,rgba(233,213,255,0.35)_0px,transparent_50%),radial-gradient(at_0%_100%,rgba(254,205,211,0.3)_0px,transparent_50%)] dark:bg-[radial-gradient(at_0%_0%,rgba(49,46,129,0.35)_0px,transparent_50%),radial-gradient(at_100%_0%,rgba(6,78,59,0.25)_0px,transparent_50%),radial-gradient(at_100%_100%,rgba(88,28,135,0.25)_0px,transparent_50%),radial-gradient(at_0%_100%,rgba(131,24,67,0.18)_0px,transparent_50%)] z-0"
+      />
+      <div
+        aria-hidden="true"
         className="pointer-events-none absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-blue-200/50 dark:bg-indigo-900/40 z-0"
       />
       <div
@@ -66,10 +70,6 @@ export const LoginView: React.FC = () => {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full blur-[140px] bg-violet-200/35 dark:bg-purple-900/20 z-0"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(59,130,246,0.12),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.18),rgba(0,0,0,0))] z-0"
       />
 
       {/* ─── 2. Floating Glass Card ─── */}

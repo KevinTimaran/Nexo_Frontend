@@ -56,7 +56,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
   const dotColor = isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)";
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-app select-none">
+    <div className="w-full h-full relative overflow-hidden bg-transparent select-none">
       <ReactFlow
         nodes={nodes}
         edges={edges}

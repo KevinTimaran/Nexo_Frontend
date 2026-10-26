@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Plus,
@@ -42,8 +43,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const lang = currentLanguage();
 
   const handleSelectProject = (id: string) => {
@@ -67,27 +66,45 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4">
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-md animate-fade-in"
-        onClick={onClose}
-      />
-
-      <div className="relative z-10 w-full max-w-xl glass-modal specular-sheen rounded-[28px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.25)] dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.85)] overflow-hidden animate-scale-in border border-line/80 dark:border-white/12">
-        {/* Search Header */}
-        <div className="flex items-center px-4 py-3.5 border-b border-line/60 dark:border-white/10 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md gap-3">
-          <Search className="w-4 h-4 text-concept-fg shrink-0" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("command.placeholder")}
-            className="w-full bg-transparent border-none text-fg text-body placeholder:text-muted/60 focus:outline-none"
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 font-sans select-none">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            onClick={onClose}
+            aria-hidden="true"
           />
-          <kbd className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-surface/80 dark:bg-white/[0.06] border border-line-soft dark:border-white/10 text-muted shadow-2xs shrink-0">
-            ESC
-          </kbd>
-        </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="
+              relative z-10 w-full max-w-xl rounded-3xl overflow-hidden
+              bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+              text-slate-800 dark:text-zinc-100 select-text
+            "
+          >
+            {/* Search Header */}
+            <div className="flex items-center px-4 py-3.5 border-b border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] backdrop-blur-md gap-3">
+              <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("command.placeholder")}
+                className="w-full bg-transparent border-none text-slate-800 dark:text-zinc-100 text-sm placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none"
+              />
+              <kbd className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 text-slate-500 dark:text-zinc-400 shadow-2xs shrink-0">
+                ESC
+              </kbd>
+            </div>
 
         {/* Results List */}
         <div className="max-h-80 overflow-y-auto p-2.5 pb-4 space-y-1">
@@ -165,7 +182,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       <p className="text-caption text-muted truncate">{project.description}</p>
                     </div>
                   </div>
-                  <span className="glass-pill text-[11px] font-mono text-muted shrink-0 ml-2">
+                  <span className="bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 px-2 py-0.5 rounded-md text-[11px] font-mono text-slate-500 dark:text-zinc-400 shrink-0 ml-2 shadow-2xs">
                     {project.nodeCount} conceptos
                   </span>
                 </button>
@@ -174,18 +191,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           )}
 
           {query && filteredProjects.length === 0 && (
-            <div className="p-6 text-center text-muted text-caption">
+            <div className="p-6 text-center text-slate-500 dark:text-zinc-400 text-xs">
               {t("command.empty", { query })}
             </div>
           )}
         </div>
 
         {/* Footer Hint */}
-        <div className="p-2.5 px-4 border-t border-line/60 dark:border-white/10 text-[11px] text-muted flex items-center justify-between bg-surface/50 dark:bg-white/[0.02]">
+        <div className="p-2.5 px-4 border-t border-white/60 dark:border-white/10 text-[11px] text-slate-500 dark:text-zinc-400 flex items-center justify-between bg-white/30 dark:bg-white/[0.02]">
           <span className="font-mono">{t("command.hint")}</span>
-          <span className="font-semibold text-muted/60 text-[10px] uppercase tracking-wider">Nexo Spotlight</span>
+          <span className="font-semibold text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider">Nexo Spotlight</span>
         </div>
-      </div>
+      </motion.div>
     </div>
+  )}
+</AnimatePresence>
   );
 };

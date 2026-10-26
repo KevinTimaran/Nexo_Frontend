@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Sparkles,
@@ -85,60 +86,75 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="notion-document-title"
-      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-md animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="
-          w-full sm:w-[560px] md:w-[640px] max-w-full h-full
-          glass-modal border-l border-line/80 dark:border-white/12
-          shadow-2xl flex flex-col justify-between
-          overflow-hidden animate-sheet-in
-          text-fg select-text specular-sheen
-        "
-      >
-        {/* Top Header Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shadow-2xs">
-              <FileText className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-muted/80 uppercase tracking-wider block">
-                Documento de Investigación
-              </span>
-              <span className="text-caption font-mono text-muted">ID: {node.id}</span>
-            </div>
-          </div>
+    <AnimatePresence>
+      {node && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notion-document-title"
+          className="fixed inset-0 z-50 flex justify-end overflow-hidden font-sans select-none"
+        >
+          {/* Frosted Glass Backdrop Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
-          <div className="flex items-center gap-2">
-            {onViewInGraph && (
-              <button
-                onClick={() => onViewInGraph(node.id)}
-                className="h-8 px-2.5 rounded-xl border border-line/80 dark:border-white/10 hover:border-concept-fg/50 bg-surface/85 dark:bg-white/[0.06] hover:bg-hover text-caption font-medium flex items-center gap-1.5 text-muted hover:text-fg transition-all cursor-pointer focus-ring"
-                title="Localizar en la constelación Obsidian"
-              >
-                <Network className="w-3.5 h-3.5 text-concept-fg" />
-                <span className="hidden sm:inline">Ver en Grafo</span>
-              </button>
-            )}
+          {/* Glass Sheet V2 Floating Inspector */}
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 24 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="
+              relative z-10 w-full sm:w-[560px] md:w-[640px] max-w-full h-full
+              bg-white/70 backdrop-blur-2xl border-l border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+              flex flex-col justify-between
+              overflow-hidden text-slate-800 dark:text-zinc-100 select-text
+            "
+          >
+            {/* Top Header Toolbar */}
+            <div className="p-4 sm:p-5 border-b border-white/60 dark:border-white/10 flex items-center justify-between bg-white/30 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20 shadow-xs">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider block">
+                    Documento de Investigación
+                  </span>
+                  <span className="text-xs font-mono text-slate-500 dark:text-zinc-400">ID: {node.id}</span>
+                </div>
+              </div>
 
-            <button
-              ref={closeButtonRef}
-              onClick={onClose}
-              className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover flex items-center justify-center transition-colors focus-ring cursor-pointer"
-              aria-label="Cerrar documento"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center gap-2">
+                {onViewInGraph && (
+                  <button
+                    onClick={() => onViewInGraph(node.id)}
+                    className="h-8 px-2.5 rounded-xl border border-white/80 dark:border-white/10 hover:border-blue-500/50 bg-white/60 dark:bg-white/[0.06] hover:bg-white/90 text-xs font-medium flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs"
+                    title="Localizar en la constelación Obsidian"
+                  >
+                    <Network className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span className="hidden sm:inline">Ver en Grafo</span>
+                  </button>
+                )}
+
+                <button
+                  ref={closeButtonRef}
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-zinc-100 hover:bg-white/40 dark:hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Cerrar documento"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
         {/* Scrollable Document Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
@@ -205,13 +221,13 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 {relatedNodes.map((rel) => (
                   <div
                     key={rel.id}
-                    className="p-3 rounded-2xl glass-card border border-line/80 dark:border-white/10 text-left space-y-1 transition-all hover:border-concept-fg/40"
+                    className="p-3 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 text-left space-y-1 transition-all hover:bg-white/60 dark:hover:bg-white/10 shadow-xs backdrop-blur-md"
                   >
                     <div className="flex items-center justify-between text-[10px]">
-                      <span className="font-semibold text-muted uppercase">{t(`kinds.${rel.kind}`)}</span>
+                      <span className="font-semibold text-slate-500 dark:text-zinc-400 uppercase">{t(`kinds.${rel.kind}`)}</span>
                       {rel.priority && <Badge priority={rel.priority} size="sm" />}
                     </div>
-                    <h4 className="text-caption font-bold text-fg truncate">{rel.title}</h4>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-zinc-100 truncate">{rel.title}</h4>
                   </div>
                 ))}
               </div>
@@ -220,11 +236,11 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-line/60 dark:border-white/10 flex items-center justify-between bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
+        <div className="p-4 sm:p-5 border-t border-white/60 dark:border-white/10 flex items-center justify-between bg-white/30 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
           {onRemoveNode ? (
             <button
               onClick={() => onRemoveNode(node.id)}
-              className="text-danger-fg hover:bg-danger-fg/10 px-3 py-1.5 rounded-xl text-caption font-semibold inline-flex items-center gap-1.5 transition-colors focus-ring cursor-pointer"
+              className="text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               <span>Eliminar</span>
@@ -239,6 +255,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 variant="primary"
                 size="sm"
                 onClick={() => onAskAI(node.title)}
+                className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
                 icon={<Sparkles className="w-3.5 h-3.5" />}
               >
                 Consultar al Copilot
@@ -249,7 +266,9 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
+  )}
+</AnimatePresence>
   );
 };

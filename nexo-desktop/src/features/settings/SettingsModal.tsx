@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
 import {
   Sun,
   Moon,
@@ -94,8 +93,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     useConnectivityStore.getState().refreshAiStatus();
   };
 
-  if (!isOpen) return null;
-
   const handleLangChange = (newLang: Language) => {
     void setLanguage(newLang);
   };
@@ -113,12 +110,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       title={t("settings.title")}
       maxWidth="lg"
     >
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="space-y-6 max-h-[68vh] overflow-y-auto pr-2 pb-6 text-slate-800 dark:text-zinc-100"
-      >
+      <div className="space-y-6 max-h-[68vh] overflow-y-auto pr-2 pb-6 text-slate-800 dark:text-zinc-100">
         {/* Appearance Section */}
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1">{t("settings.appearance")}</h4>
@@ -445,7 +437,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         <div className="text-center pt-2 text-[11px] font-mono text-slate-400 dark:text-zinc-500">
           {t("settings.version", { version: "1.0.0" })}
         </div>
-      </motion.div>
+      </div>
     </Modal>
   );
 };

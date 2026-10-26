@@ -23,11 +23,9 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  if (!isOpen) return null;
-
-  const concepts = map.nodes.filter((n) => n.kind === "concept");
-  const viability = map.nodes.filter((n) => n.kind === "viability");
-  const risks = map.nodes.filter((n) => n.kind === "risk");
+  const concepts = map?.nodes ? map.nodes.filter((n) => n.kind === "concept") : [];
+  const viability = map?.nodes ? map.nodes.filter((n) => n.kind === "viability") : [];
+  const risks = map?.nodes ? map.nodes.filter((n) => n.kind === "risk") : [];
 
   const markdownContent = `# NEXO EXECUTIVE SUMMARY: ${project.name}
 

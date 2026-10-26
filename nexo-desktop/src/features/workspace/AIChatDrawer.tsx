@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   Sparkles,
@@ -69,8 +69,6 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages, isThinking]);
-
-  if (!isOpen) return null;
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,21 +169,23 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
   };
 
   return (
-    <motion.aside
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="
-        absolute top-0 bottom-0 right-0 z-30 m-4
-        w-[390px] sm:w-[440px] max-w-[calc(100vw-2rem)]
-        flex flex-col justify-between
-        rounded-3xl overflow-hidden
-        bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-        dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-        text-slate-800 dark:text-zinc-100 select-text
-      "
-    >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.aside
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="
+            absolute inset-y-4 right-4 z-30
+            w-[390px] sm:w-[440px] max-w-[calc(100vw-2rem)]
+            flex flex-col justify-between
+            rounded-3xl overflow-hidden
+            bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+            dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+            text-slate-800 dark:text-zinc-100 select-text
+          "
+        >
       {/* Specular Top Reflection */}
       <div
         aria-hidden="true"
@@ -535,6 +535,8 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         </form>
       </div>
     </motion.aside>
+  )}
+</AnimatePresence>
   );
 };
 

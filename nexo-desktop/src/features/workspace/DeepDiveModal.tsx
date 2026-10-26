@@ -127,9 +127,8 @@ export const DeepDiveModal: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isDeepDiveModalOpen, closeDeepDive]);
 
-  if (!isDeepDiveModalOpen || !node) return null;
-
   const handleSaveAndClose = () => {
+    if (!node) return;
     updateNodeContent(node.id, {
       title: title.trim() || node.title,
       description: description.trim(),
@@ -149,49 +148,47 @@ export const DeepDiveModal: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none">
-        {/* Backdrop con desenfoque de cristal */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/50 dark:bg-black/75 backdrop-blur-md cursor-pointer"
-          onClick={closeDeepDive}
-          aria-hidden="true"
-        />
-
-        {/* Carta Flotante Superpuesta estilo Notion (Creative Glass) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 14 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 14 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="
-            relative w-full max-w-3xl max-h-[90vh]
-            rounded-[32px] overflow-hidden
-            border border-line/80 dark:border-white/12
-            bg-surface/92 dark:bg-zinc-950/92
-            backdrop-blur-3xl backdrop-saturate-[180%]
-            shadow-[0_32px_80px_-16px_rgba(15,23,42,0.22),inset_0_1px_0_0_rgba(255,255,255,0.9)]
-            dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.08)]
-            flex flex-col z-10 text-fg select-text
-          "
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="deep-dive-title"
-        >
-          {/* Barra superior de color de fase */}
-          <div className={`h-2 w-full ${currentPhaseConfig.dotColor} transition-colors duration-300`} />
-
-          {/* Specular hairline top reflection */}
-          <div
+      {isDeepDiveModalOpen && node && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none font-sans">
+          {/* Backdrop con desenfoque de cristal */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            onClick={closeDeepDive}
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-2 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
           />
 
-          {/* Modal Header */}
-          <div className="px-6 pt-5 pb-4 border-b border-line/60 dark:border-white/10 bg-surface/40 dark:bg-white/[0.02] space-y-4">
+          {/* Carta Flotante Superpuesta estilo Notion (Glass Sheet V2) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="
+              relative w-full max-w-3xl max-h-[90vh]
+              rounded-3xl overflow-hidden
+              bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+              flex flex-col z-10 text-slate-800 dark:text-zinc-100 select-text
+            "
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deep-dive-title"
+          >
+            {/* Barra superior de color de fase */}
+            <div className={`h-2 w-full ${currentPhaseConfig.dotColor} transition-colors duration-300`} />
+
+            {/* Specular hairline top reflection */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-2 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
+            />
+
+            {/* Modal Header */}
+            <div className="px-6 pt-5 pb-4 border-b border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-caption font-mono text-muted tracking-wider uppercase">
@@ -293,7 +290,7 @@ export const DeepDiveModal: React.FC = () => {
           <div className="p-6 flex-1 overflow-y-auto space-y-4">
             {/* Descripción Breve / Resumen */}
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-muted uppercase tracking-wider">
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                 Resumen Ejecutivo
               </label>
               <input
@@ -302,14 +299,13 @@ export const DeepDiveModal: React.FC = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Breve resumen de 1-2 oraciones del concepto..."
                 className="
-                  w-full text-caption px-3.5 py-2.5 rounded-xl text-fg
-                  bg-surface/85 dark:bg-white/[0.04]
-                  border border-line/80 dark:border-white/10
-                  backdrop-blur-md
-                  shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
-                  dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
-                  focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg
-                  transition-colors
+                  w-full text-xs px-3.5 py-2.5 rounded-xl
+                  text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500
+                  bg-slate-100/50 dark:bg-black/40
+                  border border-slate-200 dark:border-white/5
+                  shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
+                  focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
+                  transition-all
                 "
               />
             </div>
@@ -317,20 +313,20 @@ export const DeepDiveModal: React.FC = () => {
             {/* Documentación Profunda (Editor / Preview Tabs) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-concept-fg" />
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   Documentación y Especificación Detallada (Notion Style)
                 </label>
 
                 {/* Tabs Switcher */}
-                <div className="flex items-center p-0.5 rounded-xl glass-pill text-[11px]">
+                <div className="flex items-center p-0.5 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 text-[11px]">
                   <button
                     type="button"
                     onClick={() => setActiveTab("edit")}
                     className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === "edit"
-                        ? "bg-surface/95 dark:bg-white/[0.1] text-fg shadow-2xs border border-line-soft dark:border-white/10"
-                        : "text-muted hover:text-fg"
+                        ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs border border-white/80 dark:border-white/10"
+                        : "text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200"
                     }`}
                   >
                     <FileEdit className="w-3 h-3" />
@@ -341,8 +337,8 @@ export const DeepDiveModal: React.FC = () => {
                     onClick={() => setActiveTab("preview")}
                     className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === "preview"
-                        ? "bg-surface/95 dark:bg-white/[0.1] text-fg shadow-2xs border border-line-soft dark:border-white/10"
-                        : "text-muted hover:text-fg"
+                        ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs border border-white/80 dark:border-white/10"
+                        : "text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200"
                     }`}
                   >
                     <Eye className="w-3 h-3" />
@@ -359,17 +355,15 @@ export const DeepDiveModal: React.FC = () => {
                   rows={14}
                   className="
                     w-full p-4 font-mono text-[13px] rounded-2xl
-                    bg-surface/85 dark:bg-white/[0.04]
-                    border border-line/80 dark:border-white/10
-                    backdrop-blur-md
-                    shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
-                    dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
-                    focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg
-                    text-fg placeholder:text-muted/40 leading-relaxed resize-y min-h-[260px]
+                    bg-slate-100/50 dark:bg-black/40
+                    border border-slate-200 dark:border-white/5
+                    shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
+                    focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
+                    text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 leading-relaxed resize-y min-h-[260px]
                   "
                 />
               ) : (
-                <div className="w-full min-h-[260px] max-h-[420px] overflow-y-auto p-5 bg-surface/70 dark:bg-white/[0.03] rounded-2xl border border-line/80 dark:border-white/10 backdrop-blur-md">
+                <div className="w-full min-h-[260px] max-h-[420px] overflow-y-auto p-5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/10 backdrop-blur-md text-slate-800 dark:text-zinc-100">
                   <MarkdownRenderer
                     content={
                       details.trim().length > 0
@@ -383,9 +377,9 @@ export const DeepDiveModal: React.FC = () => {
           </div>
 
           {/* Footer con Botones de Acción */}
-          <div className="px-6 py-4 border-t border-line/60 dark:border-white/10 bg-surface/50 dark:bg-white/[0.02] backdrop-blur-md flex items-center justify-between">
-            <span className="text-[11px] text-muted">
-              Presiona <kbd className="px-1.5 py-0.5 rounded bg-surface/90 dark:bg-white/[0.06] border border-line-soft dark:border-white/10 font-mono shadow-2xs">ESC</kbd> para salir sin guardar
+          <div className="px-6 py-4 border-t border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] backdrop-blur-md flex items-center justify-between">
+            <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+              Presiona <kbd className="px-1.5 py-0.5 rounded bg-white/80 dark:bg-white/10 border border-white/80 dark:border-white/10 font-mono text-slate-600 dark:text-zinc-300 shadow-2xs">ESC</kbd> para salir sin guardar
             </span>
 
             <div className="flex items-center gap-2.5">
@@ -401,6 +395,7 @@ export const DeepDiveModal: React.FC = () => {
                 variant="primary"
                 size="sm"
                 onClick={handleSaveAndClose}
+                className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
                 icon={<Save className="w-3.5 h-3.5" />}
               >
                 {isSaved ? "¡Guardado!" : "Guardar y Cerrar"}
@@ -409,6 +404,7 @@ export const DeepDiveModal: React.FC = () => {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    )}
+  </AnimatePresence>
   );
 };

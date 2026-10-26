@@ -95,7 +95,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full bg-app overflow-hidden select-none">
+    <div className="relative w-full h-full bg-transparent overflow-hidden select-none">
       {/* Top-Centered Segmented Control: Dual-Mode Switcher */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 animate-rise-in">
         <ViewModeToggle mode={canvasMode} onChange={setCanvasMode} />
