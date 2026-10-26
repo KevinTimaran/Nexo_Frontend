@@ -50,15 +50,19 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-app text-fg overflow-hidden select-none relative">
-      {/* Ambient background soft light orbs for Creative Glass depth & refraction */}
+    <div className="flex flex-col h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 overflow-hidden select-none relative font-sans">
+      {/* Ambient background soft light orbs for Glassmorphism V2 depth & refraction */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed -top-48 -left-48 w-[720px] h-[720px] rounded-full blur-[160px] opacity-40 dark:opacity-25 bg-concept-fg/20 z-0"
+        className="pointer-events-none fixed -top-48 -left-48 w-[720px] h-[720px] rounded-full blur-[120px] bg-blue-200/50 dark:bg-indigo-900/40 z-0"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed -bottom-48 -right-48 w-[720px] h-[720px] rounded-full blur-[160px] opacity-35 dark:opacity-20 bg-concept-fg/15 z-0"
+        className="pointer-events-none fixed -bottom-48 -right-48 w-[720px] h-[720px] rounded-full blur-[120px] bg-emerald-200/50 dark:bg-emerald-900/30 z-0"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed top-1/2 left-1/3 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px] bg-violet-200/35 dark:bg-purple-900/20 z-0"
       />
 
       {/* Native Desktop Titlebar */}
