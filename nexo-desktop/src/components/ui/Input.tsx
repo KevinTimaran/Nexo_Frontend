@@ -14,13 +14,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-caption font-medium text-muted">
+          <label htmlFor={inputId} className="text-xs font-medium text-slate-700 dark:text-zinc-300">
             {label}
           </label>
         )}
         <div className="relative flex items-center w-full">
           {icon && (
-            <div className="absolute left-3 text-muted pointer-events-none flex items-center justify-center">
+            <div className="absolute left-3 text-slate-400 dark:text-zinc-500 pointer-events-none flex items-center justify-center">
               {icon}
             </div>
           )}
@@ -28,30 +28,29 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              w-full h-9 rounded-xl text-fg text-body placeholder:text-muted/60
-              bg-surface/85 dark:bg-white/[0.04]
-              border border-line dark:border-white/10
-              backdrop-blur-md
-              shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
-              dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
-              focus:outline-none focus:ring-2 focus:ring-concept-fg/25
+              w-full h-10 rounded-xl text-slate-800 dark:text-zinc-100 text-xs sm:text-sm placeholder:text-slate-400 dark:placeholder:text-zinc-500
+              bg-slate-100/50 dark:bg-black/40
+              border border-slate-200 dark:border-white/5
+              shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
+              focus:outline-none focus:ring-2 focus:ring-blue-500/20
               transition-all duration-200
-              ${icon ? "pl-9" : "px-3"}
+              ${icon ? "pl-9" : "px-3.5"}
               ${
                 error
-                  ? "border-danger-fg focus:border-danger-fg focus:ring-danger-fg/20"
-                  : "focus:border-concept-fg"
+                  ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                  : "focus:border-blue-500 dark:focus:border-blue-400"
               }
               ${className}
             `}
             {...props}
           />
         </div>
-        {error && <span className="text-caption text-danger-fg font-medium">{error}</span>}
-        {hint && !error && <span className="text-caption text-muted">{hint}</span>}
+        {error && <span className="text-xs text-rose-500 dark:text-rose-400 font-medium">{error}</span>}
+        {hint && !error && <span className="text-xs text-slate-500 dark:text-zinc-400">{hint}</span>}
       </div>
     );
   }
 );
 
 Input.displayName = "Input";
+
