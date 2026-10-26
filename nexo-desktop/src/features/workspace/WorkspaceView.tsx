@@ -158,10 +158,19 @@ export const WorkspaceView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-transparent space-y-3 select-none">
-        <div className="p-4 rounded-2xl glass-card flex flex-col items-center gap-3">
-          <Loader2 className="w-6 h-6 text-concept-fg animate-spin" />
-          <p className="text-caption text-muted font-medium">{t("workspace.loading")}</p>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 space-y-3 select-none font-sans relative overflow-hidden">
+        {/* Ambient VisionOS Light Orbs */}
+        <div
+          className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 p-5 rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
+          <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">{t("workspace.loading")}</p>
         </div>
       </div>
     );
@@ -169,14 +178,23 @@ export const WorkspaceView: React.FC = () => {
 
   if (!workspace || !workspace.map) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-transparent text-center p-6 select-none">
-        <div className="p-8 rounded-3xl glass-card max-w-sm flex flex-col items-center">
-          <div className="w-12 h-12 rounded-2xl bg-surface/80 border border-line flex items-center justify-center text-muted mb-3 shadow-xs">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-center p-6 select-none font-sans relative overflow-hidden">
+        {/* Ambient VisionOS Light Orbs */}
+        <div
+          className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 p-8 rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl max-w-sm flex flex-col items-center text-slate-800 dark:text-zinc-100">
+          <div className="w-12 h-12 rounded-2xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 flex items-center justify-center text-slate-400 dark:text-zinc-400 mb-3 shadow-xs">
             <FolderKanban className="w-6 h-6" />
           </div>
-          <h3 className="text-body font-bold text-fg">{t("workspace.notFound.title")}</h3>
-          <p className="text-caption text-muted mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
-          <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-100">{t("workspace.notFound.title")}</h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
+          <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4 !rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white">
             {t("workspace.notFound.action")}
           </Button>
         </div>
@@ -200,42 +218,57 @@ export const WorkspaceView: React.FC = () => {
     : [];
 
   return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden bg-app">
-      {/* Workspace Top Toolbar Header (Creative Glass) */}
+    <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 font-sans select-none">
+      {/* ─── Ambient VisionOS Light Orbs for Glass Refraction ─── */}
+      <div
+        className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute top-1/3 left-1/4 w-[450px] h-[450px] rounded-full bg-violet-200/35 dark:bg-purple-900/20 blur-[140px] z-0"
+        aria-hidden="true"
+      />
+
+      {/* Workspace Top Toolbar Header (Glassmorphism V2) */}
       <div
         className="
           h-12 shrink-0
-          bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-2xl backdrop-saturate-150
-          border-b border-line/80 dark:border-white/10
+          bg-white/70 dark:bg-black/20 backdrop-blur-2xl
+          border-b border-white/80 dark:border-white/10
+          shadow-[0_4px_20px_rgb(0,0,0,0.04)] dark:shadow-xl
           px-4 flex items-center justify-between z-20 relative select-none
         "
       >
         {/* Specular hairline reflection */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/10 to-transparent"
         />
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/")}
             className="
-              flex items-center gap-1.5 text-body font-semibold text-concept-fg hover:brightness-110
-              px-2.5 py-1 -ml-1 rounded-xl hover:bg-concept-fg/10 transition-all focus-ring cursor-pointer
+              flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10
+              px-2.5 py-1 -ml-1 rounded-xl transition-all cursor-pointer
             "
           >
             <ChevronLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Proyectos</span>
           </button>
 
-          <div className="h-4 w-px bg-line/80 dark:bg-white/10" />
+          <div className="h-4 w-px bg-slate-300/60 dark:bg-white/10" />
 
           <div className="flex items-center gap-2.5">
-            <h2 className="text-body font-bold text-fg flex items-center gap-2">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-2">
               {workspace.project.name}
             </h2>
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-positive-fg bg-positive-fg/10 px-2 py-0.5 rounded-full border border-positive-fg/20 backdrop-blur-xs">
-              <Check className="w-3 h-3 text-positive-fg" />
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/25">
+              <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
               {t("workspace.saved")}
             </span>
           </div>
@@ -247,24 +280,24 @@ export const WorkspaceView: React.FC = () => {
             onClick={() => setIsDocModalOpen(true)}
             className="
               flex items-center gap-1.5 px-3 py-1.5 rounded-xl
-              text-caption font-semibold bg-surface/85 dark:bg-white/[0.06]
-              border border-line/80 dark:border-white/10 text-fg hover:bg-hover hover:border-concept-fg/40
-              backdrop-blur-md shadow-xs transition-all duration-200 focus-ring cursor-pointer
+              text-xs font-semibold bg-white/60 hover:bg-white/90 dark:bg-white/5 dark:hover:bg-white/10
+              border border-white/80 dark:border-white/10 text-slate-700 dark:text-zinc-200
+              backdrop-blur-md shadow-xs transition-all duration-200 cursor-pointer
             "
           >
-            <FileText className="w-3.5 h-3.5 text-concept-fg" />
+            <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>{t("canvas.generate")}</span>
           </button>
 
           <button
             onClick={toggleChat}
             className={`
-              flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-caption font-semibold
-              transition-all duration-200 focus-ring cursor-pointer border
+              flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold
+              transition-all duration-200 cursor-pointer border
               ${
                 isChatOpen
-                  ? "bg-gradient-to-b from-concept-fg to-concept-fg/90 text-white border-transparent shadow-[0_4px_14px_-3px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.3)]"
-                  : "bg-surface/85 dark:bg-white/[0.06] hover:bg-hover border-line/80 dark:border-white/10 text-fg backdrop-blur-md shadow-xs"
+                  ? "bg-blue-600 hover:bg-blue-500 text-white border-transparent shadow-[0_4px_14px_rgba(37,99,235,0.35)]"
+                  : "bg-white/60 hover:bg-white/90 dark:bg-white/5 dark:hover:bg-white/10 border-white/80 dark:border-white/10 text-slate-700 dark:text-zinc-200 shadow-xs backdrop-blur-md"
               }
             `}
           >
