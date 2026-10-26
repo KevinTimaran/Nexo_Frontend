@@ -225,7 +225,10 @@ export const geminiAiService: AIService = {
     const { text, map, lang, replyTo } = request;
     const now = new Date().toISOString();
 
-    const existingSummary = map.nodes
+    const isSpanishText = /[áéíóúñ¿¡]|\b(el|la|los|las|un|una|de|en|que|es|por|para|con|no|si|como|crear|hacer|quiero|proyecto|idea|nodos|lienzo|ayuda|hola)\b/i.test(text);
+    const targetLang = (lang === "es" || isSpanishText) ? "Español" : "English";
+
+    const existingSummary = (map?.nodes || [])
       .map((n) => `- [${n.kind.toUpperCase()} | ${n.phase || "planning"} | ${n.category || "technical"}] ${n.title}: ${n.description}`)
       .join("\n");
 
@@ -233,19 +236,22 @@ export const geminiAiService: AIService = {
 Tu objetivo es analizar la idea o consulta del usuario, generar una respuesta estratégica, una explicación accesible en lenguaje sencillo, y proponer de 1 a 3 nodos estructurados para el mapa conceptual ("Concept Canvas").
 
 Reglas obligatorias:
-1. Idioma: ${lang === "es" ? "Español" : "English"}.
+1. Idioma de respuesta: ${targetLang}.
+   - CRÍTICO: Si el usuario te habla en español o la consulta está en español, responde ABSOLUTAMENTE TODO en Español (el campo 'text', la explicación 'simplifiedExplanation', los títulos 'title', descripciones 'description' y detalles 'details' de los nodos).
+   - NUNCA respondas en inglés si la consulta está en español.
 2. Genera tu respuesta en formato JSON estrictamente válido acorde a la estructura solicitada.
 3. Cada nodo propuesto debe tener:
-   - title: Título conciso (máximo 5 palabras).
-   - description: Resumen de 1-2 oraciones.
+   - title: Título conciso (máximo 5 palabras) en ${targetLang}.
+   - description: Resumen de 1-2 oraciones en ${targetLang}.
    - kind: Uno de ["concept", "viability", "risk"].
    - category: Uno de ["technical", "economic", "legal", "political"].
    - priority: Uno de ["high", "medium", "low"].
    - phase: Uno de ["planning", "execution", "validation"].
    - metadata: Dato cuantitativo o evidencia empírica breve (ej. "82% de adopción esperada", "Costo CAC estimado < $2 USD", etc.).
-   - details: Documentación completa en formato Markdown con subtítulos (### Hipótesis, ### Métricas, ### Próximos pasos) ideal para visualización en Notion deep-dive.
+   - details: Documentación completa en formato Markdown con subtítulos en ${targetLang} (### Hipótesis, ### Métricas, ### Próximos pasos) ideal para visualización en Notion deep-dive.
 4. cardType debe ser uno de: ["idea", "explanation", "recommendation"].
-5. simplifiedExplanation: Explicación didáctica y sin tecnicismos en 2 oraciones breves para estudiantes principiantes.`;
+5. simplifiedExplanation: Explicación didáctica y sin tecnicismos en 2 oraciones breves para estudiantes en ${targetLang}.`;
+
 
     const promptText = `Nodos existentes en el lienzo:\n${existingSummary || "(Lienzo en blanco)"}\n\nNueva consulta o mensaje del usuario:\n"${text}"\n\nResponde en formato JSON con la siguiente estructura:
 {
@@ -384,6 +390,9 @@ Reglas obligatorias:
 
     const { messageText, conceptTitle, conceptDescription, lang } = request;
 
+    const isSpanishExplain = lang === "es" || /[áéíóúñ¿¡]|\b(el|la|los|las|un|una|de|en|que|es|por|para|con|no|si|como|explicar|concepto|que significa|ejemplo)\b/i.test(messageText + " " + (conceptTitle || ""));
+    const targetLang = isSpanishExplain ? "Español" : "English";
+
     const prompt = `Actúa como un profesor universitario y mentor de producto excepcionalmente pedagógico y claro.
 Tu misión es explicar en términos súper comprensibles el siguiente concepto o análisis:
 
@@ -391,12 +400,13 @@ ${conceptTitle ? `Concepto: "${conceptTitle}"` : ""}
 ${conceptDescription ? `Descripción del concepto: "${conceptDescription}"` : ""}
 Mensaje o contexto a explicar: "${messageText}"
 
-Idioma: ${lang === "es" ? "Español" : "English"}.
+Idioma obligatorio: ${targetLang}. Si la consulta está en español, responde totalmente en Español.
 
 Genera una respuesta didáctica estructurada con EXACTAMENTE los siguientes 3 puntos numerados:
-1. ¿Qué significa en palabras sencillas? (Explicación clara y sin tecnicismos innecesarios)
-2. Ejemplo o analogía de la vida cotidiana (Una analogía práctica y visual para estudiantes)
-3. Próximo paso práctico recomendado (Una acción concreta que el usuario puede hacer hoy)`;
+1. ¿Qué significa en palabras sencillas? (Explicación clara y sin tecnicismos innecesarios en ${targetLang})
+2. Ejemplo o analogía de la vida cotidiana (Una analogía práctica y visual para estudiantes en ${targetLang})
+3. Próximo paso práctico recomendado (Una acción concreta que el usuario puede hacer hoy en ${targetLang})`;
+
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 

@@ -14,7 +14,8 @@ function detectLanguage(): Language {
   } catch {
     /* storage unavailable */
   }
-  return navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
+  // Default to Spanish as the primary language for Nexo
+  return "es";
 }
 
 void i18n.use(initReactI18next).init({
@@ -23,11 +24,12 @@ void i18n.use(initReactI18next).init({
     es: { translation: es },
   },
   lng: detectLanguage(),
-  fallbackLng: "en",
+  fallbackLng: "es",
   supportedLngs: LANGUAGES,
   interpolation: { escapeValue: false },
   returnNull: false,
 });
+
 
 const syncDocument = (lng: string) => {
   document.documentElement.lang = lng;
