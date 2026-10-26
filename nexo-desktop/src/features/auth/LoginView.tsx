@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -52,40 +53,44 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-app relative overflow-hidden select-none">
-      {/* Ambient background soft light orbs for Creative Glass depth */}
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 relative overflow-hidden select-none font-sans">
+      {/* ─── 1. Elegant Mesh Gradient & VisionOS Ambient Orbs ─── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full blur-[160px] opacity-60 dark:opacity-30 bg-concept-fg/25"
+        className="pointer-events-none absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-blue-200/50 dark:bg-indigo-900/40 z-0"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 -right-40 w-[680px] h-[680px] rounded-full blur-[160px] opacity-50 dark:opacity-25 bg-concept-fg/20"
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-emerald-200/50 dark:bg-emerald-900/30 z-0"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[850px] rounded-full blur-[200px] opacity-30 dark:opacity-15 bg-concept-fg/10"
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full blur-[140px] bg-violet-200/35 dark:bg-purple-900/20 z-0"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(59,130,246,0.12),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.18),rgba(0,0,0,0))] z-0"
       />
 
-      {/* Outer Creative Glass Card */}
-      <div className="relative z-10 w-full max-w-[420px] animate-rise-in">
-        {/* Soft luminous halo */}
-        <div className="pointer-events-none absolute -inset-6 rounded-[48px] bg-concept-fg/10 blur-3xl opacity-60" />
-
+      {/* ─── 2. Floating Glass Card ─── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-[420px]"
+      >
         <div
           className="
-            relative rounded-[36px] overflow-hidden
-            border border-line/80 dark:border-white/12
-            bg-surface/90 dark:bg-zinc-950/90
-            backdrop-blur-3xl backdrop-saturate-[180%]
-            shadow-[0_24px_64px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_0_rgba(255,255,255,0.85)]
-            dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)]
+            relative rounded-3xl overflow-hidden
+            bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+            dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+            text-slate-800 dark:text-zinc-100 select-text
           "
         >
           {/* Specular hairline top reflection */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent z-20"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 dark:via-white/20 to-transparent z-20"
           />
 
           {/* Card Content */}
@@ -94,11 +99,10 @@ export const LoginView: React.FC = () => {
             <div className="flex flex-col items-center text-center mb-7">
               <div
                 className="
-                  relative w-16 h-16 rounded-[22px]
-                  bg-gradient-to-b from-concept-fg to-concept-fg/85
+                  relative w-16 h-16 rounded-2xl
+                  bg-gradient-to-br from-blue-600 to-indigo-600
                   flex items-center justify-center text-white
-                  shadow-[0_8px_24px_-6px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.4)]
-                  ring-1 ring-white/30
+                  shadow-lg shadow-blue-500/25 ring-1 ring-white/40
                   transition-transform duration-300 hover:scale-[1.03]
                   mb-4
                 "
@@ -110,10 +114,10 @@ export const LoginView: React.FC = () => {
                 />
               </div>
 
-              <h1 className="text-[26px] leading-tight font-extrabold tracking-tight text-fg">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-zinc-100">
                 {t("app.name")}
               </h1>
-              <p className="text-caption text-muted mt-1.5 max-w-[280px] leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1.5 max-w-[280px] leading-relaxed">
                 {t("app.tagline")}
               </p>
             </div>
@@ -127,7 +131,7 @@ export const LoginView: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("auth.emailPlaceholder")}
-                  icon={<Mail className="w-4 h-4 text-muted" />}
+                  icon={<Mail className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
                   autoComplete="email"
                   autoFocus
                   disabled={isLoading}
@@ -142,7 +146,7 @@ export const LoginView: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t("auth.passwordPlaceholder")}
-                  icon={<Lock className="w-4 h-4 text-muted" />}
+                  icon={<Lock className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
                   autoComplete="current-password"
                   disabled={isLoading}
                   aria-invalid={!!error && password.length < 6}
@@ -152,11 +156,11 @@ export const LoginView: React.FC = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isLoading}
                   className="
-                    absolute right-2.5 top-8
+                    absolute right-2.5 top-8.5
                     w-8 h-8 flex items-center justify-center
-                    rounded-lg text-muted hover:text-fg
-                    hover:bg-hover active:scale-95
-                    transition-all duration-200 focus-ring cursor-pointer
+                    rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-zinc-200
+                    hover:bg-white/40 dark:hover:bg-white/10 active:scale-95
+                    transition-all duration-200 cursor-pointer
                     disabled:opacity-50
                   "
                   aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
@@ -169,7 +173,7 @@ export const LoginView: React.FC = () => {
               <div className="flex justify-end -mt-1">
                 <button
                   type="button"
-                  className="text-[12px] font-medium text-concept-fg hover:underline underline-offset-4 transition-all focus-ring rounded-md px-1 cursor-pointer"
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 transition-all rounded-md px-1 cursor-pointer"
                 >
                   {t("auth.forgotPassword", { defaultValue: "¿Olvidaste tu contraseña?" })}
                 </button>
@@ -179,10 +183,10 @@ export const LoginView: React.FC = () => {
                 <div
                   role="alert"
                   className="
-                    p-3 rounded-2xl
-                    bg-danger-fg/10 border border-danger-fg/25
-                    text-danger-fg text-caption font-medium
-                    flex items-start gap-2 animate-fade-in backdrop-blur-sm
+                    p-3 rounded-xl
+                    bg-rose-500/10 border border-rose-500/25
+                    text-rose-600 dark:text-rose-400 text-xs font-medium
+                    flex items-start gap-2 backdrop-blur-sm
                   "
                 >
                   <span className="font-semibold text-xs leading-none mt-0.5">•</span>
@@ -195,7 +199,7 @@ export const LoginView: React.FC = () => {
                 variant="primary"
                 size="lg"
                 loading={isLoading}
-                className="w-full mt-2 !rounded-2xl"
+                className="w-full mt-2 !rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-[0_4px_16px_rgba(37,99,235,0.3)] cursor-pointer"
                 icon={<ArrowRight className="w-4 h-4" />}
               >
                 {isLoading ? t("auth.submitting") : t("auth.submit")}
@@ -203,38 +207,38 @@ export const LoginView: React.FC = () => {
             </form>
 
             {/* Divider */}
-            <div className="mt-5 flex items-center gap-3 text-[11px] text-muted">
-              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-line to-transparent" />
+            <div className="mt-5 flex items-center gap-3 text-xs text-slate-400 dark:text-zinc-500">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/10 to-transparent" />
               <span className="tracking-wider uppercase font-semibold text-[10px]">
                 {t("auth.or", { defaultValue: "o" })}
               </span>
-              <span className="h-px flex-1 bg-gradient-to-l from-transparent via-line to-transparent" />
+              <span className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-200 dark:via-white/10 to-transparent" />
             </div>
 
-            <p className="mt-3.5 text-center text-[12px] text-muted">
+            <p className="mt-3.5 text-center text-xs text-slate-500 dark:text-zinc-400">
               {t("auth.noAccount", { defaultValue: "¿No tienes cuenta?" })}{" "}
               <button
                 type="button"
-                className="font-semibold text-concept-fg hover:underline underline-offset-4 focus-ring rounded cursor-pointer"
+                className="font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
               >
                 {t("auth.requestAccess", { defaultValue: "Solicita acceso" })}
               </button>
             </p>
 
-            {/* Adapter transparency note */}
+            {/* Adapter transparency note (Sub-tarjeta de cristal) */}
             <div
               className="
-                mt-6 p-3 rounded-2xl
-                bg-surface/60 dark:bg-white/[0.04]
-                border border-line/60 dark:border-white/10
+                mt-6 p-3.5 rounded-2xl
+                bg-white/40 dark:bg-white/5
+                border border-white/50 dark:border-white/10
                 backdrop-blur-md
-                text-[11px] text-slate-600 dark:text-slate-300
-                flex items-start gap-2.5 leading-normal shadow-2xs
+                text-xs text-slate-600 dark:text-zinc-400
+                flex items-start gap-2.5 leading-normal shadow-xs
               "
             >
-              <ShieldCheck className="w-4 h-4 text-concept-fg shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-fg">
+                <span className="font-semibold text-slate-800 dark:text-zinc-100">
                   {t("auth.adapterTitle", { defaultValue: "Adaptador de Autenticación:" })}{" "}
                 </span>
                 <span>
@@ -247,7 +251,7 @@ export const LoginView: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
