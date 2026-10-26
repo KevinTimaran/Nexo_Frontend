@@ -64,7 +64,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         />
 
         <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-caption font-medium text-muted">
+          <label className="text-xs font-medium text-slate-700 dark:text-zinc-300">
             {t("projects.create.details")}
           </label>
           <textarea
@@ -73,19 +73,17 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             placeholder={t("projects.create.detailsPlaceholder")}
             rows={3}
             className="
-              w-full rounded-xl text-fg text-body p-3 placeholder:text-muted/60
-              bg-surface/85 dark:bg-white/[0.04]
-              border border-line dark:border-white/10
-              backdrop-blur-md
-              shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)]
-              dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
-              focus:outline-none focus:ring-2 focus:ring-concept-fg/25 focus:border-concept-fg
+              w-full rounded-xl text-slate-800 dark:text-zinc-100 text-xs sm:text-sm p-3 placeholder:text-slate-400 dark:placeholder:text-zinc-500
+              bg-slate-100/50 dark:bg-black/40
+              border border-slate-200 dark:border-white/5
+              shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
+              focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
               transition-all duration-200 resize-none
             "
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-line/60 dark:border-white/10">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200/80 dark:border-white/10">
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
@@ -93,6 +91,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             type="submit"
             variant="primary"
             loading={loading}
+            className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
             icon={<Plus className="w-4 h-4" />}
           >
             {t("projects.create.submit")}
