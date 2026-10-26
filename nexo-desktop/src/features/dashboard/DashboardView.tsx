@@ -212,14 +212,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className="relative h-full w-full flex bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+    <div className="relative h-full w-full flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 overflow-hidden font-sans select-none">
       {/* ─── 1. Ambient VisionOS Light Orbs ─── */}
       <div
-        className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-indigo-900/50 blur-[100px] z-0"
+        className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-blue-200/50 dark:bg-indigo-900/50 blur-[120px] z-0"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-emerald-900/30 blur-[100px] z-0"
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
         aria-hidden="true"
       />
 
@@ -227,7 +227,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <aside
         className="
           relative z-20 m-4 w-16 flex flex-col items-center justify-between py-6 rounded-3xl
-          bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl shrink-0
+          bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+          dark:bg-black/20 dark:border-white/10 dark:shadow-2xl shrink-0
         "
         aria-label="Navegación lateral"
       >
@@ -242,8 +243,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             }}
             className="
               w-11 h-11 rounded-2xl flex items-center justify-center
-              bg-white/15 text-white border border-white/20 shadow-lg
-              hover:bg-white/25 active:scale-95 cursor-pointer transition-all duration-200
+              bg-blue-600 dark:bg-white/15 text-white border border-blue-500/20 dark:border-white/20 shadow-md
+              hover:brightness-105 active:scale-95 cursor-pointer transition-all duration-200
             "
             title="Inicio"
             aria-label="Inicio"
@@ -259,7 +260,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={handleOpenSettings}
             className="
               w-11 h-11 rounded-2xl flex items-center justify-center
-              text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 border border-transparent hover:border-white/10
+              text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10 active:scale-95 border border-transparent hover:border-white/40
               cursor-pointer transition-all duration-200
             "
             title="Ajustes"
@@ -280,8 +281,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 active:scale-95 transition-all duration-200 cursor-pointer
                 ${
                   profileMenuOpen
-                    ? "bg-white/20 text-white border border-white/25 shadow-lg"
-                    : "text-slate-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10"
+                    ? "bg-white/80 dark:bg-white/20 text-slate-900 dark:text-white border border-white dark:border-white/25 shadow-md"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10 border border-transparent hover:border-white/40"
                 }
               `}
               title={user?.name || "Perfil"}
@@ -296,21 +297,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 onClick={(e) => e.stopPropagation()}
                 className="
                   absolute left-16 bottom-0 z-50 w-56 p-3 rounded-2xl
-                  bg-slate-900/95 backdrop-blur-3xl border border-white/15 shadow-2xl
-                  text-slate-100 flex flex-col gap-2 animate-scale-in
+                  bg-white/90 dark:bg-slate-900/95 backdrop-blur-3xl border border-white/80 dark:border-white/15 shadow-2xl
+                  text-slate-800 dark:text-slate-100 flex flex-col gap-2 animate-scale-in
                 "
               >
                 <div className="px-2 py-1">
-                  <p className="text-xs font-semibold text-white truncate">{user?.name || "Usuario"}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{user?.email || "usuario@ejemplo.com"}</p>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-white truncate">{user?.name || "Usuario"}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email || "usuario@ejemplo.com"}</p>
                 </div>
-                <div className="h-px bg-white/10 my-1" />
+                <div className="h-px bg-slate-200 dark:bg-white/10 my-1" />
                 <button
                   type="button"
                   onClick={() => void signOut()}
                   className="
-                    flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-rose-400
-                    hover:bg-rose-500/15 transition-colors w-full cursor-pointer text-left
+                    flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-rose-500 dark:text-rose-400
+                    hover:bg-rose-500/10 transition-colors w-full cursor-pointer text-left
                   "
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -327,10 +328,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* ─── 3. Header (Arriba) ─── */}
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extralight tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extralight tracking-tight text-slate-800 dark:text-white">
               Buenos días, {user?.name || "Usuario"}
             </h1>
-            <p className="text-xs sm:text-sm font-light text-slate-400 mt-1.5">
+            <p className="text-xs sm:text-sm font-light text-slate-500 dark:text-slate-400 mt-1.5">
               {t("home.description", "Retoma donde lo dejaste o empieza a dar forma a una nueva idea.")}
             </p>
           </div>
@@ -340,9 +341,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div
               className={`
                 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl
-                bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl
+                bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
                 transition-all duration-300 ease-out
-                ${searchFocused || search ? "w-64 sm:w-80 lg:w-96 border-white/25 ring-1 ring-white/15" : "w-48 sm:w-60"}
+                ${searchFocused || search ? "w-64 sm:w-80 lg:w-96 border-blue-500/40 dark:border-white/25 ring-2 ring-blue-500/20" : "w-48 sm:w-60"}
               `}
             >
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
@@ -353,13 +355,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 placeholder={t("projects.searchPlaceholder", "Buscar proyectos...")}
-                className="bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none w-full font-light"
+                className="bg-transparent text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none w-full font-light"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1 rounded-md text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                   aria-label="Borrar búsqueda"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -371,7 +373,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* ─── Filter Pills Bar ─── */}
         <div className="flex items-center justify-between mb-6 shrink-0">
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl shrink-0">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl shrink-0">
             {(["all", "active", "draft", "archived"] as const).map((st) => (
               <button
                 key={st}
@@ -381,8 +383,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
                   ${
                     statusFilter === st
-                      ? "bg-white/15 text-white border border-white/20 shadow-sm"
-                      : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+                      ? "bg-blue-600 dark:bg-white/15 text-white border border-blue-500/20 dark:border-white/20 shadow-sm font-semibold"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent"
                   }
                 `}
               >
@@ -391,7 +393,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ))}
           </div>
 
-          <span className="text-xs text-slate-400 hidden sm:inline">
+          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
             {filteredProjects.length} {filteredProjects.length === 1 ? "proyecto" : "proyectos"}
           </span>
         </div>
@@ -405,31 +407,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   key={i}
                   className="
                     min-h-[220px] rounded-3xl p-6
-                    bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl
+                    bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                    dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
                     animate-pulse flex flex-col justify-between
                   "
                 >
                   <div className="flex items-start justify-between">
-                    <div className="w-10 h-10 rounded-2xl bg-white/10" />
-                    <div className="w-20 h-5 rounded-full bg-white/10" />
+                    <div className="w-10 h-10 rounded-2xl bg-slate-200/60 dark:bg-white/10" />
+                    <div className="w-20 h-5 rounded-full bg-slate-200/60 dark:bg-white/10" />
                   </div>
                   <div className="space-y-2 my-4">
-                    <div className="w-3/4 h-5 rounded-md bg-white/10" />
-                    <div className="w-full h-3.5 rounded-md bg-white/5" />
+                    <div className="w-3/4 h-5 rounded-md bg-slate-200/60 dark:bg-white/10" />
+                    <div className="w-full h-3.5 rounded-md bg-slate-200/40 dark:bg-white/5" />
                   </div>
-                  <div className="h-6 w-1/2 rounded bg-white/10" />
+                  <div className="h-6 w-1/2 rounded bg-slate-200/60 dark:bg-white/10" />
                 </div>
               ))}
             </div>
           ) : filteredProjects.length === 0 && (search || statusFilter !== "all") ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 mb-4 shadow-xl">
+              <div className="w-16 h-16 rounded-2xl bg-white/70 dark:bg-white/5 border border-white/80 dark:border-white/10 flex items-center justify-center text-slate-400 mb-4 shadow-xl">
                 <Layers className="w-8 h-8" />
               </div>
-              <h3 className="text-base font-semibold text-white">
+              <h3 className="text-base font-semibold text-slate-800 dark:text-white">
                 {t("projects.noResults.title", "No hay proyectos coincidentes")}
               </h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
                 {t("projects.noResults.description", "Prueba con otro término o limpia los filtros.")}
               </p>
               <div className="mt-4 flex items-center gap-3">
@@ -439,7 +442,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     setSearch("");
                     setStatusFilter("all");
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 border border-white/15 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-white/80 dark:border-white/15 transition-all cursor-pointer shadow-xs"
                 >
                   {t("common.clearSearch", "Borrar búsqueda")}
                 </button>
@@ -463,26 +466,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className="
                   group relative flex flex-col justify-center items-center text-center p-6
                   min-h-[220px] rounded-3xl cursor-pointer
-                  border border-dashed border-white/20 hover:border-emerald-400/50
-                  bg-white/[0.02] hover:bg-white/[0.05]
-                  backdrop-blur-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/20
+                  border border-dashed border-slate-300 dark:border-white/20 hover:border-emerald-500/60 dark:hover:border-emerald-400/50
+                  bg-white/40 hover:bg-white/70 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]
+                  backdrop-blur-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20
                 "
               >
                 <div
                   className="
                     w-14 h-14 rounded-2xl mb-3.5
-                    bg-white/5 border border-white/10
-                    flex items-center justify-center text-slate-300
-                    group-hover:scale-110 group-hover:bg-emerald-500/15 group-hover:text-emerald-400 group-hover:border-emerald-500/30
-                    transition-all duration-300 shadow-lg
+                    bg-white/70 dark:bg-white/5 border border-white/80 dark:border-white/10
+                    flex items-center justify-center text-slate-500 dark:text-slate-300
+                    group-hover:scale-110 group-hover:bg-emerald-500/15 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:border-emerald-500/30
+                    transition-all duration-300 shadow-sm
                   "
                 >
                   <Plus className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-semibold text-white group-hover:text-emerald-300 transition-colors">
+                <h3 className="text-base font-semibold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
                   {t("projects.newCard.title", "Nuevo proyecto")}
                 </h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-[200px] leading-relaxed">
                   {t("projects.newCard.hint", "Crear un nuevo mapa conceptual")}
                 </p>
               </motion.div>
@@ -507,8 +510,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className="
                       group relative flex flex-col justify-between p-6
                       min-h-[220px] rounded-3xl cursor-pointer
-                      bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl
-                      hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/20
+                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
                     "
                   >
                     <div>
@@ -516,8 +520,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="flex items-center justify-between gap-2 mb-4">
                         <div
                           className="
-                            w-10 h-10 rounded-2xl bg-white/5 border border-white/10
-                            text-emerald-400 flex items-center justify-center shadow-sm
+                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
+                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
                             group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
                           "
                         >
@@ -526,7 +530,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                         <div className="flex items-center gap-2">
                           {/* Badge pequeño estilo cristal indicando última modificación */}
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 backdrop-blur-md border border-white/10 text-slate-300 shadow-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">
                             {formatLastModified(project.updatedAt)}
                           </span>
 
@@ -543,11 +547,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 setActiveMenuProjectId(isMenuOpen ? null : project.id);
                               }}
                               className={`
-                                p-1.5 rounded-xl hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
                                 ${
                                   isMenuOpen
-                                    ? "opacity-100 bg-white/10 text-white"
-                                    : "text-slate-400 hover:text-white opacity-0 group-hover:opacity-100"
+                                    ? "opacity-100 bg-white/80 dark:bg-white/10 text-slate-800 dark:text-white"
+                                    : "text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100"
                                 }
                               `}
                               aria-label="Más opciones"
@@ -564,8 +568,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 className="
                                   absolute right-0 top-9 z-50 w-52
                                   rounded-2xl p-2
-                                  bg-slate-900/95 backdrop-blur-3xl border border-white/15
-                                  shadow-2xl text-slate-100 select-none animate-scale-in
+                                  bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-white/80 dark:border-white/15
+                                  shadow-2xl text-slate-800 dark:text-slate-100 select-none animate-scale-in
                                 "
                               >
                                 <button
@@ -575,9 +579,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                     setActiveMenuProjectId(null);
                                     navigate(`/workspace/${project.id}`);
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-200 hover:text-white"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
                                 >
-                                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                   <span>Abrir diseño</span>
                                 </button>
 
@@ -587,9 +591,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                     e.stopPropagation();
                                     handleDuplicateProject(project);
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-200 hover:text-white"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
                                 >
-                                  <Copy className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                  <Copy className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                                   <span>Duplicar diseño</span>
                                 </button>
 
@@ -599,15 +603,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                     e.stopPropagation();
                                     handleToggleArchiveProject(project);
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-200 hover:text-white"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
                                 >
-                                  <Archive className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <Archive className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                                   <span>
                                     {project.status === "archived" ? "Restaurar a Activo" : "Archivar proyecto"}
                                   </span>
                                 </button>
 
-                                <div className="my-1 h-px bg-white/10" />
+                                <div className="my-1 h-px bg-slate-200 dark:bg-white/10" />
 
                                 <button
                                   type="button"
@@ -616,9 +620,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                     setActiveMenuProjectId(null);
                                     setProjectToDelete(project);
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/15 transition-colors text-left cursor-pointer"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors text-left cursor-pointer"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                                  <Trash2 className="w-3.5 h-3.5 shrink-0 text-rose-500 dark:text-rose-400" />
                                   <span>Eliminar proyecto</span>
                                 </button>
                               </div>
@@ -630,24 +634,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {/* Título del proyecto (fuerte) */}
                       <h3
                         title={project.name}
-                        className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors line-clamp-1"
+                        className="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1"
                       >
                         {project.name}
                       </h3>
-                      <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
                         {project.description || "Sin descripción"}
                       </p>
                     </div>
 
                     {/* Estadísticas rápidas: Nodos creados & Fase + Botón Abrir proyecto */}
-                    <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-white/10">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <span className="font-light">
-                          Nodos creados: <strong className="text-white font-medium">{project.nodeCount > 0 ? project.nodeCount : 24}</strong>
+                          Nodos creados: <strong className="text-slate-800 dark:text-white font-medium">{project.nodeCount > 0 ? project.nodeCount : 24}</strong>
                         </span>
-                        <span className="text-white/20">·</span>
+                        <span className="text-slate-300 dark:text-white/20">·</span>
                         <span className="font-light">
-                          Fase: <strong className="text-emerald-400 font-semibold">{project.status === "archived" ? "Validación" : "Ejecución"}</strong>
+                          Fase: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{project.status === "archived" ? "Validación" : "Ejecución"}</strong>
                         </span>
                       </div>
 
@@ -658,9 +662,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           navigate(`/workspace/${project.id}`);
                         }}
                         className="
-                          p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white
-                          border border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-400
-                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm shrink-0
+                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
                         "
                         title="Abrir proyecto"
                         aria-label={`Abrir proyecto ${project.name}`}
@@ -684,13 +688,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         maxWidth="sm"
       >
         <div className="space-y-4">
-          <p className="text-body text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             ¿Estás seguro de que deseas eliminar{" "}
-            <strong className="text-white font-semibold">«{projectToDelete?.name}»</strong>?
+            <strong className="text-slate-800 dark:text-white font-semibold">«{projectToDelete?.name}»</strong>?
             Esta acción borrará el diseño y todos sus conceptos de forma permanente.
           </p>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200/80 dark:border-white/10">
             <Button
               type="button"
               variant="ghost"
