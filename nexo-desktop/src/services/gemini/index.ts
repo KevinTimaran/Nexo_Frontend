@@ -5,15 +5,18 @@
  */
 import type {
   AIResponse,
+  ChatPhase,
   ConceptKind,
   ConceptNode,
   ConceptRelation,
+  DiscoveryQuestion,
   NodeCategory,
   NodePriority,
   ResearchPhase,
 } from "../../domain/types";
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
 import { mockServices } from "../mock";
+import { getSystemInstruction, buildUserPrompt } from "../ai/prompts";
 
 export type AICardType = "idea" | "explanation" | "recommendation";
 
@@ -196,6 +199,8 @@ interface GeminiStructuredReply {
   text: string;
   simplifiedExplanation: string;
   cardType: AICardType;
+  readyForStructuring?: boolean;
+  discoveryQuestions?: DiscoveryQuestion[];
   nodes: Array<{
     title: string;
     description: string;
@@ -222,55 +227,23 @@ export const geminiAiService: AIService = {
       return mockServices.ai.reply(request);
     }
 
-    const { text, map, lang, replyTo } = request;
+    const { text, map, lang, replyTo, chatPhase } = request;
     const now = new Date().toISOString();
 
-    const isSpanishText = /[áéíóúñ¿¡]|\b(el|la|los|las|un|una|de|en|que|es|por|para|con|no|si|como|crear|hacer|quiero|proyecto|idea|nodos|lienzo|ayuda|hola)\b/i.test(text);
-    const targetLang = (lang === "es" || isSpanishText) ? "Español" : "English";
+    const activePhase: ChatPhase =
+      chatPhase || (map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY");
 
     const existingSummary = (map?.nodes || [])
       .map((n) => `- [${n.kind.toUpperCase()} | ${n.phase || "planning"} | ${n.category || "technical"}] ${n.title}: ${n.description}`)
       .join("\n");
 
-    const systemInstruction = `Eres Nexo Copilot, una inteligencia artificial de élite especializada en investigación, ideación y modelado de proyectos de software e innovación.
-Tu objetivo es analizar la idea o consulta del usuario, generar una respuesta estratégica, una explicación accesible en lenguaje sencillo, y proponer de 1 a 3 nodos estructurados para el mapa conceptual ("Concept Canvas").
-
-Reglas obligatorias:
-1. Idioma de respuesta: ${targetLang}.
-   - CRÍTICO: Si el usuario te habla en español o la consulta está en español, responde ABSOLUTAMENTE TODO en Español (el campo 'text', la explicación 'simplifiedExplanation', los títulos 'title', descripciones 'description' y detalles 'details' de los nodos).
-   - NUNCA respondas en inglés si la consulta está en español.
-2. Genera tu respuesta en formato JSON estrictamente válido acorde a la estructura solicitada.
-3. Cada nodo propuesto debe tener:
-   - title: Título conciso (máximo 5 palabras) en ${targetLang}.
-   - description: Resumen de 1-2 oraciones en ${targetLang}.
-   - kind: Uno de ["concept", "viability", "risk"].
-   - category: Uno de ["technical", "economic", "legal", "political"].
-   - priority: Uno de ["high", "medium", "low"].
-   - phase: Uno de ["planning", "execution", "validation"].
-   - metadata: Dato cuantitativo o evidencia empírica breve (ej. "82% de adopción esperada", "Costo CAC estimado < $2 USD", etc.).
-   - details: Documentación completa en formato Markdown con subtítulos en ${targetLang} (### Hipótesis, ### Métricas, ### Próximos pasos) ideal para visualización en Notion deep-dive.
-4. cardType debe ser uno de: ["idea", "explanation", "recommendation"].
-5. simplifiedExplanation: Explicación didáctica y sin tecnicismos en 2 oraciones breves para estudiantes en ${targetLang}.`;
-
-
-    const promptText = `Nodos existentes en el lienzo:\n${existingSummary || "(Lienzo en blanco)"}\n\nNueva consulta o mensaje del usuario:\n"${text}"\n\nResponde en formato JSON con la siguiente estructura:
-{
-  "text": "Tu análisis y recomendación estratégica para el usuario",
-  "simplifiedExplanation": "Explicación en palabras sencillas",
-  "cardType": "idea",
-  "nodes": [
-    {
-      "title": "Título del nodo",
-      "description": "Descripción concisa",
-      "kind": "concept",
-      "category": "technical",
-      "priority": "high",
-      "phase": "planning",
-      "metadata": "Métrica clave",
-      "details": "### Hipótesis y Contexto\\nTexto detallado..."
-    }
-  ]
-}`;
+    const systemInstruction = getSystemInstruction(activePhase, lang);
+    const promptText = buildUserPrompt({
+      phase: activePhase,
+      lang,
+      existingNodesSummary: existingSummary,
+      userMessage: text,
+    });
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -302,39 +275,42 @@ Reglas obligatorias:
 
       const parsed: GeminiStructuredReply = JSON.parse(rawJson);
 
-      // Map proposed nodes into domain ConceptNodes
+      // Map proposed nodes into domain ConceptNodes (enforcing phase rules)
       const newNodes: ConceptNode[] = [];
       const newRelations: ConceptRelation[] = [];
 
-      let currentMapNodes = [...map.nodes];
-      const anchorNode = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
+      // In Phase 1 Discovery, NEVER add nodes to canvas
+      if (activePhase !== "PHASE_1_DISCOVERY") {
+        let currentMapNodes = [...map.nodes];
+        const anchorNode = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
 
-      for (const rawNode of parsed.nodes || []) {
-        const pos = calculateNextPosition(currentMapNodes);
-        const node: ConceptNode = {
-          id: uid("n"),
-          kind: rawNode.kind || "concept",
-          category: rawNode.category || "technical",
-          priority: rawNode.priority || "medium",
-          status: rawNode.kind === "risk" ? "review" : "exploring",
-          phase: rawNode.phase || "planning",
-          x: pos.x,
-          y: pos.y,
-          title: rawNode.title,
-          description: rawNode.description,
-          metadata: rawNode.metadata,
-          details: rawNode.details,
-        };
+        for (const rawNode of parsed.nodes || []) {
+          const pos = calculateNextPosition(currentMapNodes);
+          const node: ConceptNode = {
+            id: uid("n"),
+            kind: rawNode.kind || "concept",
+            category: rawNode.category || "technical",
+            priority: rawNode.priority || "medium",
+            status: rawNode.kind === "risk" ? "review" : "exploring",
+            phase: rawNode.phase || (activePhase === "PHASE_2_STRUCTURING" ? "planning" : "execution"),
+            x: pos.x,
+            y: pos.y,
+            title: rawNode.title,
+            description: rawNode.description,
+            metadata: rawNode.metadata,
+            details: rawNode.details,
+          };
 
-        newNodes.push(node);
-        currentMapNodes.push(node);
+          newNodes.push(node);
+          currentMapNodes.push(node);
 
-        if (anchorNode) {
-          newRelations.push({
-            id: uid("r"),
-            from: anchorNode.id,
-            to: node.id,
-          });
+          if (anchorNode && activePhase === "PHASE_3_EXPANSION") {
+            newRelations.push({
+              id: uid("r"),
+              from: anchorNode.id,
+              to: node.id,
+            });
+          }
         }
       }
 
@@ -342,7 +318,6 @@ Reglas obligatorias:
 
       const insightItems = [
         ...newNodes.map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
-        ...(anchorNode ? [{ nodeId: anchorNode.id, kind: anchorNode.kind, label: anchorNode.title }] : []),
       ];
 
       return {
@@ -354,10 +329,24 @@ Reglas obligatorias:
           cardType: parsed.cardType || "idea",
           text: parsed.text,
           simplifiedExplanation: parsed.simplifiedExplanation,
-          insight: {
-            title: lang === "es" ? "Estructura conceptual generada por Gemini" : "Conceptual structure by Gemini",
-            items: insightItems,
-          },
+          chatPhase: activePhase,
+          readyForStructuring:
+            parsed.readyForStructuring ?? (activePhase !== "PHASE_1_DISCOVERY"),
+          discoveryQuestions: parsed.discoveryQuestions?.map((q, idx) => ({
+            id: q.id || `q-${idx + 1}`,
+            question: q.question,
+            options: q.options || [],
+          })),
+          insight:
+            insightItems.length > 0
+              ? {
+                  title:
+                    lang === "es"
+                      ? "Estructura conceptual generada por Gemini"
+                      : "Conceptual structure by Gemini",
+                  items: insightItems,
+                }
+              : undefined,
           actionableNode: primaryNode
             ? {
                 title: primaryNode.title,

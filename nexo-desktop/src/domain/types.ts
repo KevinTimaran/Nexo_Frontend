@@ -109,6 +109,14 @@ export interface UserMessage extends BaseMessage {
   role: "user";
 }
 
+export type ChatPhase = "PHASE_1_DISCOVERY" | "PHASE_2_STRUCTURING" | "PHASE_3_EXPANSION";
+
+export interface DiscoveryQuestion {
+  id: string;
+  question: string;
+  options: string[];
+}
+
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
   insight?: Insight;
@@ -124,6 +132,12 @@ export interface AssistantMessage extends BaseMessage {
   isExplaining?: boolean;
   /** Error occurred while generating explanation, if any */
   explanationError?: string | null;
+  /** Phase in which this message was generated */
+  chatPhase?: ChatPhase;
+  /** Socratic multiple-choice questions for Phase 1 Discovery */
+  discoveryQuestions?: DiscoveryQuestion[];
+  /** Whether the AI believes the idea core is solid enough to generate the base map */
+  readyForStructuring?: boolean;
   /** Actionable node candidate that can be mapped directly to canvas */
   actionableNode?: {
     title: string;

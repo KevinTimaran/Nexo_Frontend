@@ -32,6 +32,7 @@ interface AIChatDrawerProps {
   messages: Message[];
   isThinking: boolean;
   onSendMessage: (text: string) => void;
+  onGenerateBaseMap?: () => void;
   onSelectNode: (nodeId: string) => void;
   onRetry: () => void;
 }
@@ -42,6 +43,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
   messages,
   isThinking,
   onSendMessage,
+  onGenerateBaseMap,
   onSelectNode,
   onRetry,
 }) => {
@@ -59,6 +61,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
     setMessageExplaining,
     setMessageExplanation,
     workspace,
+    chatPhase,
   } = useWorkspaceStore();
 
   const { mode: serviceMode, aiProvider } = useConnectivityStore();
@@ -90,11 +93,45 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
     }
   };
 
-  const promptSuggestions = [
-    { label: t("chat.composer.promptRisks"), text: t("chat.composer.promptRisksText") },
-    { label: t("chat.composer.promptViability"), text: t("chat.composer.promptViabilityText") },
-    { label: t("chat.composer.promptConcept"), text: t("chat.composer.promptConceptText") },
-  ];
+  const promptSuggestions =
+    chatPhase === "PHASE_1_DISCOVERY"
+      ? [
+          { label: "Idea de proyecto", text: "Tengo la idea de desarrollar un proyecto para " },
+          { label: "Público objetivo", text: "El público objetivo principal son " },
+          { label: "Problema a resolver", text: "El problema central que busca resolver es " },
+        ]
+      : [
+          { label: t("chat.composer.promptRisks"), text: t("chat.composer.promptRisksText") },
+          { label: t("chat.composer.promptViability"), text: t("chat.composer.promptViabilityText") },
+          { label: t("chat.composer.promptConcept"), text: t("chat.composer.promptConceptText") },
+        ];
+
+  const getChatPhaseBadge = () => {
+    switch (chatPhase) {
+      case "PHASE_1_DISCOVERY":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            Fase 1: Descubrimiento
+          </span>
+        );
+      case "PHASE_2_STRUCTURING":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+            Fase 2: Estructuración
+          </span>
+        );
+      case "PHASE_3_EXPANSION":
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Fase 3: Expansión
+          </span>
+        );
+    }
+  };
 
   const handleMapNode = (candidate: {
     title: string;
@@ -209,12 +246,14 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
               <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-100 leading-none tracking-tight">
                 {t("chat.aiName")}
               </h3>
-              <span className="text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
-                Copilot
-              </span>
+              {getChatPhaseBadge()}
             </div>
             <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-none font-normal">
-              Exploración, ideación y modo tutor
+              {chatPhase === "PHASE_1_DISCOVERY"
+                ? "Definiendo Qué, Quién y Cómo"
+                : chatPhase === "PHASE_2_STRUCTURING"
+                ? "Sintetizando idea central en el lienzo"
+                : "Ramificación técnica, legal y riesgos"}
             </p>
           </div>
         </div>
@@ -283,6 +322,64 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                   >
                     <p className="whitespace-pre-wrap font-normal">{msg.text}</p>
                   </div>
+
+                  {/* Discovery Interactive Questions (Phase 1) */}
+                  {asstMsg?.discoveryQuestions && asstMsg.discoveryQuestions.length > 0 && (
+                    <div className="space-y-2.5 text-left mt-2 animate-rise-in">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                        <HelpCircle className="w-3.5 h-3.5" />
+                        <span>Preguntas clave de descubrimiento</span>
+                      </div>
+                      {asstMsg.discoveryQuestions.map((dq, qIdx) => (
+                        <div
+                          key={dq.id || qIdx}
+                          className="p-3.5 rounded-2xl bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 space-y-2 backdrop-blur-md shadow-xs hover:border-amber-500/30 transition-all"
+                        >
+                          <p className="text-xs font-semibold text-slate-800 dark:text-zinc-100 leading-snug">
+                            {dq.question}
+                          </p>
+                          {dq.options && dq.options.length > 0 && (
+                            <div className="flex flex-col gap-1.5 pt-1">
+                              {dq.options.map((opt, optIdx) => (
+                                <button
+                                  key={optIdx}
+                                  type="button"
+                                  disabled={isThinking}
+                                  onClick={() => onSendMessage(opt)}
+                                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium bg-white/70 hover:bg-blue-600 hover:text-white dark:bg-white/10 dark:hover:bg-blue-600 dark:hover:text-white border border-white/80 dark:border-white/15 text-slate-700 dark:text-zinc-200 transition-all duration-150 shadow-2xs hover:scale-[1.01] active:scale-[0.98] cursor-pointer group flex items-center justify-between gap-2 disabled:opacity-50"
+                                >
+                                  <span className="leading-snug">{opt}</span>
+                                  <ChevronRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Ready for Structuring Callout / Action (Phase 1 -> Phase 2) */}
+                  {asstMsg?.readyForStructuring && onGenerateBaseMap && (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-emerald-500/10 border border-blue-500/30 backdrop-blur-md shadow-sm space-y-2 text-left animate-rise-in mt-2">
+                      <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-xs">
+                        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                        <span>Idea delimitada con éxito</span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
+                        Tenemos definidos los pilares clave (Qué, Quién y Cómo). ¿Listo para estructurar el mapa conceptual?
+                      </p>
+                      <button
+                        type="button"
+                        onClick={onGenerateBaseMap}
+                        disabled={isThinking}
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] text-white shadow-md shadow-blue-500/25 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Generar mapa base</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Structured Rich Knowledge Card for Assistant Responses (Glass Sub-Card) */}
                   {asstMsg && (actionable || asstMsg.cardType) && (
@@ -495,6 +592,17 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
       <div className="p-4 border-t border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] backdrop-blur-md shrink-0 space-y-2.5">
         {/* Suggestion Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          {chatPhase === "PHASE_1_DISCOVERY" && onGenerateBaseMap && messages.some((m) => m.role === "user") && (
+            <button
+              type="button"
+              onClick={onGenerateBaseMap}
+              disabled={isThinking}
+              className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-semibold shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-3 h-3 animate-pulse" />
+              <span>Generar mapa base</span>
+            </button>
+          )}
           {promptSuggestions.map((s, idx) => (
             <button
               key={idx}

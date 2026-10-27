@@ -5,7 +5,7 @@
  */
 import {
   ServiceError,
-  type AIResponse,
+  type ChatPhase,
   type ConceptKind,
   type ConceptMap,
   type ConceptNode,
@@ -248,82 +248,116 @@ function freeSlot(nodes: ConceptNode[], x: number, y: number) {
 }
 
 const ai: AIService = {
-  async reply({ text, map, lang, replyTo }) {
-    await latency(1600);
+  async reply({ text, map, lang, replyTo, chatPhase }) {
+    await latency(1200);
     if (FAIL_WORDS.test(text)) throw new ServiceError("unknown");
 
     const now = new Date().toISOString();
+    const activePhase: ChatPhase =
+      chatPhase || (map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY");
 
-    if (map.nodes.length === 0) {
-      const core: ConceptNode = {
-        id: uid("n"),
-        kind: "concept",
-        status: "exploring",
-        phase: "planning",
-        x: 60,
-        y: 160,
-        title: summarize(text),
-        description: pick(aiCopy.coreDescription, lang),
-        metadata: pick(aiCopy.coreMetadata, lang),
-        details: `${summarize(text)}\n\n${pick(aiCopy.coreDescription, lang)}\n\n### Hipótesis de Partida\n- Los usuarios necesitan un canal verificado y de confianza.\n- Las alternativas actuales carecen de seguridad y proximidad.\n\n### Plan de Validación\n1. Entrevistar a los primeros 20 usuarios potenciales.\n2. Probar la adopción inicial con un grupo piloto.`,
-      };
-      const v = nodeTemplates.viability[0];
-      const r = nodeTemplates.risk[0];
-      const viability: ConceptNode = {
-        id: uid("n"),
-        kind: "viability",
-        status: "exploring",
-        phase: "execution",
-        x: 60 + GAP_X,
-        y: 40,
-        title: pick(v.title, lang),
-        description: pick(v.description, lang),
-        metadata: pick(v.metadata, lang),
-        details: `${pick(v.title, lang)}\n\n${pick(v.description, lang)}\n\n### Arquitectura de Ejecución\n- Implementación de flujos de pago o intercambio seguro.\n- Puntos de entrega física coordinados dentro del campus.`,
-      };
-      const risk: ConceptNode = {
-        id: uid("n"),
-        kind: "risk",
-        status: "review",
-        phase: "validation",
-        x: 60 + GAP_X,
-        y: 40 + GAP_Y + 40,
-        title: pick(r.title, lang),
-        description: pick(r.description, lang),
-        metadata: pick(r.metadata, lang),
-        details: `${pick(r.title, lang)}\n\n${pick(r.description, lang)}\n\n### Criterios de Mitigación\n- Claridad en los términos de servicio y políticas de resolución de disputas.\n- Cumplimiento normativo estricto con protección de identidad.`,
-      };
-      const response: AIResponse = {
+    if (activePhase === "PHASE_1_DISCOVERY") {
+      const isReady = text.length > 35 || /modelo|b2b|b2c|estudiante|cliente|directo|consumidor/i.test(text);
+      return {
         message: {
           id: uid("m"),
           role: "assistant",
           createdAt: now,
           replyTo,
           cardType: "idea",
-          text: pick(aiCopy.firstMessage, lang),
+          chatPhase: "PHASE_1_DISCOVERY",
+          readyForStructuring: isReady,
+          text:
+            lang === "es"
+              ? "Entiendo tu idea inicial. Para delimitar el núcleo del proyecto sin apresurar conclusiones técnicas, respondamos a estas preguntas clave:"
+              : "I understand your initial idea. To delimit the core of the project without jumping to technical conclusions, let's answer these key questions:",
           simplifiedExplanation:
             lang === "es"
-              ? "En términos sencillos: Acabamos de estructurar tu idea en tres piezas: la idea central (Planificación), la viabilidad para ponerla en marcha (Ejecución) y los posibles obstáculos que debes cuidar (Validación)."
-              : "In simple terms: We broke down your idea into 3 key pieces: the core concept (Planning), how it executes (Execution), and what obstacles to watch out for (Validation).",
+              ? "En Fase 1 estamos explorando las bases de tu idea para que el concepto central en el lienzo sea sólido."
+              : "In Phase 1 we are defining the foundation of your idea before adding the central concept.",
+          discoveryQuestions: [
+            {
+              id: "q-1",
+              question:
+                lang === "es"
+                  ? "¿Cuál es el modelo de distribución o negocio principal?"
+                  : "What is the primary distribution or business model?",
+              options: [
+                lang === "es" ? "B2B (Directo a empresas y restaurantes)" : "B2B (Direct to businesses)",
+                lang === "es" ? "B2C (Directo al consumidor final)" : "B2C (Direct to consumer)",
+                lang === "es" ? "P2P (Comunidad entre usuarios)" : "P2P (Peer-to-peer community)",
+              ],
+            },
+            {
+              id: "q-2",
+              question:
+                lang === "es"
+                  ? "¿Quién es el usuario prioritario en la versión piloto?"
+                  : "Who is the primary user for the pilot version?",
+              options: [
+                lang === "es" ? "Estudiantes universitarios verificados" : "Verified university students",
+                lang === "es" ? "Pequeños productores y proveedores locales" : "Small local producers",
+                lang === "es" ? "Público general urbano" : "General urban audience",
+              ],
+            },
+          ],
+        },
+        newNodes: [],
+        newRelations: [],
+      };
+    }
+
+    if (activePhase === "PHASE_2_STRUCTURING") {
+      const core: ConceptNode = {
+        id: uid("n"),
+        kind: "concept",
+        status: "exploring",
+        phase: "planning",
+        category: "technical",
+        priority: "high",
+        x: 60,
+        y: 160,
+        title: summarize(text),
+        description: pick(aiCopy.coreDescription, lang),
+        metadata: pick(aiCopy.coreMetadata, lang),
+        details: `${summarize(text)}\n\n${pick(aiCopy.coreDescription, lang)}\n\n### Hipótesis de Partida\n- Los usuarios necesitan un canal verificado y de proximidad.\n- Las alternativas actuales carecen de confianza y transparencia.\n\n### Plan de Validación\n1. Entrevistar a los primeros 20 usuarios potenciales.\n2. Probar la adopción inicial con un grupo piloto.`,
+      };
+
+      return {
+        message: {
+          id: uid("m"),
+          role: "assistant",
+          createdAt: now,
+          replyTo,
+          cardType: "idea",
+          chatPhase: "PHASE_2_STRUCTURING",
+          readyForStructuring: true,
+          text:
+            lang === "es"
+              ? "Hemos consolidado la idea base. He generado el concepto central en tu lienzo para que sea el ancla de todo el proyecto."
+              : "We consolidated the core idea. I generated the central concept on your canvas as the anchor.",
+          simplifiedExplanation:
+            lang === "es"
+              ? "Este es el concepto central que guiará las demás ramas de tu proyecto."
+              : "This is the central concept that will guide all other branches.",
           insight: {
-            title: pick(aiCopy.firstTitle, lang),
-            items: [core, viability, risk].map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
+            title: lang === "es" ? "Concepto central establecido" : "Core concept established",
+            items: [{ nodeId: core.id, kind: core.kind, label: core.title }],
           },
           actionableNode: {
             title: core.title,
             description: core.description,
             kind: "concept",
             phase: "planning",
+            category: "technical",
+            priority: "high",
             metadata: core.metadata,
+            details: core.details,
           },
         },
-        newNodes: [core, viability, risk],
-        newRelations: [
-          { id: uid("r"), from: core.id, to: viability.id },
-          { id: uid("r"), from: core.id, to: risk.id },
-        ],
+        newNodes: [core],
+        newRelations: [],
       };
-      return response;
     }
 
     const kind = detectKind(text);
@@ -380,6 +414,8 @@ const ai: AIService = {
         createdAt: now,
         replyTo,
         cardType,
+        chatPhase: "PHASE_3_EXPANSION",
+        readyForStructuring: true,
         text: pick(aiCopy.reply[kind], lang),
         simplifiedExplanation: simplifiedExplanations[kind],
         insight: { title: pick(aiCopy.replyTitle[kind], lang), items },

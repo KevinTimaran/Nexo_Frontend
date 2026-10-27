@@ -21,7 +21,7 @@ import { NotionModalViewer } from "./NotionModalViewer";
 import { AddNodeModal } from "./AddNodeModal";
 import { GenerateDocumentModal } from "../documents/GenerateDocumentModal";
 import { Button } from "../../components/ui/Button";
-import type { ConceptMap, ConceptNode, Message } from "../../domain/types";
+import type { ConceptMap, ConceptNode, Message, ChatPhase } from "../../domain/types";
 
 export const WorkspaceView: React.FC = () => {
   const { t } = useTranslation();
@@ -46,6 +46,8 @@ export const WorkspaceView: React.FC = () => {
     moveNode,
     addNode,
     removeNode,
+    chatPhase,
+    setChatPhase,
   } = useWorkspaceStore();
 
   const [loading, setLoading] = useState(true);
@@ -73,8 +75,10 @@ export const WorkspaceView: React.FC = () => {
     services.workspace.save(projectId, map, messages);
   };
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, overridePhase?: ChatPhase) => {
     if (!workspace || !projectId) return;
+
+    const activePhase = overridePhase || chatPhase;
 
     const userMessage: Message = {
       id: Math.random().toString(36).substring(2, 9),
@@ -96,6 +100,7 @@ export const WorkspaceView: React.FC = () => {
         map: workspace.map,
         lang,
         replyTo: userMessage.id,
+        chatPhase: activePhase,
       });
 
       const nextNodes = [...workspace.map.nodes, ...response.newNodes];
@@ -113,12 +118,21 @@ export const WorkspaceView: React.FC = () => {
 
       if (response.newNodes.length > 0) {
         showToast(`Se mapearon ${response.newNodes.length} nuevos conceptos.`, "success");
+        if (activePhase === "PHASE_2_STRUCTURING") {
+          setChatPhase("PHASE_3_EXPANSION");
+        }
       }
     } catch {
       showToast(t("chat.error.title"), "error");
     } finally {
       setThinking(false);
     }
+  };
+
+  const handleGenerateBaseMap = async () => {
+    if (!workspace || !projectId) return;
+    setChatPhase("PHASE_2_STRUCTURING");
+    await handleSendMessage("Estructura la idea base en el nodo central del mapa conceptual.", "PHASE_2_STRUCTURING");
   };
 
   const handleNodeMove = (nodeId: string, x: number, y: number) => {
@@ -375,6 +389,7 @@ export const WorkspaceView: React.FC = () => {
           messages={workspace.messages}
           isThinking={isThinking}
           onSendMessage={handleSendMessage}
+          onGenerateBaseMap={handleGenerateBaseMap}
           onSelectNode={(nodeId) => selectNode(nodeId)}
           onRetry={() => {
             const lastUserMsg = [...workspace.messages]

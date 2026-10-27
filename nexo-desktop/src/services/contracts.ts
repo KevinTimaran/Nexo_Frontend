@@ -6,6 +6,7 @@
  */
 import type {
   AIResponse,
+  ChatPhase,
   ConceptMap,
   GeneratedDocument,
   Language,
@@ -37,6 +38,7 @@ export interface AIReplyRequest {
   map: ConceptMap;
   lang: Language;
   replyTo: string;
+  chatPhase?: ChatPhase;
 }
 
 export interface AITutorRequest {

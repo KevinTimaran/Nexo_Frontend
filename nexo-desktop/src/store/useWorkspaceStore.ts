@@ -3,6 +3,7 @@ import type { Node, Edge, NodeChange, EdgeChange, Connection } from "reactflow";
 import { applyNodeChanges, applyEdgeChanges, addEdge } from "reactflow";
 import type {
   CanvasMode,
+  ChatPhase,
   ConceptKind,
   ConceptMap,
   ConceptNode,
@@ -23,6 +24,7 @@ interface WorkspaceState {
   // Data
   workspace: Workspace | null;
   canvasMode: CanvasMode;
+  chatPhase: ChatPhase;
   selectedNodeId: string | null;
   expandedDocNodeId: string | null;
   isThinking: boolean;
@@ -36,6 +38,7 @@ interface WorkspaceState {
   // Actions
   setWorkspace: (workspace: Workspace | null) => void;
   setCanvasMode: (mode: CanvasMode) => void;
+  setChatPhase: (phase: ChatPhase) => void;
   selectNode: (nodeId: string | null) => void;
   setExpandedDocNodeId: (nodeId: string | null) => void;
   setThinking: (thinking: boolean) => void;
@@ -122,6 +125,7 @@ function convertMapToFlow(
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspace: null,
   canvasMode: "notion",
+  chatPhase: "PHASE_1_DISCOVERY",
   selectedNodeId: null,
   expandedDocNodeId: null,
   isThinking: false,
@@ -133,14 +137,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   setWorkspace: (workspace) => {
     if (!workspace) {
-      set({ workspace: null, nodes: [], edges: [] });
+      set({ workspace: null, nodes: [], edges: [], chatPhase: "PHASE_1_DISCOVERY" });
       return;
     }
     const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
-    set({ workspace, nodes, edges });
+    const inferredPhase: ChatPhase =
+      workspace.map?.nodes && workspace.map.nodes.length > 0
+        ? "PHASE_3_EXPANSION"
+        : "PHASE_1_DISCOVERY";
+    set({ workspace, nodes, edges, chatPhase: inferredPhase });
   },
 
   setCanvasMode: (canvasMode) => set({ canvasMode }),
+
+  setChatPhase: (chatPhase) => set({ chatPhase }),
 
   selectNode: (selectedNodeId) => set({ selectedNodeId }),
 
@@ -276,7 +286,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const nextMap = { ...workspace.map, nodes: nextNodes };
       const nextWorkspace = { ...workspace, map: nextMap };
       const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
-      set({ workspace: nextWorkspace, selectedNodeId: id, nodes, edges });
+      const nextPhase: ChatPhase =
+        get().chatPhase === "PHASE_2_STRUCTURING" ? "PHASE_3_EXPANSION" : get().chatPhase;
+      set({ workspace: nextWorkspace, selectedNodeId: id, nodes, edges, chatPhase: nextPhase });
       persistSession(workspace.project.id, nextMap, workspace.messages);
     }
 
@@ -441,11 +453,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const nextWorkspace = { ...workspace, map: nextMap };
     const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
 
+    const nextPhase: ChatPhase =
+      get().chatPhase === "PHASE_2_STRUCTURING" ? "PHASE_3_EXPANSION" : get().chatPhase;
+
     set({
       workspace: nextWorkspace,
       selectedNodeId: id,
       nodes,
       edges,
+      chatPhase: nextPhase,
     });
 
     persistSession(workspace.project.id, nextMap, workspace.messages);
