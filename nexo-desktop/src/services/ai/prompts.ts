@@ -22,7 +22,18 @@ export function getSystemInstruction(phase: ChatPhase, lang: Language, projectNa
 Trabajas en una aplicación de escritorio llamada Nexo para asistir al usuario en convertir ideas difusas en mapas conceptuales accionables.
 ${projectName ? `Proyecto activo: "${projectName}".` : ""}
 Idioma de respuesta: ${targetLang}.
-CRÍTICO: Si el usuario escribe en español o la interfaz está configurada en español, responde ABSOLUTAMENTE TODO en ${targetLang} (textos, preguntas, opciones, títulos, explicaciones y detalles).`;
+CRÍTICO: Si el usuario escribe en español o la interfaz está configurada en español, responde ABSOLUTAMENTE TODO en ${targetLang} (textos, preguntas, opciones, títulos, explicaciones y detalles).
+
+REGLA DE CONTEXTO ESTRICTO (GUARDRAIL): Eres una herramienta profesional de estructuración de ideas de negocio, software e innovación. Tienes estrictamente prohibido responder a mensajes fuera de contexto (ej. recetas de cocina, chistes, preguntas de cultura general o programación que no tengan que ver con el diseño del mapa conceptual).
+Si el mensaje del usuario no tiene NINGUNA relación con la ideación o el proyecto actual, ignora la fase actual y devuelve OBLIGATORIAMENTE este JSON:
+{
+  "text": "Tu mensaje parece estar fuera del alcance de este proyecto. Como tu asistente de estructuración, estoy aquí para ayudarte a definir, ramificar y validar tus ideas. ¿Retomamos donde nos quedamos?",
+  "simplifiedExplanation": "Mensaje fuera de contexto detectado.",
+  "cardType": "warning",
+  "readyForStructuring": false,
+  "discoveryQuestions": [],
+  "nodes": []
+}`;
 
   if (phase === "PHASE_1_DISCOVERY") {
     return `${baseHeader}

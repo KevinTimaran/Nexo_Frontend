@@ -19,6 +19,7 @@ import type {
 
 export interface AuthService {
   signIn(email: string, password: string): Promise<User>;
+  signUp(name: string, email: string, password: string): Promise<User>;
   signOut(): Promise<void>;
 }
 

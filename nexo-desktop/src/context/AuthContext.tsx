@@ -7,6 +7,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, pass: string) => Promise<User>;
+  signUp: (name: string, email: string, pass: string) => Promise<User>;
   signOut: () => Promise<void>;
 }
 
@@ -49,6 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signUp = async (name: string, email: string, pass: string) => {
+    setIsLoading(true);
+    try {
+      const result = await services.auth.signUp(name, email, pass);
+      setUser(result);
+      return result;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signOut = async () => {
     setIsLoading(true);
     try {
@@ -66,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         signIn,
+        signUp,
         signOut,
       }}
     >

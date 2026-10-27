@@ -291,6 +291,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
           messages.map((msg) => {
             const isUser = msg.role === "user";
             const asstMsg = !isUser ? (msg as AssistantMessage) : null;
+            const isWarning = asstMsg?.cardType === "warning";
             const actionable = asstMsg?.actionableNode;
             const isAlreadyMapped = actionable ? isNodeOnCanvas(actionable.title) : false;
 
@@ -304,10 +305,12 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                   className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
                     isUser
                       ? "bg-white/70 dark:bg-white/10 text-slate-700 dark:text-zinc-200 border border-white/80 dark:border-white/10"
+                      : isWarning
+                      ? "bg-amber-500 text-white shadow-amber-500/20"
                       : "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/20"
                   }`}
                 >
-                  {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                  {isUser ? <User className="w-3.5 h-3.5" /> : isWarning ? <AlertTriangle className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                 </div>
 
                 {/* Message Body */}
@@ -317,9 +320,17 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
                       isUser
                         ? "bg-blue-600 text-white font-normal rounded-tr-sm shadow-sm"
+                        : isWarning
+                        ? "bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/50 text-slate-800 dark:text-zinc-100 rounded-tl-sm backdrop-blur-md shadow-xs"
                         : "bg-white/60 dark:bg-white/5 border border-white/70 dark:border-white/10 text-slate-800 dark:text-zinc-100 rounded-tl-sm backdrop-blur-md shadow-xs"
                     }`}
                   >
+                    {isWarning && (
+                      <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs mb-1.5">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>Aviso: Fuera de contexto</span>
+                      </div>
+                    )}
                     <p className="whitespace-pre-wrap font-normal">{msg.text}</p>
                   </div>
 
@@ -381,8 +392,26 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                     </div>
                   )}
 
+                  {/* Dedicated Warning Card for Off-Topic Assistant Messages */}
+                  {asstMsg && isWarning && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/50 space-y-2 text-left shadow-xs backdrop-blur-md animate-rise-in">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span className="uppercase tracking-wider text-[11px]">Mensaje fuera de contexto</span>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          Guardrail activo
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
+                        {asstMsg.simplifiedExplanation || "Mensaje fuera de contexto detectado."}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Structured Rich Knowledge Card for Assistant Responses (Glass Sub-Card) */}
-                  {asstMsg && (actionable || asstMsg.cardType) && (
+                  {asstMsg && !isWarning && (actionable || asstMsg.cardType) && (
                     <div className="p-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 space-y-3 text-left shadow-xs hover:shadow-md transition-all backdrop-blur-md">
                       {/* Card Header with Badges */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">

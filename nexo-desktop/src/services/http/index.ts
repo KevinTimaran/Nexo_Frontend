@@ -224,6 +224,12 @@ const httpAuth: AuthService = {
       body: JSON.stringify({ email, password }),
     });
   },
+  async signUp(name: string, email: string, password: string): Promise<User> {
+    return httpFetch<User>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+    });
+  },
   async signOut(): Promise<void> {
     try {
       await httpFetch<void>("/auth/logout", { method: "POST" });

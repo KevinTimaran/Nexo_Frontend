@@ -160,6 +160,10 @@ const auth: AuthService = {
       .join(" ");
     return { id: uid("user"), name: name || email, email };
   },
+  async signUp(name, email) {
+    await latency(800);
+    return { id: uid("user"), name: name.trim() || email, email };
+  },
   async signOut() {
     await latency(150);
   },
@@ -216,6 +220,8 @@ const workspace: WorkspaceService = {
 const RISK_WORDS = /risk|riesg|legal|law|ley|privac|safe|segur|danger|peligr|regul|compli|cumpl/i;
 const VIABILITY_WORDS = /viab|market|mercad|cost|price|precio|demand|revenue|ingres|money|dinero|scale|escal|pay|pag|business|negocio/i;
 const FAIL_WORDS = /simulate error|simular error/i;
+const OFF_TOPIC_WORDS =
+  /receta|recipe|cocina|cook|pizza|chiste|joke|clima|weather|hor[oó]scop|poema|poem|canci[oó]n|song|capital de|f[uú]tbol|football|soccer|cu[eé]ntame|off-topic|off topic/i;
 
 function detectKind(text: string): ConceptKind {
   if (RISK_WORDS.test(text)) return "risk";
@@ -255,6 +261,29 @@ const ai: AIService = {
     const now = new Date().toISOString();
     const activePhase: ChatPhase =
       chatPhase || (map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY");
+
+    if (OFF_TOPIC_WORDS.test(text)) {
+      return {
+        message: {
+          id: uid("m"),
+          role: "assistant",
+          createdAt: now,
+          replyTo,
+          cardType: "warning",
+          chatPhase: activePhase,
+          readyForStructuring: false,
+          text:
+            lang === "es"
+              ? "Tu mensaje parece estar fuera del alcance de este proyecto. Como tu asistente de estructuración, estoy aquí para ayudarte a definir, ramificar y validar tus ideas. ¿Retomamos donde nos quedamos?"
+              : "Your message seems outside the scope of this project. As your ideation assistant, I am here to help you define, branch, and validate your ideas. Shall we pick up where we left off?",
+          simplifiedExplanation:
+            lang === "es" ? "Mensaje fuera de contexto detectado." : "Off-topic message detected.",
+          discoveryQuestions: [],
+        },
+        newNodes: [],
+        newRelations: [],
+      };
+    }
 
     if (activePhase === "PHASE_1_DISCOVERY") {
       const isReady = text.length > 35 || /modelo|b2b|b2c|estudiante|cliente|directo|consumidor/i.test(text);

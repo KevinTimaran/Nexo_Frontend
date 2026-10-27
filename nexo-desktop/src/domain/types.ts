@@ -117,13 +117,15 @@ export interface DiscoveryQuestion {
   options: string[];
 }
 
+export type AICardType = "idea" | "explanation" | "recommendation" | "warning";
+
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
   insight?: Insight;
   /** The user message this answers; used for Retry. */
   replyTo?: string;
   /** Presentation card type for distinct AI responses */
-  cardType?: "idea" | "explanation" | "recommendation";
+  cardType?: AICardType;
   /** Simplified contextual explanation in Spanish when requested */
   simplifiedExplanation?: string;
   /** Whether the simplified explanation is toggled open */

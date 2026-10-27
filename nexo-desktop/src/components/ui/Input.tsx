@@ -1,14 +1,16 @@
 import React, { forwardRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
   icon?: React.ReactNode;
+  rightElement?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, icon, className = "", id, ...props }, ref) => {
+  ({ label, error, hint, icon, rightElement, className = "", id, ...props }, ref) => {
     const inputId = id || props.name;
 
     return (
@@ -35,6 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               focus:outline-none focus:ring-2 focus:ring-blue-500/20
               transition-all duration-200
               ${icon ? "pl-9" : "px-3.5"}
+              ${rightElement ? "pr-10" : "pr-3.5"}
               ${
                 error
                   ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
@@ -44,8 +47,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             `}
             {...props}
           />
+          {rightElement && (
+            <div className="absolute right-2 flex items-center justify-center">
+              {rightElement}
+            </div>
+          )}
         </div>
-        {error && <span className="text-xs text-rose-500 dark:text-rose-400 font-medium">{error}</span>}
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.p
+              key={error}
+              role="alert"
+              initial={{ opacity: 0, y: -4, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -4, height: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="text-xs sm:text-sm text-red-500 dark:text-rose-400 font-medium mt-1 flex items-center gap-1.5 overflow-hidden"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+              <span>{error}</span>
+            </motion.p>
+          )}
+        </AnimatePresence>
         {hint && !error && <span className="text-xs text-slate-500 dark:text-zinc-400">{hint}</span>}
       </div>
     );

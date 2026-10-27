@@ -11,6 +11,7 @@ import type {
   ConceptRelation,
   DiscoveryQuestion,
   NodeCategory,
+  AICardType,
   NodePriority,
   ResearchPhase,
 } from "../../domain/types";
@@ -18,7 +19,7 @@ import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
 import { mockServices } from "../mock";
 import { getSystemInstruction, buildUserPrompt } from "../ai/prompts";
 
-export type AICardType = "idea" | "explanation" | "recommendation";
+export type { AICardType };
 
 const STORAGE_KEY_GEMINI_KEY = "nexo.gemini.key";
 const STORAGE_KEY_GEMINI_MODEL = "nexo.gemini.model";
@@ -279,8 +280,10 @@ export const geminiAiService: AIService = {
       const newNodes: ConceptNode[] = [];
       const newRelations: ConceptRelation[] = [];
 
-      // In Phase 1 Discovery, NEVER add nodes to canvas
-      if (activePhase !== "PHASE_1_DISCOVERY") {
+      const isWarning = parsed.cardType === "warning";
+
+      // In Phase 1 Discovery or when warning guardrail triggers, NEVER add nodes to canvas
+      if (activePhase !== "PHASE_1_DISCOVERY" && !isWarning) {
         let currentMapNodes = [...map.nodes];
         const anchorNode = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
 
@@ -314,6 +317,11 @@ export const geminiAiService: AIService = {
         }
       }
 
+      if (isWarning) {
+        newNodes.length = 0;
+        newRelations.length = 0;
+      }
+
       const primaryNode = newNodes[0];
 
       const insightItems = [
@@ -330,8 +338,9 @@ export const geminiAiService: AIService = {
           text: parsed.text,
           simplifiedExplanation: parsed.simplifiedExplanation,
           chatPhase: activePhase,
-          readyForStructuring:
-            parsed.readyForStructuring ?? (activePhase !== "PHASE_1_DISCOVERY"),
+          readyForStructuring: isWarning
+            ? false
+            : (parsed.readyForStructuring ?? (activePhase !== "PHASE_1_DISCOVERY")),
           discoveryQuestions: parsed.discoveryQuestions?.map((q, idx) => ({
             id: q.id || `q-${idx + 1}`,
             question: q.question,
@@ -347,7 +356,7 @@ export const geminiAiService: AIService = {
                   items: insightItems,
                 }
               : undefined,
-          actionableNode: primaryNode
+          actionableNode: primaryNode && !isWarning
             ? {
                 title: primaryNode.title,
                 description: primaryNode.description,

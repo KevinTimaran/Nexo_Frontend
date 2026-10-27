@@ -5,6 +5,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { AuthProvider } from "./context/AuthContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { LoginView } from "./features/auth/LoginView";
+import { RegisterView } from "./features/auth/RegisterView";
 import { DashboardView } from "./features/dashboard/DashboardView";
 import { WorkspaceView } from "./features/workspace/WorkspaceView";
 import "./i18n";
@@ -15,8 +16,9 @@ import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Authentication Route */}
+      {/* Public Authentication Routes */}
       <Route path="/login" element={<LoginView />} />
+      <Route path="/register" element={<RegisterView />} />
 
       {/* Protected Desktop Application Routes */}
       <Route element={<ProtectedRoute />}>
