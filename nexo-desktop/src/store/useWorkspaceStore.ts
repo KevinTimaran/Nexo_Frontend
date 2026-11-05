@@ -90,6 +90,9 @@ interface WorkspaceState {
     details?: string;
   }) => ConceptNode | null;
 
+  /** Returns the last 3 messages (most recent first) to maintain conversational context. */
+  getRecentMessages: () => Message[];
+
   // ─── Spatial "Neural Canvas" 3D UI ───
   // NOTE: `nodes`/`edges` above belong to React Flow (ConceptCanvas).
   // The 3D graph data is exposed via `spatialNodes`, `spatialLinks` and `links`.
@@ -269,7 +272,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       workspace.map?.nodes && workspace.map.nodes.length > 0
         ? "PHASE_3_EXPANSION"
         : "PHASE_1_DISCOVERY";
-    set({ workspace, nodes, edges, chatPhase: inferredPhase });
+    set({ workspace, nodes, edges, chatPhase: inferredPhase, canvasMode: "notion" });
   },
 
   setCanvasMode: (canvasMode) => set({ canvasMode }),
@@ -467,7 +470,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ workspace: nextWorkspace });
     persistSession(workspace.project.id, workspace.map, nextMessages);
   },
-
+  getRecentMessages: () => {
+    const { workspace } = get();
+    if (!workspace) return [];
+    // Return last 3 messages (most recent first)
+    return workspace.messages.slice(-3).reverse();
+  },
   toggleExplanation: (messageId) => {
     const { workspace } = get();
     if (!workspace) return;
