@@ -32,16 +32,16 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-50 bg-[#070709] overflow-hidden flex flex-col font-sans"
+      className="fixed inset-0 z-50 bg-app text-fg overflow-hidden flex flex-col font-sans transition-colors duration-300"
     >
       {/* Top Floating Controls Bar */}
       <div className="fixed inset-x-6 top-6 z-50 flex items-center justify-between pointer-events-none">
         <button
           type="button"
           onClick={() => setDocViewMode("hidden")}
-          className="pointer-events-auto h-11 px-5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-xl text-zinc-300 hover:text-white transition-all inline-flex items-center gap-2.5 text-xs font-semibold shadow-lg active:scale-95 cursor-pointer"
+          className="pointer-events-auto h-11 px-5 rounded-2xl bg-surface hover:bg-elevated text-muted hover:text-fg border border-border-color backdrop-blur-xl transition-all inline-flex items-center gap-2.5 text-xs font-semibold shadow-lg active:scale-95 cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 text-indigo-400" />
+          <ArrowLeft className="w-4 h-4 text-concept-fg" />
           <span>← Regresar al mapa 3D</span>
         </button>
 
@@ -49,7 +49,7 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
           <button
             type="button"
             onClick={() => setDocViewMode("sidebar")}
-            className="h-11 px-4 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-xl text-zinc-400 hover:text-white transition-all inline-flex items-center gap-2 text-xs font-medium shadow-lg active:scale-95 cursor-pointer"
+            className="h-11 px-4 rounded-2xl bg-surface hover:bg-elevated text-muted hover:text-fg border border-border-color backdrop-blur-xl transition-all inline-flex items-center gap-2 text-xs font-medium shadow-lg active:scale-95 cursor-pointer"
             title="Reducir a panel lateral"
           >
             <Minimize2 className="w-3.5 h-3.5" />
@@ -61,9 +61,13 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
             onClick={() => {
               void exportToDocx(node.name, content);
             }}
-            className="h-11 px-5 rounded-2xl bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-all inline-flex items-center gap-2 text-xs shadow-[0_4px_24px_rgba(255,255,255,0.15)] active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: "var(--button-primary, var(--accent))",
+              borderRadius: "var(--radius-button, 16px)",
+            }}
+            className="h-11 px-5 text-fg font-bold transition-all inline-flex items-center gap-2 text-xs shadow-md active:scale-95 cursor-pointer hover:brightness-105"
           >
-            <FileDown className="w-4 h-4 text-indigo-600" />
+            <FileDown className="w-4 h-4 text-fg" />
             <span>Exportar a Word</span>
           </button>
         </div>
@@ -71,7 +75,13 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
 
       {/* Centered Document Paper Sheet */}
       <div className="flex-1 overflow-y-auto px-6 pt-24 pb-12">
-        <div className="relative max-w-3xl mx-auto h-[80vh] min-h-[600px] rounded-3xl bg-zinc-900/40 shadow-2xl overflow-hidden flex flex-col">
+        <div
+          className="relative max-w-3xl mx-auto h-[80vh] min-h-[600px] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-border-color"
+          style={{
+            backgroundColor: "var(--card-bg, rgba(9,9,11,0.6))",
+            borderColor: "var(--card-border, rgba(255,255,255,0.1))",
+          }}
+        >
           
           {/* Paper Header */}
           <div className="px-8 sm:px-12 pt-8 pb-4 shrink-0">
@@ -80,7 +90,7 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
                 className="w-3 h-3 rounded-full shrink-0 shadow-[0_0_8px_currentColor]"
                 style={{ backgroundColor: groupColor, color: groupColor }}
               />
-              <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">
+              <span className="text-xs font-mono uppercase tracking-wider text-muted">
                 Clúster: {groupMeta.label}
               </span>
             </div>
@@ -94,14 +104,14 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
                 e.target.style.height = "auto";
                 e.target.style.height = `${e.target.scrollHeight}px`;
               }}
-              className="w-full bg-transparent text-3xl sm:text-4xl font-extrabold text-white tracking-tight outline-none border-none p-0 resize-none placeholder:text-zinc-600 transition-colors"
+              className="w-full bg-transparent text-3xl sm:text-4xl font-extrabold text-fg tracking-tight outline-none border-none p-0 resize-none placeholder:text-muted transition-colors"
               placeholder="Título del documento..."
             />
           </div>
 
           {/* Editor Body (Lienzo Negro con margen interno) */}
           <div className="flex-1 min-h-0 p-2 sm:p-3 flex flex-col">
-            <div className="flex-1 min-h-0 rounded-xl bg-[#050505] shadow-inner overflow-hidden relative">
+            <div className="flex-1 min-h-0 rounded-xl bg-app shadow-inner overflow-hidden relative">
               <MarkdownShortcutEditor
                 title={node.name}
                 value={content}
