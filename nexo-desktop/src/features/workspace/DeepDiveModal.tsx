@@ -30,14 +30,14 @@ const PHASES: Array<{
   {
     key: "planning",
     label: "Planificación",
-    activeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 ring-1 ring-emerald-500/30",
-    dotColor: "bg-emerald-500",
+    activeClass: "bg-positive/15 text-positive dark:text-positive border-positive/40 ring-1 ring-emerald-500/30",
+    dotColor: "bg-positive",
   },
   {
     key: "execution",
     label: "Ejecución",
-    activeClass: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/40 ring-1 ring-blue-500/30",
-    dotColor: "bg-blue-500",
+    activeClass: "bg-primary/15 text-primary dark:text-primary border-primary/40 ring-1 ring-primary/30",
+    dotColor: "bg-primary",
   },
   {
     key: "validation",
@@ -55,7 +55,7 @@ const PRIORITIES: Array<{
   {
     key: "high",
     label: "Alta",
-    activeClass: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/40 ring-1 ring-rose-500/30",
+    activeClass: "bg-danger/15 text-danger dark:text-danger border-danger/40 ring-1 ring-rose-500/30",
   },
   {
     key: "medium",
@@ -65,7 +65,7 @@ const PRIORITIES: Array<{
   {
     key: "low",
     label: "Baja",
-    activeClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/40 ring-1 ring-zinc-500/30",
+    activeClass: "bg-muted/15 text-muted dark:text-muted border-line/40 ring-1 ring-zinc-500/30",
   },
 ];
 
@@ -156,7 +156,7 @@ export const DeepDiveModal: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 bg-app/35 dark:bg-app/65 backdrop-blur-md cursor-pointer"
             onClick={closeDeepDive}
             aria-hidden="true"
           />
@@ -170,9 +170,9 @@ export const DeepDiveModal: React.FC = () => {
             className="
               relative w-full max-w-3xl max-h-[90vh]
               rounded-3xl overflow-hidden
-              bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-              flex flex-col z-10 text-slate-800 dark:text-zinc-100 select-text
+              bg-surface/70 backdrop-blur-2xl border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+              dark:bg-app/20 dark:border-line/10 dark:shadow-2xl
+              flex flex-col z-10 text-fg dark:text-fg select-text
             "
             role="dialog"
             aria-modal="true"
@@ -188,7 +188,7 @@ export const DeepDiveModal: React.FC = () => {
             />
 
             {/* Modal Header */}
-            <div className="px-6 pt-5 pb-4 border-b border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] space-y-4">
+            <div className="px-6 pt-5 pb-4 border-b border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02] space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-caption font-mono text-muted tracking-wider uppercase">
@@ -290,7 +290,7 @@ export const DeepDiveModal: React.FC = () => {
           <div className="p-6 flex-1 overflow-y-auto space-y-4">
             {/* Descripción Breve / Resumen */}
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+              <label className="text-[11px] font-semibold text-muted dark:text-muted uppercase tracking-wider">
                 Resumen Ejecutivo
               </label>
               <input
@@ -300,11 +300,11 @@ export const DeepDiveModal: React.FC = () => {
                 placeholder="Breve resumen de 1-2 oraciones del concepto..."
                 className="
                   w-full text-xs px-3.5 py-2.5 rounded-xl
-                  text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500
-                  bg-slate-100/50 dark:bg-black/40
-                  border border-slate-200 dark:border-white/5
+                  text-fg dark:text-fg placeholder:text-muted dark:placeholder:text-muted
+                  bg-sunken/50 dark:bg-app/40
+                  border border-line dark:border-line/5
                   shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
-                  focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
+                  focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
                   transition-all
                 "
               />
@@ -313,20 +313,20 @@ export const DeepDiveModal: React.FC = () => {
             {/* Documentación Profunda (Editor / Preview Tabs) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <label className="text-[11px] font-semibold text-muted dark:text-muted uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-primary dark:text-primary" />
                   Documentación y Especificación Detallada (Notion Style)
                 </label>
 
                 {/* Tabs Switcher */}
-                <div className="flex items-center p-0.5 rounded-xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 text-[11px]">
+                <div className="flex items-center p-0.5 rounded-xl bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 text-[11px]">
                   <button
                     type="button"
                     onClick={() => setActiveTab("edit")}
                     className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === "edit"
-                        ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs border border-white/80 dark:border-white/10"
-                        : "text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200"
+                        ? "bg-surface dark:bg-surface/15 text-fg dark:text-fg shadow-xs border border-line/80 dark:border-line/10"
+                        : "text-muted dark:text-muted hover:text-fg dark:hover:text-fg"
                     }`}
                   >
                     <FileEdit className="w-3 h-3" />
@@ -337,8 +337,8 @@ export const DeepDiveModal: React.FC = () => {
                     onClick={() => setActiveTab("preview")}
                     className={`px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === "preview"
-                        ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs border border-white/80 dark:border-white/10"
-                        : "text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200"
+                        ? "bg-surface dark:bg-surface/15 text-fg dark:text-fg shadow-xs border border-line/80 dark:border-line/10"
+                        : "text-muted dark:text-muted hover:text-fg dark:hover:text-fg"
                     }`}
                   >
                     <Eye className="w-3 h-3" />
@@ -355,15 +355,15 @@ export const DeepDiveModal: React.FC = () => {
                   rows={14}
                   className="
                     w-full p-4 font-mono text-[13px] rounded-2xl
-                    bg-slate-100/50 dark:bg-black/40
-                    border border-slate-200 dark:border-white/5
+                    bg-sunken/50 dark:bg-app/40
+                    border border-line dark:border-line/5
                     shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
-                    focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
-                    text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 leading-relaxed resize-y min-h-[260px]
+                    focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
+                    text-fg dark:text-fg placeholder:text-muted dark:placeholder:text-muted leading-relaxed resize-y min-h-[260px]
                   "
                 />
               ) : (
-                <div className="w-full min-h-[260px] max-h-[420px] overflow-y-auto p-5 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/10 backdrop-blur-md text-slate-800 dark:text-zinc-100">
+                <div className="w-full min-h-[260px] max-h-[420px] overflow-y-auto p-5 bg-surface/40 dark:bg-surface/5 rounded-2xl border border-line/50 dark:border-line/10 backdrop-blur-md text-fg dark:text-fg">
                   <MarkdownRenderer
                     content={
                       details.trim().length > 0
@@ -377,9 +377,9 @@ export const DeepDiveModal: React.FC = () => {
           </div>
 
           {/* Footer con Botones de Acción */}
-          <div className="px-6 py-4 border-t border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] backdrop-blur-md flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 dark:text-zinc-400">
-              Presiona <kbd className="px-1.5 py-0.5 rounded bg-white/80 dark:bg-white/10 border border-white/80 dark:border-white/10 font-mono text-slate-600 dark:text-zinc-300 shadow-2xs">ESC</kbd> para salir sin guardar
+          <div className="px-6 py-4 border-t border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02] backdrop-blur-md flex items-center justify-between">
+            <span className="text-[11px] text-muted dark:text-muted">
+              Presiona <kbd className="px-1.5 py-0.5 rounded bg-surface/80 dark:bg-surface/10 border border-line/80 dark:border-line/10 font-mono text-muted dark:text-muted shadow-2xs">ESC</kbd> para salir sin guardar
             </span>
 
             <div className="flex items-center gap-2.5">
@@ -395,7 +395,7 @@ export const DeepDiveModal: React.FC = () => {
                 variant="primary"
                 size="sm"
                 onClick={handleSaveAndClose}
-                className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
+                className="!rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-sm"
                 icon={<Save className="w-3.5 h-3.5" />}
               >
                 {isSaved ? "¡Guardado!" : "Guardar y Cerrar"}
