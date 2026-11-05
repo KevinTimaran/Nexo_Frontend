@@ -28,21 +28,21 @@ export const BriefCard: React.FC<BriefCardProps> = ({
       {/* Header with Phase pill and collapse toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_#818cf8]" />
-          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider font-mono">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--accent)]" />
+          <span className="text-[10px] font-bold text-primary uppercase tracking-wider font-mono">
             {brief.phase}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-zinc-400 font-mono">Nexo 3D</span>
+          <span className="text-[11px] text-muted font-mono">Nexo 3D</span>
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIsCollapsed((prev) => !prev);
             }}
-            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-muted hover:text-fg hover:bg-surface/10 transition-colors cursor-pointer"
             aria-label={isCollapsed ? "Expandir ficha" : "Colapsar ficha"}
           >
             {isCollapsed ? (
@@ -55,24 +55,24 @@ export const BriefCard: React.FC<BriefCardProps> = ({
       </div>
 
       {/* Title */}
-      <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-1.5">
-        <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+      <h2 className="text-sm font-bold text-fg tracking-tight flex items-center gap-1.5">
+        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
         <span>{brief.title}</span>
       </h2>
 
       {/* Summary (collapsible) */}
       {!isCollapsed && (
         <>
-          <p className="text-xs text-zinc-300 leading-relaxed font-normal">
+          <p className="text-xs text-muted leading-relaxed font-normal">
             {brief.summary}
           </p>
 
           {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/5">
+          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-line/5">
             {brief.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 text-zinc-300 transition-colors"
+                className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-surface/5 hover:bg-surface/10 ring-1 ring-line/10 text-muted transition-colors"
               >
                 <Tag className="w-2.5 h-2.5 opacity-60" />
                 {tag}
