@@ -72,7 +72,7 @@ export const SpaceWorkspace: React.FC = () => {
   }, [isZenMode, setZenMode, activeLeftPanel, docViewMode, selectedNodeId, setActiveLeftPanel, setDocViewMode, setSelectedNode]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#050505] font-sans select-none">
+    <div className="relative w-full h-full overflow-hidden bg-app text-fg font-sans select-none transition-colors duration-300">
       {/* 3D Force-Graph Canvas with smooth fade/blur when in Fullscreen Word mode */}
       <div
         className={`absolute inset-0 transition-all duration-500 ease-out ${
@@ -105,9 +105,9 @@ export const SpaceWorkspace: React.FC = () => {
         <button
           type="button"
           onClick={toggleZenMode}
-          className="fixed left-6 top-6 z-60 h-10 px-4 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900/80 backdrop-blur-2xl ring-1 ring-white/10 text-zinc-100 hover:text-white transition-all inline-flex items-center gap-2 cursor-pointer shadow-2xl active:scale-95"
+          className="fixed left-6 top-6 z-60 h-10 px-4 rounded-2xl bg-surface text-fg border border-border-color hover:bg-elevated backdrop-blur-2xl transition-all inline-flex items-center gap-2 cursor-pointer shadow-2xl active:scale-95"
         >
-          <Flower2 className="w-4 h-4 text-emerald-400" />
+          <Flower2 className="w-4 h-4 text-positive-fg" />
           <span className="text-xs font-semibold">Salir de modo Zen</span>
         </button>
       )}
