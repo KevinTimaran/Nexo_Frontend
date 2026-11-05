@@ -14,11 +14,21 @@ import type {
   ResearchPhase,
   Workspace,
 } from "../domain/types";
+import {
+  DEFAULT_SPATIAL_GROUP_COLORS,
+  type SpatialGroupId,
+  type SpatialLink,
+  type SpatialNode,
+} from "../domain/spatial";
+import { SPATIAL_SEED_LINKS, SPATIAL_SEED_NODES } from "../mocks/spatialSeed";
 import { services } from "../services";
 
 export interface ConceptNodeData extends ConceptNode {
   onOpenDeepDive?: (id: string) => void;
 }
+
+type ActiveLeftPanel = "chat" | "filters" | "nodelist" | null;
+type DocViewMode = "hidden" | "sidebar" | "fullscreen";
 
 interface WorkspaceState {
   // Data
@@ -79,6 +89,43 @@ interface WorkspaceState {
     metadata?: string;
     details?: string;
   }) => ConceptNode | null;
+
+  // ─── Spatial "Neural Canvas" 3D UI ───
+  // NOTE: `nodes`/`edges` above belong to React Flow (ConceptCanvas).
+  // The 3D graph data is exposed via `spatialNodes`, `spatialLinks` and `links`.
+  /** Cluster/category currently isolated in the 3D canvas (null = show all). */
+  activeFilter: string | null;
+  /** Notion-style document overlay for the selected spatial node. */
+  isDocModalOpen: boolean;
+  spatialNodes: SpatialNode[];
+  spatialLinks: SpatialLink[];
+  /** Alias for spatialLinks matching prototype requirements */
+  links: SpatialLink[];
+  /** Per-node document body (plain text) edited in the Notion overlay. */
+  spatialDocs: Record<string, string>;
+  /** Runtime color overrides for each spatial cluster/group. */
+  spatialGroupColors: Record<SpatialGroupId, string>;
+  /** Zen mode hides floating HUD except the zen exit control. */
+  isZenMode: boolean;
+  /** Active auxiliary left panel, toggled from the spatial dock. */
+  activeLeftPanel: ActiveLeftPanel;
+  /** Progressive document reveal mode for the selected node. */
+  docViewMode: DocViewMode;
+  /** Monotonic counter used to trigger camera flight to the selected node */
+  cameraFlightCount: number;
+
+  setActiveFilter: (group: string | null) => void;
+  /** Selects a node (shares `selectedNodeId`); clearing it also closes the doc overlay. */
+  setSelectedNode: (nodeId: string | null) => void;
+  /** Selects a node and commands camera flight to it, opening the detail mini-card. */
+  focusSpatialNode: (nodeId: string) => void;
+  setDocModalOpen: (isOpen: boolean) => void;
+  setSpatialDoc: (nodeId: string, content: string) => void;
+  setSpatialGroupColor: (group: SpatialGroupId, color: string) => void;
+  setZenMode: (isZenMode: boolean) => void;
+  toggleZenMode: () => void;
+  setActiveLeftPanel: (panel: ActiveLeftPanel) => void;
+  setDocViewMode: (mode: DocViewMode) => void;
 }
 
 const persistSession = (projectId: string, map: ConceptMap, messages: Message[]) => {
@@ -134,6 +181,60 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   nodes: [],
   edges: [],
   isDeepDiveModalOpen: false,
+
+  activeFilter: null,
+  isDocModalOpen: false,
+  spatialNodes: SPATIAL_SEED_NODES,
+  spatialLinks: SPATIAL_SEED_LINKS,
+  links: SPATIAL_SEED_LINKS,
+  spatialDocs: {},
+  spatialGroupColors: { ...DEFAULT_SPATIAL_GROUP_COLORS },
+  isZenMode: false,
+  activeLeftPanel: null,
+  docViewMode: "hidden",
+  cameraFlightCount: 0,
+
+  setActiveFilter: (activeFilter) => set({ activeFilter }),
+
+  setSelectedNode: (selectedNodeId) =>
+    set((state) => {
+      if (selectedNodeId === null) {
+        return { selectedNodeId: null, isDocModalOpen: false, docViewMode: "hidden" };
+      }
+      return {
+        selectedNodeId,
+        docViewMode: "hidden",
+        cameraFlightCount: state.cameraFlightCount + 1,
+      };
+    }),
+
+  focusSpatialNode: (selectedNodeId) =>
+    set((state) => ({
+      selectedNodeId,
+      docViewMode: "hidden",
+      cameraFlightCount: state.cameraFlightCount + 1,
+    })),
+
+  setDocModalOpen: (isDocModalOpen) => set({ isDocModalOpen }),
+
+  setSpatialDoc: (nodeId, content) =>
+    set((state) => ({ spatialDocs: { ...state.spatialDocs, [nodeId]: content } })),
+
+  setSpatialGroupColor: (group, color) =>
+    set((state) => ({
+      spatialGroupColors: {
+        ...state.spatialGroupColors,
+        [group]: color,
+      },
+    })),
+
+  setZenMode: (isZenMode) => set({ isZenMode }),
+
+  toggleZenMode: () => set((state) => ({ isZenMode: !state.isZenMode })),
+
+  setActiveLeftPanel: (activeLeftPanel) => set({ activeLeftPanel }),
+
+  setDocViewMode: (docViewMode) => set({ docViewMode }),
 
   setWorkspace: (workspace) => {
     if (!workspace) {
