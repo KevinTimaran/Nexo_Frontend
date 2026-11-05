@@ -8,6 +8,7 @@ import { LoginView } from "./features/auth/LoginView";
 import { RegisterView } from "./features/auth/RegisterView";
 import { DashboardView } from "./features/dashboard/DashboardView";
 import { WorkspaceView } from "./features/workspace/WorkspaceView";
+import { SpaceWorkspace } from "./features/spatial/SpaceWorkspace";
 import "./i18n";
 
 import { ProtectedRoute } from "./features/auth/ProtectedRoute";
@@ -36,6 +37,14 @@ const AppRoutes: React.FC = () => {
             element={
               <div className="h-full w-full animate-fade-in">
                 <WorkspaceView />
+              </div>
+            }
+          />
+          <Route
+            path="spatial"
+            element={
+              <div className="h-full w-full animate-fade-in">
+                <SpaceWorkspace />
               </div>
             }
           />
