@@ -20,6 +20,11 @@ type FGMethods = ForceGraphMethods<FGNode, FGLink>;
 
 type Emphasis = "neutral" | "focus" | "dim";
 
+const getCssVariable = (name: string, fallback: string) =>
+  typeof window !== "undefined"
+    ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+    : fallback;
+
 interface NodeVisual {
   wrapper: THREE.Group;
   floatGroup: THREE.Group;
@@ -54,7 +59,6 @@ interface CameraFlight {
   endTarget: THREE.Vector3;
 }
 
-const BACKGROUND_COLOR = "#050505";
 const NODE_REL_SIZE = 4;
 const LIGHT_IMPORTANCE_THRESHOLD = 0.6;
 const DIM_OPACITY = 0.1;
@@ -122,7 +126,7 @@ function applyEmphasis(visual: NodeVisual, emphasis: Emphasis, isSelected: boole
   visual.targetScale = (dim ? 0.85 : focus ? 1.15 : 1) * (isSelected ? 1.35 : 1);
 }
 
-function createEnvironment(): { root: THREE.Group; stars: THREE.Points; dispose: () => void } {
+function createEnvironment(rimColorHex = 0x6366f1): { root: THREE.Group; stars: THREE.Points; rimLight: THREE.DirectionalLight; dispose: () => void } {
   const root = new THREE.Group();
   root.name = "nexo-spatial-environment";
 
@@ -151,13 +155,14 @@ function createEnvironment(): { root: THREE.Group; stars: THREE.Points; dispose:
   const ambient = new THREE.AmbientLight(0xffffff, 0.6);
   const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
   keyLight.position.set(200, 300, 400);
-  const rimLight = new THREE.DirectionalLight(0x6366f1, 1.8);
+  const rimLight = new THREE.DirectionalLight(rimColorHex, 1.8);
   rimLight.position.set(-300, -150, -400);
   root.add(ambient, keyLight, rimLight);
 
   return {
     root,
     stars,
+    rimLight,
     dispose: () => {
       starGeometry.dispose();
       starMaterial.dispose();
@@ -199,6 +204,16 @@ export const SpatialCanvas3D: React.FC = () => {
   const selectedNodeId = useWorkspaceStore((s) => s.selectedNodeId);
   const setSelectedNode = useWorkspaceStore((s) => s.setSelectedNode);
   const cameraFlightCount = useWorkspaceStore((s) => s.cameraFlightCount);
+
+  const appBgColor = getCssVariable("--app", "#080c15");
+  const accentColorHex = useMemo(() => {
+    const raw = getCssVariable("--accent", "#e5b84b");
+    try {
+      return new THREE.Color(raw).getHex();
+    } catch {
+      return 0xe5b84b;
+    }
+  }, []);
 
   const resolveGroupColor = useCallback(
     (groupId: string) => {
@@ -449,7 +464,7 @@ export const SpatialCanvas3D: React.FC = () => {
       haloSprite.raycast = () => {};
       floatGroup.add(haloSprite);
 
-      const label = new SpriteText(node.name, 3.4, "#ffffff");
+      const label = new SpriteText(node.name, 3.4, getCssVariable("--fg", "#f8fafc"));
       label.fontFace = LABEL_FONT;
       label.fontWeight = "600";
       label.material.transparent = true;
@@ -527,7 +542,7 @@ export const SpatialCanvas3D: React.FC = () => {
       const tgtEnd = link.target;
       const source = (typeof srcEnd === "object" && srcEnd !== null ? srcEnd : nodeById.get(String(srcEnd))) as FGNode | undefined;
       const target = (typeof tgtEnd === "object" && tgtEnd !== null ? tgtEnd : nodeById.get(String(tgtEnd))) as FGNode | undefined;
-      const sourceColor = source ? resolveGroupColor(source.group) : "#ffffff";
+      const sourceColor = source ? resolveGroupColor(source.group) : getCssVariable("--fg", "#f8fafc");
       if (!activeFilter) return { emphasis: "neutral", color: sourceColor };
       const touchesFilter = source?.group === activeFilter || target?.group === activeFilter;
       return touchesFilter
@@ -635,9 +650,10 @@ export const SpatialCanvas3D: React.FC = () => {
     flyToNode(node);
   }, [selectedNodeId, cameraFlightCount, flyToNode]);
 
+  const envRef = useRef<{ root: THREE.Group; stars: THREE.Points; rimLight: THREE.DirectionalLight; dispose: () => void } | null>(null);
+
   useEffect(() => {
     let disposed = false;
-    let env: { root: THREE.Group; stars: THREE.Points; dispose: () => void } | null = null;
     let scene: THREE.Scene | null = null;
 
     const setupScene = () => {
@@ -646,9 +662,11 @@ export const SpatialCanvas3D: React.FC = () => {
       const sc = fg.scene?.();
       if (!sc) return false;
       scene = sc;
-      env = createEnvironment();
-      starsRef.current = env.stars;
-      scene.add(env.root);
+      if (!envRef.current) {
+        envRef.current = createEnvironment(accentColorHex);
+        starsRef.current = envRef.current.stars;
+        scene.add(envRef.current.root);
+      }
       return true;
     };
 
@@ -660,9 +678,10 @@ export const SpatialCanvas3D: React.FC = () => {
         disposed = true;
         cancelAnimationFrame(raf);
         starsRef.current = null;
-        if (scene && env) {
-          scene.remove(env.root);
-          env.dispose();
+        if (scene && envRef.current) {
+          scene.remove(envRef.current.root);
+          envRef.current.dispose();
+          envRef.current = null;
         }
       };
     }
@@ -670,12 +689,20 @@ export const SpatialCanvas3D: React.FC = () => {
     return () => {
       disposed = true;
       starsRef.current = null;
-      if (scene && env) {
-        scene.remove(env.root);
-        env.dispose();
+      if (scene && envRef.current) {
+        scene.remove(envRef.current.root);
+        envRef.current.dispose();
+        envRef.current = null;
       }
     };
   }, []);
+
+  // Update rimLight color whenever accent changes
+  useEffect(() => {
+    if (envRef.current?.rimLight) {
+      envRef.current.rimLight.color.setHex(accentColorHex);
+    }
+  }, [accentColorHex]);
 
   useEffect(
     () => () => {
@@ -690,8 +717,8 @@ export const SpatialCanvas3D: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden"
-      style={{ backgroundColor: BACKGROUND_COLOR }}
+      className="absolute inset-0 overflow-hidden transition-colors duration-300"
+      style={{ backgroundColor: appBgColor }}
       data-glisse-backdrop="true"
     >
       <ForceGraph3D<SpatialNode, SpatialLinkMeta>
@@ -699,7 +726,7 @@ export const SpatialCanvas3D: React.FC = () => {
         width={size.width || undefined}
         height={size.height || undefined}
         graphData={graphData}
-        backgroundColor={BACKGROUND_COLOR}
+        backgroundColor={appBgColor}
         controlType="orbit"
         showNavInfo={false}
         nodeId="id"
