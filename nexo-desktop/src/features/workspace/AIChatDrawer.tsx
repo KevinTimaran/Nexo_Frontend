@@ -23,6 +23,7 @@ import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { useConnectivityStore } from "../../store/useConnectivityStore";
 import { useToast } from "../../context/ToastContext";
 import { services } from "../../services";
+import { detectMessageLanguage } from "../../services/ai/prompts";
 import { currentLanguage } from "../../i18n";
 import { Badge } from "../../components/ui/Badge";
 
@@ -158,12 +159,17 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
     setMessageExplaining(msg.id, true, null);
 
+    const explanationLang = detectMessageLanguage(
+      `${msg.text} ${msg.actionableNode?.title || ""}`,
+      lang
+    );
+
     try {
       const explanation = await services.ai.explain({
         messageText: msg.text,
         conceptTitle: msg.actionableNode?.title,
         conceptDescription: msg.actionableNode?.description,
-        lang,
+        lang: explanationLang,
       });
 
       setMessageExplanation(msg.id, explanation);
