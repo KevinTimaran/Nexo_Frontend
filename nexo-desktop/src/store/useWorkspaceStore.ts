@@ -126,6 +126,8 @@ interface WorkspaceState {
   toggleZenMode: () => void;
   setActiveLeftPanel: (panel: ActiveLeftPanel) => void;
   setDocViewMode: (mode: DocViewMode) => void;
+  removeSpatialNode: (nodeId: string) => void;
+  updateSpatialNode: (nodeId: string, patch: Partial<SpatialNode>) => void;
 }
 
 const persistSession = (projectId: string, map: ConceptMap, messages: Message[]) => {
@@ -235,6 +237,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setActiveLeftPanel: (activeLeftPanel) => set({ activeLeftPanel }),
 
   setDocViewMode: (docViewMode) => set({ docViewMode }),
+
+  removeSpatialNode: (nodeId) =>
+    set((state) => ({
+      spatialNodes: state.spatialNodes.filter((n) => n.id !== nodeId),
+      spatialLinks: state.spatialLinks.filter((l) => {
+        const srcId = typeof l.source === "object" && l.source !== null ? (l.source as { id: string }).id : l.source;
+        const tgtId = typeof l.target === "object" && l.target !== null ? (l.target as { id: string }).id : l.target;
+        return srcId !== nodeId && tgtId !== nodeId;
+      }),
+      links: state.links.filter((l) => {
+        const srcId = typeof l.source === "object" && l.source !== null ? (l.source as { id: string }).id : l.source;
+        const tgtId = typeof l.target === "object" && l.target !== null ? (l.target as { id: string }).id : l.target;
+        return srcId !== nodeId && tgtId !== nodeId;
+      }),
+      selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+    })),
+
+  updateSpatialNode: (nodeId, patch) =>
+    set((state) => ({
+      spatialNodes: state.spatialNodes.map((n) => (n.id === nodeId ? { ...n, ...patch } : n)),
+    })),
 
   setWorkspace: (workspace) => {
     if (!workspace) {

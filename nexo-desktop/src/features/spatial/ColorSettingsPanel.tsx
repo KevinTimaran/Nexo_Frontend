@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, type PanInfo, AnimatePresence } from "framer-motion";
+import { motion, type PanInfo, type Variants } from "framer-motion";
 import { Glass } from "glisse";
 import { X, Filter, RotateCcw, Palette, MousePointerClick } from "lucide-react";
 import { DEFAULT_SPATIAL_GROUP_COLORS, SPATIAL_GROUPS, type SpatialGroupId } from "../../domain/spatial";
@@ -45,7 +45,7 @@ export const ColorSettingsPanel: React.FC = () => {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   };

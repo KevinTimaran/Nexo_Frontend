@@ -23,12 +23,11 @@ export { nextBlockId, parseMarkdownToBlocks, serializeBlocksToMarkdown };
 const MAX_CHARS = 5000; 
 
 export const MarkdownShortcutEditor: React.FC<MarkdownShortcutEditorProps> = ({
-  title,
   value,
   onChange,
 }) => {
   const [blocks, setBlocks] = useState<Block[]>(() => parseMarkdownToBlocks(value));
-  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [, setFocusedIndex] = useState(0);
   const [slashMenu, setSlashMenu] = useState<{ id: string; top: number; left: number } | null>(null);
   
   // Nuevo estado para manejar el "Ctrl + A" global

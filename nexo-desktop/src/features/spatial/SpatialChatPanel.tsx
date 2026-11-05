@@ -71,8 +71,7 @@ export const SpatialChatPanel: React.FC = () => {
             </div>
           </div>
           <Button
-            variant="ghost"
-            size="icon"
+            variant="glass"
             onClick={close}
             aria-label="Cerrar panel"
             className="w-8 h-8 rounded-full text-zinc-400 hover:text-white hover:bg-white/10"
@@ -144,8 +143,7 @@ export const SpatialChatPanel: React.FC = () => {
               />
             </div>
             <Button
-              variant="default"
-              size="icon"
+              variant="filled"
               onClick={handleSend}
               disabled={!inputVal.trim()}
               className="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white shrink-0"
