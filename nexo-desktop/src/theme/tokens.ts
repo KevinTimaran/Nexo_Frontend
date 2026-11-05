@@ -109,14 +109,16 @@ export const colors = {
 };
 
 export const radii = {
-  card: "1rem", // rounded-2xl (16px)
+  card: "var(--radius-card, 1rem)", // dynamic card radius
+  button: "var(--radius-button, 0.75rem)", // dynamic button radius
   pill: "9999px", // rounded-full
   node: "0.75rem", // rounded-xl (12px)
 };
 
 export const shadows = {
-  button: "0 1px 2px rgba(0,0,0,0.05)",
+  button: "var(--shadow-button, 0 1px 2px rgba(0,0,0,0.05))",
   panel: "0 10px 15px rgba(0,0,0,0.1)",
+  card: "var(--shadow-card, 0 12px 32px rgb(0,0,0,0.4))",
   cardLight: "0 8px 30px rgb(0,0,0,0.04)",
   cardDark: "0 12px 32px rgb(0,0,0,0.4)",
   none: "none",
