@@ -55,15 +55,15 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
     switch (phase) {
       case "planning":
         return (
-          <span className="inline-flex items-center gap-1.5 text-caption font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="inline-flex items-center gap-1.5 text-caption font-semibold px-2.5 py-0.5 rounded-full bg-positive/15 text-positive dark:text-positive border border-positive/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-positive" />
             {t("phases.planning")}
           </span>
         );
       case "execution":
         return (
-          <span className="inline-flex items-center gap-1.5 text-caption font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="inline-flex items-center gap-1.5 text-caption font-semibold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary dark:text-primary border border-primary/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             {t("phases.execution")}
           </span>
         );
@@ -100,7 +100,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 bg-app/35 dark:bg-app/65 backdrop-blur-md cursor-pointer"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -113,23 +113,23 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="
               relative z-10 w-full sm:w-[560px] md:w-[640px] max-w-full h-full
-              bg-white/70 backdrop-blur-2xl border-l border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+              bg-surface/70 backdrop-blur-2xl border-l border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+              dark:bg-app/20 dark:border-line/10 dark:shadow-2xl
               flex flex-col justify-between
-              overflow-hidden text-slate-800 dark:text-zinc-100 select-text
+              overflow-hidden text-fg dark:text-fg select-text
             "
           >
             {/* Top Header Toolbar */}
-            <div className="p-4 sm:p-5 border-b border-white/60 dark:border-white/10 flex items-center justify-between bg-white/30 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
+            <div className="p-4 sm:p-5 border-b border-line/60 dark:border-line/10 flex items-center justify-between bg-surface/30 dark:bg-surface/[0.02] backdrop-blur-md shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/20 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-primary flex items-center justify-center border border-primary/20 shadow-xs">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-muted dark:text-muted uppercase tracking-wider block">
                     Documento de Investigación
                   </span>
-                  <span className="text-xs font-mono text-slate-500 dark:text-zinc-400">ID: {node.id}</span>
+                  <span className="text-xs font-mono text-muted dark:text-muted">ID: {node.id}</span>
                 </div>
               </div>
 
@@ -137,10 +137,10 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 {onViewInGraph && (
                   <button
                     onClick={() => onViewInGraph(node.id)}
-                    className="h-8 px-2.5 rounded-xl border border-white/80 dark:border-white/10 hover:border-blue-500/50 bg-white/60 dark:bg-white/[0.06] hover:bg-white/90 text-xs font-medium flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-xs"
+                    className="h-8 px-2.5 rounded-xl border border-line/80 dark:border-line/10 hover:border-primary/50 bg-surface/60 dark:bg-surface/[0.06] hover:bg-surface/90 text-xs font-medium flex items-center gap-1.5 text-muted dark:text-muted hover:text-fg dark:hover:text-fg transition-all cursor-pointer shadow-xs"
                     title="Localizar en la constelación Obsidian"
                   >
-                    <Network className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <Network className="w-3.5 h-3.5 text-primary dark:text-primary" />
                     <span className="hidden sm:inline">Ver en Grafo</span>
                   </button>
                 )}
@@ -148,7 +148,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 <button
                   ref={closeButtonRef}
                   onClick={onClose}
-                  className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-zinc-100 hover:bg-white/40 dark:hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-xl text-muted hover:text-fg dark:hover:text-fg hover:bg-surface/40 dark:hover:bg-surface/10 flex items-center justify-center transition-colors cursor-pointer"
                   aria-label="Cerrar documento"
                 >
                   <X className="w-4 h-4" />
@@ -159,7 +159,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         {/* Scrollable Document Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           {/* Metadata Bar */}
-          <div className="flex items-center gap-2 flex-wrap pb-4 border-b border-line/60 dark:border-white/10">
+          <div className="flex items-center gap-2 flex-wrap pb-4 border-b border-line/60 dark:border-line/10">
             <Badge kind={node.kind} status={node.status} size="md">
               <span className="flex items-center gap-1 text-xs">
                 {kindIcons[node.kind]}
@@ -172,7 +172,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
             {getPhaseBadge(node.phase)}
 
             {node.metadata && (
-              <span className="text-caption font-mono text-muted bg-surface/80 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-lg border border-line-soft dark:border-white/10 ml-auto">
+              <span className="text-caption font-mono text-muted bg-surface/80 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-lg border border-line-soft dark:border-line/10 ml-auto">
                 {node.metadata}
               </span>
             )}
@@ -194,7 +194,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
           </div>
 
           {/* Markdown Content Section */}
-          <div className="pt-4 border-t border-line/60 dark:border-white/10">
+          <div className="pt-4 border-t border-line/60 dark:border-line/10">
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-concept-fg" />
               <span>Memoria y Especificaciones Detalladas</span>
@@ -212,7 +212,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
 
           {/* Related Connected Concepts */}
           {relatedNodes.length > 0 && (
-            <div className="pt-6 border-t border-line/60 dark:border-white/10 space-y-3">
+            <div className="pt-6 border-t border-line/60 dark:border-line/10 space-y-3">
               <div className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
                 <Share2 className="w-3.5 h-3.5 text-concept-fg" />
                 <span>Conceptos Relacionados ({relatedNodes.length})</span>
@@ -221,13 +221,13 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 {relatedNodes.map((rel) => (
                   <div
                     key={rel.id}
-                    className="p-3 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 text-left space-y-1 transition-all hover:bg-white/60 dark:hover:bg-white/10 shadow-xs backdrop-blur-md"
+                    className="p-3 rounded-2xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10 text-left space-y-1 transition-all hover:bg-surface/60 dark:hover:bg-surface/10 shadow-xs backdrop-blur-md"
                   >
                     <div className="flex items-center justify-between text-[10px]">
-                      <span className="font-semibold text-slate-500 dark:text-zinc-400 uppercase">{t(`kinds.${rel.kind}`)}</span>
+                      <span className="font-semibold text-muted dark:text-muted uppercase">{t(`kinds.${rel.kind}`)}</span>
                       {rel.priority && <Badge priority={rel.priority} size="sm" />}
                     </div>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-zinc-100 truncate">{rel.title}</h4>
+                    <h4 className="text-xs font-bold text-fg dark:text-fg truncate">{rel.title}</h4>
                   </div>
                 ))}
               </div>
@@ -236,11 +236,11 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-white/60 dark:border-white/10 flex items-center justify-between bg-white/30 dark:bg-white/[0.02] backdrop-blur-md shrink-0">
+        <div className="p-4 sm:p-5 border-t border-line/60 dark:border-line/10 flex items-center justify-between bg-surface/30 dark:bg-surface/[0.02] backdrop-blur-md shrink-0">
           {onRemoveNode ? (
             <button
               onClick={() => onRemoveNode(node.id)}
-              className="text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="text-danger dark:text-danger hover:bg-danger/10 px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               <span>Eliminar</span>
@@ -255,7 +255,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 variant="primary"
                 size="sm"
                 onClick={() => onAskAI(node.title)}
-                className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
+                className="!rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-sm"
                 icon={<Sparkles className="w-3.5 h-3.5" />}
               >
                 Consultar al Copilot
