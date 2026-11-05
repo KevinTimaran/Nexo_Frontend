@@ -61,6 +61,24 @@ export const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
         <Network className="w-3.5 h-3.5 text-concept-fg shrink-0" />
         <span>Constelación Obsidian</span>
       </button>
+
+      <button
+        type="button"
+        role="radio"
+        aria-checked={mode === "spatial"}
+        onClick={() => onChange("spatial")}
+        className={`
+          flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-caption font-semibold transition-all duration-200 focus-ring cursor-pointer
+          ${
+            mode === "spatial"
+              ? "bg-surface/95 dark:bg-white/[0.1] text-indigo-400 shadow-[0_2px_8px_-2px_rgba(99,102,241,0.25),inset_0_1px_0_0_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0_0_rgba(99,102,241,0.2)] border border-indigo-500/30 scale-100"
+              : "text-muted hover:text-fg hover:bg-hover/50 scale-[0.98]"
+          }
+        `}
+      >
+        <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_6px_#6366f1]" />
+        <span>Neural 3D</span>
+      </button>
     </div>
   );
 };
