@@ -44,7 +44,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             key={toast.id}
             className="
               pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-2xl
-              glass-card border border-line/80 dark:border-white/10
+              glass-card border border-line/80 dark:border-line/10
               shadow-[0_16px_36px_-8px_rgba(15,23,42,0.18)] dark:shadow-[0_20px_48px_-10px_rgba(0,0,0,0.7)]
               text-fg text-body animate-toast-in select-text relative overflow-hidden
             "
