@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Titlebar } from "./Titlebar";
 import { CommandPalette } from "../navigation/CommandPalette";
 import { SettingsModal } from "../../features/settings/SettingsModal";
 import { CreateProjectModal } from "../../features/dashboard/CreateProjectModal";
@@ -63,12 +62,6 @@ export const AppLayout: React.FC = () => {
       <div
         aria-hidden="true"
         className="pointer-events-none fixed top-1/2 left-1/3 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px] bg-violet-200/35 dark:bg-purple-900/20 z-0"
-      />
-
-      {/* Native Desktop Titlebar */}
-      <Titlebar
-        onOpenCommand={() => setCommandPaletteOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {/* Main Workspace Frame */}
