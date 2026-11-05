@@ -1,0 +1,221 @@
+Attached Element Context from Integrated Browser
+
+Element: main.relative.z-10.flex-1.flex.flex-col.min-w-0.h-full.overflow-hidden.p-6.pl-2
+
+URL: http://localhost:1420/
+
+HTML Path: div#root > div.flex.flex-col.h-screen.w-screen.bg-slate-50.dark:bg-slate-950.text-slate-800.dark:text-zinc-100.overflow-hidden.select-none.relative.font-sans > div.flex.flex-1.overflow-hidden.relative.z-10 > main.flex-1.h-full.overflow-hidden.relative.bg-transparent > div.h-full.w-full.animate-fade-in > div.relative.h-full.w-full.flex.bg-slate-50.dark:bg-slate-950.text-slate-800.dark:text-zinc-100.overflow-hidden.font-sans.select-none > main.relative.z-10.flex-1.flex.flex-col.min-w-0.h-full.overflow-hidden.p-6.pl-2
+
+Outer HTML:
+```html
+<main class="relative z-10 flex-1 flex flex-col min-w-0 h-full overflow-hidden p-6 pl-2"><header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0"><div><h1 class="text-3xl sm:text-4xl lg:text-5xl font-extralight tracking-tight text-slate-800 dark:text-white">Buenos días, Kevin</h1><p class="text-xs sm:text-sm font-light text-slate-500 dark:text-slate-400 mt-1.5">Retoma donde lo dejaste o empieza a dar forma a una nueva idea.</p></div><div class="flex items-center gap-3 self-stretch md:self-auto justify-end"><div class="
+                flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl
+                bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                transition-all duration-300 ease-out
+                w-48 sm:w-60
+              "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search w-4 h-4 text-slate-400 shrink-0" aria-hidden="true"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg><input placeholder="Buscar proyectos" class="bg-transparent text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none w-full font-light" type="text" value=""></div></div></header><div class="flex items-center justify-between mb-6 shrink-0"><div class="flex items-center gap-1.5 p-1 rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl shrink-0"><button type="button" class="
+                  px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
+                  bg-blue-600 dark:bg-white/15 text-white border border-blue-500/20 dark:border-white/20 shadow-sm font-semibold
+                ">Todos</button><button type="button" class="
+                  px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
+                  text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent
+                ">Activos</button><button type="button" class="
+                  px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
+                  text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent
+                ">Borradores</button><button type="button" class="
+                  px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
+                  text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent
+                ">Archivados</button></div><span class="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">5 proyectos</span></div><div class="flex-1 overflow-y-auto pr-2 pb-8"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"><div role="button" tabindex="0" class="
+                  group relative flex flex-col justify-center items-center text-center p-6
+                  min-h-[220px] rounded-3xl cursor-pointer
+                  border border-dashed border-slate-300 dark:border-white/20 hover:border-emerald-500/60 dark:hover:border-emerald-400/50
+                  bg-white/40 hover:bg-white/70 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]
+                  backdrop-blur-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                "><div class="
+                    w-14 h-14 rounded-2xl mb-3.5
+                    bg-white/70 dark:bg-white/5 border border-white/80 dark:border-white/10
+                    flex items-center justify-center text-slate-500 dark:text-slate-300
+                    group-hover:scale-110 group-hover:bg-emerald-500/15 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:border-emerald-500/30
+                    transition-all duration-300 shadow-sm
+                  "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus w-8 h-8" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></div><h3 class="text-base font-semibold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">Nuevo proyecto</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-[200px] leading-relaxed">Empieza con un lienzo en blanco</p></div><div role="button" tabindex="0" class="
+                      group relative flex flex-col justify-between p-6
+                      min-h-[220px] rounded-3xl cursor-pointer
+                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                    " style="transform: none;"><div><div class="flex items-center justify-between gap-2 mb-4"><div class="
+                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
+                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
+                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
+                          "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-leaf w-5 h-5" aria-hidden="true"><path d="M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20"></path><path d="M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13"></path></svg></div><div class="flex items-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">Hace 14m</span><div class="relative"><button type="button" class="
+                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100
+                              " aria-label="Más opciones" title="Opciones del proyecto"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis lucide-more-horizontal w-4 h-4" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></div></div><h3 title="Mercado circular universitario" class="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1">Mercado circular universitario</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">Una red de reventa confiable donde estudiantes compran y venden artículos usados en el campus.</p></div><div class="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10"><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400"><span class="font-light">Nodos creados: <strong class="text-slate-800 dark:text-white font-medium">8</strong></span><span class="text-slate-300 dark:text-white/20">·</span><span class="font-light">Fase: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">Ejecución</strong></span></div><button type="button" class="
+                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
+                        " title="Abrir proyecto" aria-label="Abrir proyecto Mercado circular universitario"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right w-4 h-4" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></button></div></div><div role="button" tabindex="0" class="
+                      group relative flex flex-col justify-between p-6
+                      min-h-[220px] rounded-3xl cursor-pointer
+                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                    "><div><div class="flex items-center justify-between gap-2 mb-4"><div class="
+                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
+                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
+                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
+                          "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scale w-5 h-5" aria-hidden="true"><path d="M12 3v18"></path><path d="m19 8 3 8a5 5 0 0 1-6 0zV7"></path><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1"></path><path d="m5 8 3 8a5 5 0 0 1-6 0zV7"></path><path d="M7 21h10"></path></svg></div><div class="flex items-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">Hace 5h</span><div class="relative"><button type="button" class="
+                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100
+                              " aria-label="Más opciones" title="Opciones del proyecto"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis lucide-more-horizontal w-4 h-4" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></div></div><h3 title="Asistente de orientación legal" class="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1">Asistente de orientación legal</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">Orientación en lenguaje sencillo para entender tus derechos antes de acudir a un abogado.</p></div><div class="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10"><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400"><span class="font-light">Nodos creados: <strong class="text-slate-800 dark:text-white font-medium">5</strong></span><span class="text-slate-300 dark:text-white/20">·</span><span class="font-light">Fase: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">Ejecución</strong></span></div><button type="button" class="
+                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
+                        " title="Abrir proyecto" aria-label="Abrir proyecto Asistente de orientación legal"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right w-4 h-4" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></button></div></div><div role="button" tabindex="0" class="
+                      group relative flex flex-col justify-between p-6
+                      min-h-[220px] rounded-3xl cursor-pointer
+                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                    "><div><div class="flex items-center justify-between gap-2 mb-4"><div class="
+                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
+                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
+                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
+                          "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book w-5 h-5" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"></path></svg></div><div class="flex items-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">Ayer</span><div class="relative"><button type="button" class="
+                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100
+                              " aria-label="Más opciones" title="Opciones del proyecto"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis lucide-more-horizontal w-4 h-4" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></div></div><h3 title="Planificador de estudio adaptativo" class="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1">Planificador de estudio adaptativo</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">Planes de estudio semanales que se adaptan a notas, entregas y tiempo disponible.</p></div><div class="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10"><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400"><span class="font-light">Nodos creados: <strong class="text-slate-800 dark:text-white font-medium">3</strong></span><span class="text-slate-300 dark:text-white/20">·</span><span class="font-light">Fase: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">Ejecución</strong></span></div><button type="button" class="
+                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
+                        " title="Abrir proyecto" aria-label="Abrir proyecto Planificador de estudio adaptativo"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right w-4 h-4" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></button></div></div><div role="button" tabindex="0" class="
+                      group relative flex flex-col justify-between p-6
+                      min-h-[220px] rounded-3xl cursor-pointer
+                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                    "><div><div class="flex items-center justify-between gap-2 mb-4"><div class="
+                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
+                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
+                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
+                          "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-compass w-5 h-5" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"></path></svg></div><div class="flex items-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">Hace 3d</span><div class="relative"><button type="button" class="
+                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100
+                              " aria-label="Más opciones" title="Opciones del proyecto"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis lucide-more-horizontal w-4 h-4" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></div></div><h3 title="Huertos urbanos en azoteas" class="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1">Huertos urbanos en azoteas</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">Convertir azoteas sin uso en huertos comunitarios.</p></div><div class="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10"><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400"><span class="font-light">Nodos creados: <strong class="text-slate-800 dark:text-white font-medium">24</strong></span><span class="text-slate-300 dark:text-white/20">·</span><span class="font-light">Fase: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">Ejecución</strong></span></div><button type="button" class="
+                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
+                        " title="Abrir proyecto" aria-label="Abrir proyecto Huertos urbanos en azoteas"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right w-4 h-4" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></button></div></div><div role="button" tabindex="0" class="
+                      group relative flex flex-col justify-between p-6
+                      min-h-[220px] rounded-3xl cursor-pointer
+                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
+                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                    "><div><div class="flex items-center justify-between gap-2 mb-4"><div class="
+                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
+                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
+                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
+                          "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rocket w-5 h-5" aria-hidden="true"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"></path><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"></path></svg></div><div class="flex items-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">14 oct</span><div class="relative"><button type="button" class="
+                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
+                                text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100
+                              " aria-label="Más opciones" title="Opciones del proyecto"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis lucide-more-horizontal w-4 h-4" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></div></div><h3 title="Lanzamiento de hardware independiente" class="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1">Lanzamiento de hardware independiente</h3><p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">Exploración comercial para un sintetizador de producción limitada.</p></div><div class="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10"><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400"><span class="font-light">Nodos creados: <strong class="text-slate-800 dark:text-white font-medium">24</strong></span><span class="text-slate-300 dark:text-white/20">·</span><span class="font-light">Fase: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">Validación</strong></span></div><button type="button" class="
+                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
+                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
+                        " title="Abrir proyecto" aria-label="Abrir proyecto Lanzamiento de hardware independiente"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right w-4 h-4" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></button></div></div></div></div></main>
+```
+
+Dimensions:
+- top: 48px
+- left: 96px
+- width: 1156px
+- height: 704px
+
+CSS:
+```css
+*, ::after, ::before, ::backdrop, ::file-selector-button { box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid; }
+* { scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent; }
+.relative { position: relative; }
+.z-10 { z-index: 10; }
+.flex { display: flex; }
+.h-full { height: 100%; }
+.min-w-0 { min-width: 0px; }
+.flex-1 { flex: 1; }
+.flex-col { flex-direction: column; }
+.overflow-hidden { overflow: hidden; }
+.p-6 { padding: calc(var(--spacing) * 6); }
+.pl-2 { padding-left: calc(var(--spacing) * 2); }
+
+/* Pseudo-elements */
+::selection { background-color: var(--color-concept); }
+ { background-color: color-mix(in oklab, var(--color-concept) 30%, transparent); }
+*::-webkit-scrollbar { width: 6px;
+    height: 6px; }
+*::-webkit-scrollbar-thumb { background: var(--line);
+    border-radius: 9999px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Inherited */
+.font-sans { font-family: var(--font-sans) }
+.text-slate-800 { color: var(--color-slate-800) }
+.dark\:text-zinc-100:where(.dark, .dark *) { color: var(--color-zinc-100) }
+body { color: var(--fg); font-size: var(--text-body); line-height: var(--text-body--line-height) }
+html, :host { line-height: 1.5; tab-size: 4; font-family: var(--default-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"); font-feature-settings: var(--default-font-feature-settings, normal) }
+html { font-family: var(--font-sans); font-size: 16px }
+
+/* Resolved values */
+margin: 0px;
+padding: 24px 24px 24px 8px;
+border-radius: 0px;
+border: 0px solid oklch(0.967 0.001 286.375);
+background-attachment: scroll;
+background-clip: border-box;
+background-color: rgba(0, 0, 0, 0);
+background-image: none;
+background-origin: padding-box;
+background-position-x: 0%;
+background-position-y: 0%;
+background-repeat: repeat;
+background-size: auto;
+box-sizing: border-box;
+color: oklch(0.967 0.001 286.375);
+display: flex;
+flex-basis: 0%;
+flex-direction: column;
+flex-grow: 1;
+flex-shrink: 1;
+font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, -system-ui, sans-serif;
+font-feature-settings: normal;
+font-size: 13px;
+height: 704px;
+line-height: 20px;
+min-width: 0px;
+overflow-x: hidden;
+overflow-y: hidden;
+position: relative;
+scrollbar-color: rgba(255, 255, 255, 0.09) rgba(0, 0, 0, 0);
+scrollbar-width: thin;
+tab-size: 4;
+unicode-bidi: isolate /*UA*/;
+width: 1156px;
+z-index: 10;
+
+/* CSS variables */
+--color-zinc-100: oklch(96.7% 0.001 286.375);
+--text-body: 0.8125rem;
+--muted: #94a3b8;
+--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -system-ui, sans-serif;
+--default-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -system-ui, sans-serif;
+--color-concept: #3b82f6;
+--color-slate-800: oklch(27.9% 0.041 260.031);
+--line: rgba(255, 255, 255, 0.09);
+--spacing: 0.25rem;
+--fg: #f8fafc;
+--text-body--line-height: 1.25rem;
+```
