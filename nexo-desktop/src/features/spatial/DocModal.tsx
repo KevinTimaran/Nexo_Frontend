@@ -52,7 +52,7 @@ export const DocModal: React.FC<DocModalProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="notion-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 backdrop-blur-md bg-black/60 font-sans pointer-events-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 backdrop-blur-md bg-app/60 font-sans pointer-events-auto"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
@@ -71,16 +71,16 @@ export const DocModal: React.FC<DocModalProps> = ({
             stopEventPropagation
           >
             {/* Top Modal Header */}
-            <div className="h-14 px-6 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
+            <div className="h-14 px-6 border-b border-line/10 flex items-center justify-between shrink-0 bg-surface/[0.02]">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center ring-1 ring-indigo-500/20">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center ring-1 ring-indigo-500/20">
                   <FileText className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 block">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted block">
                     Documento Notion · {node.group}
                   </span>
-                  <span className="text-xs font-semibold text-zinc-200">
+                  <span className="text-xs font-semibold text-fg">
                     {node.name}
                   </span>
                 </div>
@@ -90,7 +90,7 @@ export const DocModal: React.FC<DocModalProps> = ({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
+                  className="p-1.5 rounded-xl text-muted hover:text-fg hover:bg-surface/10 active:scale-90 transition-all cursor-pointer"
                   aria-label="Cerrar modal"
                 >
                   <X className="w-4 h-4" />
@@ -105,27 +105,27 @@ export const DocModal: React.FC<DocModalProps> = ({
             >
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-500/25">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-primary/15 text-primary ring-1 ring-indigo-500/25">
                     Fase Activa
                   </span>
-                  <span className="text-xs text-zinc-400 font-mono">
+                  <span className="text-xs text-muted font-mono">
                     ID: {node.id}
                   </span>
                 </div>
 
                 <h1
                   id="notion-modal-title"
-                  className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight"
+                  className="text-2xl sm:text-3xl font-extrabold text-fg tracking-tight"
                 >
                   {node.name}
                 </h1>
               </div>
 
               {/* Editor Content Area */}
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-line/10">
                 <label
                   htmlFor="notion-doc-editor"
-                  className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block mb-2"
+                  className="text-[11px] font-mono text-muted uppercase tracking-wider block mb-2"
                 >
                   Cuerpo del Documento (Editable en vivo):
                 </label>
@@ -139,12 +139,12 @@ export const DocModal: React.FC<DocModalProps> = ({
                     // Prevent Escape from being swallowed if typing, or stop bubbling
                     e.stopPropagation();
                   }}
-                  className="w-full min-h-[220px] p-4 rounded-2xl bg-black/40 ring-1 ring-white/10 text-zinc-200 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/50 whitespace-pre-wrap selection:bg-indigo-500/30 font-sans cursor-text"
+                  className="w-full min-h-[220px] p-4 rounded-2xl bg-app/40 ring-1 ring-line/10 text-fg text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/50 whitespace-pre-wrap selection:bg-primary/30 font-sans cursor-text"
                 />
               </div>
 
-              <div className="p-4 rounded-2xl bg-indigo-500/5 ring-1 ring-indigo-500/20 flex items-start gap-3 text-xs text-zinc-300">
-                <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-primary/5 ring-1 ring-indigo-500/20 flex items-start gap-3 text-xs text-muted">
+                <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <p>
                   Las modificaciones en este documento se sincronizan reactivamente en el estado local de Zustand y preservan el contexto del nodo para el copiloto de IA.
                 </p>
@@ -152,14 +152,14 @@ export const DocModal: React.FC<DocModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 px-6 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs text-zinc-400 shrink-0">
+            <div className="p-4 px-6 border-t border-line/10 bg-surface/[0.02] flex items-center justify-between text-xs text-muted shrink-0">
               <span className="font-mono text-[11px]">
                 Presiona Escape o haz clic fuera para salir
               </span>
               <button
                 type="button"
                 onClick={handleClose}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-95 text-white font-semibold transition-all cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-surface/10 hover:bg-surface/15 active:scale-95 text-fg font-semibold transition-all cursor-pointer shadow-xs"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Listo</span>
