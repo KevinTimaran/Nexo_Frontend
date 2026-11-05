@@ -6,12 +6,9 @@ import {
   Search,
   Plus,
   Settings,
-  Sun,
-  Moon,
   Globe,
   Folder,
 } from "lucide-react";
-import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
 import type { Project } from "../../domain/types";
 
@@ -32,7 +29,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -48,11 +44,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const handleSelectProject = (id: string) => {
     onClose();
     navigate(`/workspace/${id}`);
-  };
-
-  const handleToggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-    onClose();
   };
 
   const handleToggleLang = () => {
@@ -74,7 +65,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 bg-app/35 dark:bg-app/65 backdrop-blur-md cursor-pointer"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -86,22 +77,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="
               relative z-10 w-full max-w-xl rounded-3xl overflow-hidden
-              bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-              text-slate-800 dark:text-zinc-100 select-text
+              bg-surface/70 backdrop-blur-2xl border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+              dark:bg-app/20 dark:border-line/10 dark:shadow-2xl
+              text-fg dark:text-fg select-text
             "
           >
             {/* Search Header */}
-            <div className="flex items-center px-4 py-3.5 border-b border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02] backdrop-blur-md gap-3">
-              <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="flex items-center px-4 py-3.5 border-b border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02] backdrop-blur-md gap-3">
+              <Search className="w-4 h-4 text-primary dark:text-primary shrink-0" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("command.placeholder")}
-                className="w-full bg-transparent border-none text-slate-800 dark:text-zinc-100 text-sm placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none"
+                className="w-full bg-transparent border-none text-fg dark:text-fg text-sm placeholder:text-muted dark:placeholder:text-muted focus:outline-none"
               />
-              <kbd className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 text-slate-500 dark:text-zinc-400 shadow-2xs shrink-0">
+              <kbd className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 text-muted dark:text-muted shadow-2xs shrink-0">
                 ESC
               </kbd>
             </div>
@@ -118,7 +109,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               onClose();
               onOpenNewProject();
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-surface/[0.06] hover:border-line-soft dark:hover:border-line/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
             <div className="w-7 h-7 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 group-hover:scale-105 transition-transform">
               <Plus className="w-4 h-4" />
@@ -127,18 +118,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           </button>
 
           <button
-            onClick={handleToggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
-          >
-            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 group-hover:scale-105 transition-transform">
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </div>
-            <span className="font-medium">{t("command.toggleTheme")}</span>
-          </button>
-
-          <button
             onClick={handleToggleLang}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-surface/[0.06] hover:border-line-soft dark:hover:border-line/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
             <div className="w-7 h-7 rounded-lg bg-positive-fg/10 text-positive-fg flex items-center justify-center border border-positive-fg/20 group-hover:scale-105 transition-transform">
               <Globe className="w-4 h-4" />
@@ -151,9 +132,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               onClose();
               onOpenSettings();
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-surface/[0.06] hover:border-line-soft dark:hover:border-line/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
           >
-            <div className="w-7 h-7 rounded-lg bg-surface/80 dark:bg-white/[0.06] text-muted flex items-center justify-center border border-line-soft dark:border-white/10 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-surface/80 dark:bg-surface/[0.06] text-muted flex items-center justify-center border border-line-soft dark:border-line/10 group-hover:scale-105 transition-transform">
               <Settings className="w-4 h-4" />
             </div>
             <span className="font-medium">{t("command.openSettings")}</span>
@@ -169,7 +150,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 <button
                   key={project.id}
                   onClick={() => handleSelectProject(project.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-white/[0.06] hover:border-line-soft dark:hover:border-white/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-body text-fg hover:bg-surface/85 dark:hover:bg-surface/[0.06] hover:border-line-soft dark:hover:border-line/10 border border-transparent transition-all text-left group cursor-pointer focus-ring"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-7 h-7 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center border border-concept-fg/20 shrink-0 group-hover:scale-105 transition-transform">
@@ -182,7 +163,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       <p className="text-caption text-muted truncate">{project.description}</p>
                     </div>
                   </div>
-                  <span className="bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 px-2 py-0.5 rounded-md text-[11px] font-mono text-slate-500 dark:text-zinc-400 shrink-0 ml-2 shadow-2xs">
+                  <span className="bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 px-2 py-0.5 rounded-md text-[11px] font-mono text-muted dark:text-muted shrink-0 ml-2 shadow-2xs">
                     {project.nodeCount} conceptos
                   </span>
                 </button>
@@ -191,16 +172,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           )}
 
           {query && filteredProjects.length === 0 && (
-            <div className="p-6 text-center text-slate-500 dark:text-zinc-400 text-xs">
+            <div className="p-6 text-center text-muted dark:text-muted text-xs">
               {t("command.empty", { query })}
             </div>
           )}
         </div>
 
         {/* Footer Hint */}
-        <div className="p-2.5 px-4 border-t border-white/60 dark:border-white/10 text-[11px] text-slate-500 dark:text-zinc-400 flex items-center justify-between bg-white/30 dark:bg-white/[0.02]">
+        <div className="p-2.5 px-4 border-t border-line/60 dark:border-line/10 text-[11px] text-muted dark:text-muted flex items-center justify-between bg-surface/30 dark:bg-surface/[0.02]">
           <span className="font-mono">{t("command.hint")}</span>
-          <span className="font-semibold text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider">Nexo Spotlight</span>
+          <span className="font-semibold text-muted dark:text-muted text-[10px] uppercase tracking-wider">Nexo Spotlight</span>
         </div>
       </motion.div>
     </div>
