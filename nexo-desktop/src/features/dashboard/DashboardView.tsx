@@ -3,26 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Home,
-  Settings,
-  User,
-  Search,
-  Plus,
-  ArrowUpRight,
-  MoreHorizontal,
-  ExternalLink,
-  Copy,
-  Archive,
-  Trash2,
-  X,
-  LogOut,
-  Layers,
-  Lightbulb,
-  Leaf,
-  Scale,
-  Rocket,
-  Book,
-  Compass,
+  Home, Settings, User, Search, Plus, ArrowUpRight, MoreHorizontal,
+  ExternalLink, Copy, Archive, Trash2, X, LogOut, Layers, Lightbulb,
+  Leaf, Scale, Rocket, Book, Compass,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -49,9 +32,7 @@ const ICON_MAP: Record<ProjectIcon, React.ReactNode> = {
 };
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
-  onOpenNewProject,
-  onOpenSettings,
-  onProjectsLoaded,
+  onOpenNewProject, onOpenSettings, onProjectsLoaded,
 }) => {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
@@ -71,16 +52,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const gridRef = useRef<HTMLDivElement>(null);
   const lang = currentLanguage();
-  const handleOpenSettings = onOpenSettings || outlet.onOpenSettings || (() => {});
+  const handleOpenSettings = onOpenSettings || outlet.onOpenSettings || (() => { });
 
   const handleNewProject = () => {
-    if (onOpenNewProject) {
-      onOpenNewProject();
-    } else if (outlet.onOpenNewProject) {
-      outlet.onOpenNewProject();
-    } else {
-      setInternalCreateModalOpen(true);
-    }
+    if (onOpenNewProject) onOpenNewProject();
+    else if (outlet.onOpenNewProject) outlet.onOpenNewProject();
+    else setInternalCreateModalOpen(true);
   };
 
   const handleCreateProjectInternal = async (input: NewProjectInput) => {
@@ -90,79 +67,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     navigate(`/workspace/${created.id}`);
   };
 
-  // Close menus on outside click and Escape key
   useEffect(() => {
     if (!activeMenuProjectId && !profileMenuOpen) return;
-    const handleGlobalClick = () => {
-      setActiveMenuProjectId(null);
-      setProfileMenuOpen(false);
-    };
+    const handleGlobalClick = () => { setActiveMenuProjectId(null); setProfileMenuOpen(false); };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setActiveMenuProjectId(null);
-        setProfileMenuOpen(false);
-      }
+      if (e.key === "Escape") { setActiveMenuProjectId(null); setProfileMenuOpen(false); }
     };
     window.addEventListener("click", handleGlobalClick);
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("click", handleGlobalClick);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => { window.removeEventListener("click", handleGlobalClick); window.removeEventListener("keydown", handleKeyDown); };
   }, [activeMenuProjectId, profileMenuOpen]);
 
   const handleDuplicateProject = (project: Project) => {
     setActiveMenuProjectId(null);
     const newId = `p-${Math.random().toString(36).slice(2, 9)}`;
-    const duplicated: Project = {
-      ...project,
-      id: newId,
-      name: `${project.name} (Copia)`,
-      updatedAt: new Date().toISOString(),
-    };
-    const nextList = [duplicated, ...projects];
-    setProjects(nextList);
-    try {
-      const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]");
-      localStorage.setItem("nexo.mock.projects", JSON.stringify([duplicated, ...stored]));
-    } catch {
-      /* ignore */
-    }
+    const duplicated: Project = { ...project, id: newId, name: `${project.name} (Copia)`, updatedAt: new Date().toISOString() };
+    setProjects([duplicated, ...projects]);
     showToast(`Proyecto "${duplicated.name}" duplicado`, "success");
   };
 
   const handleToggleArchiveProject = (project: Project) => {
     setActiveMenuProjectId(null);
     const nextStatus: ProjectStatus = project.status === "archived" ? "active" : "archived";
-    const nextList = projects.map((p) => (p.id === project.id ? { ...p, status: nextStatus } : p));
-    setProjects(nextList);
-    try {
-      const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]") as Project[];
-      const updatedStored = stored.map((p) => (p.id === project.id ? { ...p, status: nextStatus } : p));
-      localStorage.setItem("nexo.mock.projects", JSON.stringify(updatedStored));
-    } catch {
-      /* ignore */
-    }
-    showToast(
-      nextStatus === "archived" ? `Proyecto "${project.name}" archivado` : `Proyecto "${project.name}" reactivado`,
-      "info"
-    );
+    setProjects(projects.map((p) => (p.id === project.id ? { ...p, status: nextStatus } : p)));
+    showToast(nextStatus === "archived" ? `Proyecto "${project.name}" archivado` : `Proyecto "${project.name}" reactivado`, "info");
   };
 
   const confirmDeleteProject = () => {
     if (!projectToDelete) return;
-    const target = projectToDelete;
+    setProjects(projects.filter((p) => p.id !== projectToDelete.id));
+    showToast(`Proyecto "${projectToDelete.name}" eliminado correctamente`, "info");
     setProjectToDelete(null);
-    const nextList = projects.filter((p) => p.id !== target.id);
-    setProjects(nextList);
-    try {
-      const stored = JSON.parse(localStorage.getItem("nexo.mock.projects") || "[]") as Project[];
-      const updatedStored = stored.filter((p) => p.id !== target.id);
-      localStorage.setItem("nexo.mock.projects", JSON.stringify(updatedStored));
-    } catch {
-      /* ignore */
-    }
-    showToast(`Proyecto "${target.name}" eliminado correctamente`, "info");
   };
 
   const loadProjects = async () => {
@@ -171,151 +106,73 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       const data = await services.projects.list(lang);
       setProjects(data);
       if (onProjectsLoaded) onProjectsLoaded(data);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
+    } catch { } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    void loadProjects();
-  }, [lang]);
+  useEffect(() => { void loadProjects(); }, [lang]);
 
   const filteredProjects = projects.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch && (statusFilter === "all" || p.status === statusFilter);
   });
 
   const formatLastModified = (isoString?: string) => {
     if (!isoString) return "Reciente";
     try {
       const date = new Date(isoString);
-      const now = new Date();
-      const diffMs = Math.max(0, now.getTime() - date.getTime());
+      const diffMs = Math.max(0, new Date().getTime() - date.getTime());
       const diffMinutes = Math.floor(diffMs / (1000 * 60));
       const diffHours = Math.floor(diffMinutes / 60);
       const diffDays = Math.floor(diffHours / 24);
-
       if (diffMinutes < 5) return "Hace un momento";
       if (diffMinutes < 60) return `Hace ${diffMinutes}m`;
       if (diffHours < 24) return `Hace ${diffHours}h`;
       if (diffDays === 1) return "Ayer";
       if (diffDays < 7) return `Hace ${diffDays}d`;
       return date.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
-    } catch {
-      return "Reciente";
-    }
+    } catch { return "Reciente"; }
   };
 
   return (
-    <div className="relative h-full w-full flex bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 overflow-hidden font-sans select-none">
-      {/* ─── 1. Ambient VisionOS Light Orbs ─── */}
-      <div
-        className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-blue-200/50 dark:bg-indigo-900/50 blur-[120px] z-0"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] lg:w-[650px] lg:h-[650px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
-        aria-hidden="true"
-      />
+    <div className="relative h-full w-full flex bg-[var(--app)] text-[var(--fg)] overflow-hidden font-sans select-none">
+      
+      {/* Ambient Orbs (Olive + Floral White sutil) */}
+      <div className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-[var(--olive-600)]/20 blur-[120px] z-0" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-[var(--floral-50)]/5 blur-[120px] z-0" />
 
-      {/* ─── 2 & 3. Sidebar (Izquierda - Barra lateral flotante estilo Isla) ─── */}
-      <aside
-        className="
-          relative z-20 m-4 w-16 flex flex-col items-center justify-between py-6 rounded-3xl
-          bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-          dark:bg-black/20 dark:border-white/10 dark:shadow-2xl shrink-0
-        "
-        aria-label="Navegación lateral"
-      >
-        {/* Top: Inicio */}
+      {/* Sidebar */}
+      <aside className="relative z-20 m-4 w-16 flex flex-col items-center justify-between py-6 rounded-3xl bg-[var(--surface)] backdrop-blur-2xl border border-[var(--line)] shrink-0">
         <div className="flex flex-col items-center gap-4">
           <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              setStatusFilter("all");
-              gridRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="
-              w-11 h-11 rounded-2xl flex items-center justify-center
-              bg-blue-600 dark:bg-white/15 text-white border border-blue-500/20 dark:border-white/20 shadow-md
-              hover:brightness-105 active:scale-95 cursor-pointer transition-all duration-200
-            "
-            title="Inicio"
-            aria-label="Inicio"
+            onClick={() => { setSearch(""); setStatusFilter("all"); gridRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className="w-11 h-11 rounded-2xl flex items-center justify-center bg-[var(--olive-800)] text-[var(--bone-100)] border border-[var(--line)] hover:bg-[var(--olive-700)] active:scale-95 transition-all shadow-md"
           >
             <Home className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Bottom: Ajustes & Perfil */}
         <div className="flex flex-col items-center gap-3">
-          <button
-            type="button"
-            onClick={handleOpenSettings}
-            className="
-              w-11 h-11 rounded-2xl flex items-center justify-center
-              text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10 active:scale-95 border border-transparent hover:border-white/40
-              cursor-pointer transition-all duration-200
-            "
-            title="Ajustes"
-            aria-label="Ajustes"
-          >
+          <button onClick={handleOpenSettings} className="w-11 h-11 rounded-2xl flex items-center justify-center text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--hover)] active:scale-95 transition-all">
             <Settings className="w-5 h-5" />
           </button>
 
           <div className="relative">
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setProfileMenuOpen((prev) => !prev);
-              }}
-              className={`
-                w-11 h-11 rounded-2xl flex items-center justify-center
-                active:scale-95 transition-all duration-200 cursor-pointer
-                ${
-                  profileMenuOpen
-                    ? "bg-white/80 dark:bg-white/20 text-slate-900 dark:text-white border border-white dark:border-white/25 shadow-md"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10 border border-transparent hover:border-white/40"
-                }
-              `}
-              title={user?.name || "Perfil"}
-              aria-label="Perfil de usuario"
+              onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center active:scale-95 transition-all ${profileMenuOpen ? "bg-[var(--elevated)] text-[var(--fg)] border border-[var(--line)]" : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--hover)]"}`}
             >
               <User className="w-5 h-5" />
             </button>
 
-            {/* Glass Profile Popover */}
             {profileMenuOpen && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="
-                  absolute left-16 bottom-0 z-50 w-56 p-3 rounded-2xl
-                  bg-white/90 dark:bg-slate-900/95 backdrop-blur-3xl border border-white/80 dark:border-white/15 shadow-2xl
-                  text-slate-800 dark:text-slate-100 flex flex-col gap-2 animate-scale-in
-                "
-              >
+              <div onClick={(e) => e.stopPropagation()} className="absolute left-16 bottom-0 z-50 w-56 p-3 rounded-2xl bg-[var(--elevated)] backdrop-blur-3xl border border-[var(--line)] shadow-2xl text-[var(--fg)] animate-scale-in">
                 <div className="px-2 py-1">
-                  <p className="text-xs font-semibold text-slate-800 dark:text-white truncate">{user?.name || "Usuario"}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email || "usuario@ejemplo.com"}</p>
+                  <p className="text-xs font-semibold truncate">{user?.name || "Usuario"}</p>
+                  <p className="text-[11px] text-[var(--muted)] truncate">{user?.email || "usuario@ejemplo.com"}</p>
                 </div>
-                <div className="h-px bg-slate-200 dark:bg-white/10 my-1" />
-                <button
-                  type="button"
-                  onClick={() => void signOut()}
-                  className="
-                    flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-rose-500 dark:text-rose-400
-                    hover:bg-rose-500/10 transition-colors w-full cursor-pointer text-left
-                  "
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Cerrar sesión</span>
+                <div className="h-px bg-[var(--line)] my-1" />
+                <button onClick={() => void signOut()} className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-[var(--danger-fg)] hover:bg-[var(--danger-fg)]/10 transition-colors w-full text-left">
+                  <LogOut className="w-3.5 h-3.5" /> <span>Cerrar sesión</span>
                 </button>
               </div>
             )}
@@ -323,405 +180,176 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </aside>
 
-      {/* ─── Main Content Area ─── */}
+      {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col min-w-0 h-full overflow-hidden p-6 pl-2">
-        {/* ─── 3. Header (Arriba) ─── */}
+        
+        {/* Header */}
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extralight tracking-tight text-slate-800 dark:text-white">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extralight tracking-tight text-[var(--fg)]">
               Buenos días, {user?.name || "Usuario"}
             </h1>
-            <p className="text-xs sm:text-sm font-light text-slate-500 dark:text-slate-400 mt-1.5">
+            <p className="text-xs sm:text-sm font-light text-[var(--muted)] mt-1.5">
               {t("home.description", "Retoma donde lo dejaste o empieza a dar forma a una nueva idea.")}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 self-stretch md:self-auto justify-end">
-            {/* Buscador expansible con fondo de cristal */}
-            <div
-              className={`
-                flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl
-                bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-                dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-                transition-all duration-300 ease-out
-                ${searchFocused || search ? "w-64 sm:w-80 lg:w-96 border-blue-500/40 dark:border-white/25 ring-2 ring-blue-500/20" : "w-48 sm:w-60"}
-              `}
-            >
-              <Search className="w-4 h-4 text-slate-400 shrink-0" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder={t("projects.searchPlaceholder", "Buscar proyectos...")}
-                className="bg-transparent text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none w-full font-light"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                  aria-label="Borrar búsqueda"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+          {/* Search (Focus = Floral White) */}
+          <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-[var(--surface)] backdrop-blur-2xl border border-[var(--line)] transition-all duration-300 ${searchFocused || search ? "w-64 sm:w-80 lg:w-96 border-[var(--focus)] ring-2 ring-[var(--focus)]/20" : "w-48 sm:w-60"}`}>
+            <Search className="w-4 h-4 text-[var(--muted)] shrink-0" />
+            <input
+              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
+              placeholder="Buscar proyectos..."
+              className="bg-transparent text-sm text-[var(--fg)] placeholder:text-[var(--muted)] focus:outline-none w-full font-light"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--hover)] transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </header>
 
-        {/* ─── Filter Pills Bar ─── */}
-        <div className="flex items-center justify-between mb-6 shrink-0">
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl shrink-0">
-            {(["all", "active", "draft", "archived"] as const).map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                className={`
-                  px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer
-                  ${
-                    statusFilter === st
-                      ? "bg-blue-600 dark:bg-white/15 text-white border border-blue-500/20 dark:border-white/20 shadow-sm font-semibold"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent"
-                  }
-                `}
-              >
-                {st === "all" ? t("projects.filters.all", "Todos") : t(`projects.filters.${st}`)}
-              </button>
-            ))}
-          </div>
-
-          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
-            {filteredProjects.length} {filteredProjects.length === 1 ? "proyecto" : "proyectos"}
-          </span>
-        </div>
-
-        {/* ─── Grid de Proyectos (Centro) ─── */}
-        <div ref={gridRef} className="flex-1 overflow-y-auto pr-2 pb-8">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="
-                    min-h-[220px] rounded-3xl p-6
-                    bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-                    dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-                    animate-pulse flex flex-col justify-between
-                  "
+        {/* Super Card */}
+        <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface)] backdrop-blur-xl border border-[var(--line)] rounded-[2.5rem] shadow-lg p-6 lg:p-8">
+          
+          <div className="flex items-center justify-between mb-6 shrink-0">
+            {/* Tabs */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--surface)] border border-[var(--line)] shrink-0">
+              {(["all", "active", "draft", "archived"] as const).map((st) => (
+                <button
+                  key={st} onClick={() => setStatusFilter(st)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${statusFilter === st ? "bg-[var(--selected)] text-[var(--floral-50)] border border-[var(--floral-50)]/30 font-semibold shadow-sm" : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--hover)] border border-transparent"}`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-200/60 dark:bg-white/10" />
-                    <div className="w-20 h-5 rounded-full bg-slate-200/60 dark:bg-white/10" />
-                  </div>
-                  <div className="space-y-2 my-4">
-                    <div className="w-3/4 h-5 rounded-md bg-slate-200/60 dark:bg-white/10" />
-                    <div className="w-full h-3.5 rounded-md bg-slate-200/40 dark:bg-white/5" />
-                  </div>
-                  <div className="h-6 w-1/2 rounded bg-slate-200/60 dark:bg-white/10" />
-                </div>
+                  {st === "all" ? "Todos" : st}
+                </button>
               ))}
             </div>
-          ) : filteredProjects.length === 0 && (search || statusFilter !== "all") ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/70 dark:bg-white/5 border border-white/80 dark:border-white/10 flex items-center justify-center text-slate-400 mb-4 shadow-xl">
-                <Layers className="w-8 h-8" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-800 dark:text-white">
-                {t("projects.noResults.title", "No hay proyectos coincidentes")}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
-                {t("projects.noResults.description", "Prueba con otro término o limpia los filtros.")}
-              </p>
-              <div className="mt-4 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearch("");
-                    setStatusFilter("all");
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15 border border-white/80 dark:border-white/15 transition-all cursor-pointer shadow-xs"
-                >
-                  {t("common.clearSearch", "Borrar búsqueda")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* ─── 5. TARJETA DE "NUEVO PROYECTO" ─── */}
+            <span className="text-xs font-medium text-[var(--muted)] hidden sm:inline">{filteredProjects.length} proyectos</span>
+          </div>
+
+          {/* Grid */}
+          <div ref={gridRef} className="flex-1 overflow-y-auto p-4 -mx-4 -mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              
+              {/* 1. NEW PROJECT CARD (El Acento = Floral White) */}
               <motion.div
-                whileHover={{ y: -5, scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                whileHover={{ y: -5, scale: 1.02, zIndex: 50 }}
                 onClick={handleNewProject}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleNewProject();
-                  }
-                }}
-                className="
-                  group relative flex flex-col justify-center items-center text-center p-6
-                  min-h-[220px] rounded-3xl cursor-pointer
-                  border border-dashed border-slate-300 dark:border-white/20 hover:border-emerald-500/60 dark:hover:border-emerald-400/50
-                  bg-white/40 hover:bg-white/70 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]
-                  backdrop-blur-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20
-                "
+                className="group relative p-2 min-h-[220px] rounded-[2rem] cursor-pointer border border-dashed border-[var(--floral-50)]/40 hover:border-[var(--floral-50)] bg-[var(--floral-50)]/5 hover:bg-[var(--floral-50)]/10 transition-all duration-300 transform-gpu"
               >
-                <div
-                  className="
-                    w-14 h-14 rounded-2xl mb-3.5
-                    bg-white/70 dark:bg-white/5 border border-white/80 dark:border-white/10
-                    flex items-center justify-center text-slate-500 dark:text-slate-300
-                    group-hover:scale-110 group-hover:bg-emerald-500/15 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:border-emerald-500/30
-                    transition-all duration-300 shadow-sm
-                  "
-                >
-                  <Plus className="w-8 h-8" />
+                <div className="flex flex-col justify-center items-center text-center h-full rounded-3xl p-6">
+                  <div className="w-14 h-14 rounded-2xl mb-3.5 bg-[var(--floral-50)]/10 border border-[var(--floral-50)]/30 flex items-center justify-center text-[var(--floral-50)] group-hover:scale-110 transition-all shadow-sm">
+                    <Plus className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-base font-semibold text-[var(--floral-50)]">Nuevo proyecto</h3>
+                  <p className="text-xs text-[var(--floral-50)]/70 mt-1 max-w-[200px]">Crear un nuevo mapa conceptual</p>
                 </div>
-                <h3 className="text-base font-semibold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
-                  {t("projects.newCard.title", "Nuevo proyecto")}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-[200px] leading-relaxed">
-                  {t("projects.newCard.hint", "Crear un nuevo mapa conceptual")}
-                </p>
               </motion.div>
 
-              {/* ─── 4. ANATOMÍA DE LA TARJETA DE PROYECTO ─── */}
-              {filteredProjects.map((project) => {
+              {/* 2. PROJECT CARDS (Ambiente Olive + Cuerpo Bone + Hover Floral White) */}
+              {filteredProjects.map((project, index) => {
                 const isMenuOpen = activeMenuProjectId === project.id;
                 return (
                   <motion.div
                     key={project.id}
-                    whileHover={{ y: -5, scale: 1.01 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                    whileHover={{ y: -5, scale: 1.02, zIndex: 50 }}
                     onClick={() => navigate(`/workspace/${project.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        navigate(`/workspace/${project.id}`);
-                      }
-                    }}
-                    className="
-                      group relative flex flex-col justify-between p-6
-                      min-h-[220px] rounded-3xl cursor-pointer
-                      bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-                      dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-                      hover:border-white dark:hover:border-white/25 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20
-                    "
+                    className="group relative p-2 min-h-[220px] rounded-[2rem] cursor-pointer bg-[var(--elevated)] border border-[var(--line)] hover:border-[var(--floral-50)]/50 hover:shadow-xl transition-all duration-300 transform-gpu"
                   >
-                    <div>
-                      {/* Top Bar: Icon + Last Modified Crystal Badge + 3-Dots */}
-                      <div className="flex items-center justify-between gap-2 mb-4">
-                        <div
-                          className="
-                            w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-white/5 border border-emerald-200/60 dark:border-white/10
-                            text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs
-                            group-hover:scale-105 group-hover:border-emerald-500/30 transition-transform duration-300
-                          "
-                        >
-                          {ICON_MAP[project.icon] || <Layers className="w-5 h-5" />}
-                        </div>
+                    <div className="flex flex-col justify-between h-full p-5 rounded-3xl bg-[var(--elevated)] transition-colors duration-200">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-4">
+                          
+                          {/* Icono (Cuerpo = Bone, Hover = Floral White) */}
+                          <div className="w-10 h-10 rounded-2xl bg-[var(--surface)] border border-[var(--line)] text-[var(--bone-400)] group-hover:text-[var(--floral-50)] group-hover:border-[var(--floral-50)]/50 flex items-center justify-center transition-all duration-300">
+                            {ICON_MAP[project.icon] || <Layers className="w-5 h-5" />}
+                          </div>
 
-                        <div className="flex items-center gap-2">
-                          {/* Badge pequeño estilo cristal indicando última modificación */}
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/70 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-xs">
-                            {formatLastModified(project.updatedAt)}
-                          </span>
-
-                          {/* 3-dots Context Menu Button */}
-                          <div
-                            className="relative"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuProjectId(isMenuOpen ? null : project.id);
-                              }}
-                              className={`
-                                p-1.5 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 focus:opacity-100 group-focus-within:opacity-100 transition-all duration-200 cursor-pointer
-                                ${
-                                  isMenuOpen
-                                    ? "opacity-100 bg-white/80 dark:bg-white/10 text-slate-800 dark:text-white"
-                                    : "text-slate-400 hover:text-slate-800 dark:hover:text-white opacity-0 group-hover:opacity-100"
-                                }
-                              `}
-                              aria-label="Más opciones"
-                              title="Opciones del proyecto"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {isMenuOpen && (
-                              <div
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => e.stopPropagation()}
-                                className="
-                                  absolute right-0 top-9 z-50 w-52
-                                  rounded-2xl p-2
-                                  bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-white/80 dark:border-white/15
-                                  shadow-2xl text-slate-800 dark:text-slate-100 select-none animate-scale-in
-                                "
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[var(--surface)] border border-[var(--line)] text-[var(--muted)]">
+                              {formatLastModified(project.updatedAt)}
+                            </span>
+                            
+                            {/* Menú Dropdown */}
+                            <div className="relative z-50" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setActiveMenuProjectId(isMenuOpen ? null : project.id); }}
+                                className={`p-1.5 rounded-xl hover:bg-[var(--hover)] transition-all ${isMenuOpen ? "opacity-100 bg-[var(--hover)] text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)] opacity-0 group-hover:opacity-100"}`}
                               >
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuProjectId(null);
-                                    navigate(`/workspace/${project.id}`);
-                                  }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                  <span>Abrir diseño</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDuplicateProject(project);
-                                  }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                                  <span>Duplicar diseño</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleArchiveProject(project);
-                                  }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
-                                >
-                                  <Archive className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                  <span>
-                                    {project.status === "archived" ? "Restaurar a Activo" : "Archivar proyecto"}
-                                  </span>
-                                </button>
-
-                                <div className="my-1 h-px bg-slate-200 dark:bg-white/10" />
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuProjectId(null);
-                                    setProjectToDelete(project);
-                                  }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors text-left cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 shrink-0 text-rose-500 dark:text-rose-400" />
-                                  <span>Eliminar proyecto</span>
-                                </button>
-                              </div>
-                            )}
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                              
+                              {isMenuOpen && (
+                                <div className="absolute right-0 top-9 z-[100] w-52 rounded-2xl p-2 bg-[var(--elevated)] backdrop-blur-3xl border border-[var(--line)] shadow-2xl text-[var(--fg)] animate-scale-in">
+                                  <button onClick={() => navigate(`/workspace/${project.id}`)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[var(--surface)] text-left">
+                                    <ExternalLink className="w-3.5 h-3.5 text-[var(--floral-50)]" /> Abrir diseño
+                                  </button>
+                                  <button onClick={() => handleDuplicateProject(project)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[var(--surface)] text-left">
+                                    <Copy className="w-3.5 h-3.5 text-[var(--floral-50)]" /> Duplicar diseño
+                                  </button>
+                                  <button onClick={() => handleToggleArchiveProject(project)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[var(--surface)] text-left">
+                                    <Archive className="w-3.5 h-3.5 text-[var(--floral-50)]" /> {project.status === "archived" ? "Restaurar" : "Archivar"}
+                                  </button>
+                                  <div className="my-1 h-px bg-[var(--line)]" />
+                                  <button onClick={() => { setActiveMenuProjectId(null); setProjectToDelete(project); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[var(--danger-fg)] hover:bg-[var(--danger-fg)]/10 text-left">
+                                    <Trash2 className="w-3.5 h-3.5" /> Eliminar proyecto
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
+
+                        {/* Título y Descripción (Cuerpo = Bone, Hover = Floral White) */}
+                        <h3 className="text-lg font-bold text-[var(--fg)] group-hover:text-[var(--floral-50)] transition-colors line-clamp-1">
+                          {project.name}
+                        </h3>
+                        <p className="text-xs text-[var(--muted)] mt-1.5 line-clamp-2 leading-relaxed">
+                          {project.description || "Sin descripción"}
+                        </p>
                       </div>
 
-                      {/* Título del proyecto (fuerte) */}
-                      <h3
-                        title={project.name}
-                        className="text-lg font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors line-clamp-1"
-                      >
-                        {project.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
-                        {project.description || "Sin descripción"}
-                      </p>
-                    </div>
+                      {/* Footer de Tarjeta */}
+                      <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-[var(--line)]">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                          <span>Nodos: <strong className="text-[var(--fg)] font-medium">{project.nodeCount > 0 ? project.nodeCount : 24}</strong></span>
+                          <span>·</span>
+                          <span>Fase: <strong className="text-[var(--positive-fg)] font-semibold">{project.status === "archived" ? "Validación" : "Ejecución"}</strong></span>
+                        </div>
 
-                    {/* Estadísticas rápidas: Nodos creados & Fase + Botón Abrir proyecto */}
-                    <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <span className="font-light">
-                          Nodos creados: <strong className="text-slate-800 dark:text-white font-medium">{project.nodeCount > 0 ? project.nodeCount : 24}</strong>
-                        </span>
-                        <span className="text-slate-300 dark:text-white/20">·</span>
-                        <span className="font-light">
-                          Fase: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{project.status === "archived" ? "Validación" : "Ejecución"}</strong>
-                        </span>
+                        {/* Botón de Acción (Hover Floral White) */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/workspace/${project.id}`); }}
+                          className="p-2 rounded-xl bg-[var(--surface)] text-[var(--muted)] border border-[var(--line)] group-hover:border-[var(--floral-50)]/50 group-hover:text-[var(--floral-50)] transition-all"
+                        >
+                          <ArrowUpRight className="w-4 h-4" />
+                        </button>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/workspace/${project.id}`);
-                        }}
-                        className="
-                          p-2 rounded-xl bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
-                          border border-white/80 dark:border-white/10 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400
-                          transition-all duration-200 flex items-center justify-center cursor-pointer shadow-xs shrink-0
-                        "
-                        title="Abrir proyecto"
-                        aria-label={`Abrir proyecto ${project.name}`}
-                      >
-                        <ArrowUpRight className="w-4 h-4" />
-                      </button>
                     </div>
                   </motion.div>
                 );
               })}
             </div>
-          )}
+          </div>
         </div>
       </main>
 
-      {/* ─── Delete Confirmation Modal ─── */}
-      <Modal
-        isOpen={!!projectToDelete}
-        onClose={() => setProjectToDelete(null)}
-        title="¿Eliminar proyecto?"
-        maxWidth="sm"
-      >
+      <Modal isOpen={!!projectToDelete} onClose={() => setProjectToDelete(null)} title="¿Eliminar proyecto?" maxWidth="sm">
         <div className="space-y-4">
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            ¿Estás seguro de que deseas eliminar{" "}
-            <strong className="text-slate-800 dark:text-white font-semibold">«{projectToDelete?.name}»</strong>?
+          <p className="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+            ¿Estás seguro de que deseas eliminar <strong className="text-[var(--fg)]">«{projectToDelete?.name}»</strong>?
             Esta acción borrará el diseño y todos sus conceptos de forma permanente.
           </p>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200/80 dark:border-white/10">
-            <Button
-              type="button"
-              variant="ghost"
-              size="md"
-              onClick={() => setProjectToDelete(null)}
-            >
-              {t("common.cancel", "Cancelar")}
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              size="md"
-              icon={<Trash2 className="w-4 h-4" />}
-              onClick={confirmDeleteProject}
-            >
-              Eliminar proyecto
-            </Button>
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--line)]">
+            <Button type="button" variant="ghost" onClick={() => setProjectToDelete(null)}>Cancelar</Button>
+            <Button type="button" variant="danger" icon={<Trash2 className="w-4 h-4" />} onClick={confirmDeleteProject}>Eliminar proyecto</Button>
           </div>
         </div>
       </Modal>
 
-      {/* ─── Internal Create Project Modal ─── */}
-      <CreateProjectModal
-        isOpen={internalCreateModalOpen}
-        onClose={() => setInternalCreateModalOpen(false)}
-        onSubmit={handleCreateProjectInternal}
-      />
+      <CreateProjectModal isOpen={internalCreateModalOpen} onClose={() => setInternalCreateModalOpen(false)} onSubmit={handleCreateProjectInternal} />
     </div>
   );
 };
