@@ -13,16 +13,77 @@ export interface PromptContext {
 }
 
 /**
+ * Detects whether a given text is in Spanish or English based on common linguistic markers.
+ * If ambiguous or neutral, it falls back to the provided fallback language (or "es").
+ */
+export function detectMessageLanguage(text: string, fallback: Language = "es"): Language {
+  if (!text || text.trim().length === 0) return fallback;
+
+  const normalized = text.toLowerCase().trim();
+
+  // 1. Definite Spanish-only characters
+  if (/[áéíóúüñ¿¡]/.test(normalized)) {
+    return "es";
+  }
+
+  // 2. High-frequency stop words / vocabulary
+  const spanishIndicators = new Set([
+    "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "en", "para", "por",
+    "con", "como", "que", "qué", "cómo", "cuál", "cuáles", "es", "son", "ser", "hacer", "quiero",
+    "crear", "aplicación", "app", "proyecto", "sistema", "hola", "buenas", "ayuda", "mi", "mis",
+    "tu", "tus", "su", "sus", "pero", "porque", "donde", "dónde", "cuando", "cuándo", "este",
+    "esta", "esto", "ese", "esa", "eso", "si", "sí", "no", "más", "bien", "plataforma", "idea",
+    "negocio", "usuario", "usuarios", "cliente", "clientes", "diseñar", "tengo", "tenemos",
+    "podemos", "puedo", "sobre", "entre", "sin", "hasta", "desde", "también", "tambien",
+    "desarrollar", "tienda", "servicio", "servicios", "necesito", "busco", "ayúdame", "ayudame",
+    "estudiante", "estudiantes", "universidad", "venta", "comprar", "vender"
+  ]);
+
+  const englishIndicators = new Set([
+    "the", "a", "an", "of", "in", "to", "for", "with", "as", "that", "what", "how", "which",
+    "is", "are", "be", "do", "does", "did", "want", "create", "need", "app", "application",
+    "project", "system", "hello", "hi", "help", "my", "your", "his", "her", "their", "our",
+    "but", "because", "where", "when", "who", "this", "these", "those", "here", "there", "yes",
+    "no", "not", "more", "good", "platform", "idea", "business", "user", "users", "customer",
+    "customers", "design", "build", "can", "could", "have", "has", "we", "they", "i", "you",
+    "about", "from", "into", "store", "service", "services", "looking", "please",
+    "student", "students", "university", "sale", "buy", "sell"
+  ]);
+
+  const words = normalized.match(/[a-zñáéíóúü]+/g) || [];
+  if (words.length === 0) return fallback;
+
+  let esCount = 0;
+  let enCount = 0;
+
+  for (const word of words) {
+    if (spanishIndicators.has(word)) esCount++;
+    if (englishIndicators.has(word)) enCount++;
+  }
+
+  if (esCount > enCount) return "es";
+  if (enCount > esCount) return "en";
+
+  return fallback;
+}
+
+/**
  * Returns the conditioned System Instruction for Google Gemini LLM based on the active state machine phase.
  */
 export function getSystemInstruction(phase: ChatPhase, lang: Language, projectName?: string): string {
-  const targetLang = lang === "es" ? "Español" : "English";
+  const isSpanish = lang === "es";
+  const targetLang = isSpanish ? "Español" : "English";
 
   const baseHeader = `Eres Nexo, un arquitecto de producto y estructurador de ideas de software e innovación de clase mundial.
 Trabajas en una aplicación de escritorio llamada Nexo para asistir al usuario en convertir ideas difusas en mapas conceptuales accionables.
 ${projectName ? `Proyecto activo: "${projectName}".` : ""}
-Idioma de respuesta: ${targetLang}.
-CRÍTICO: Si el usuario escribe en español o la interfaz está configurada en español, responde ABSOLUTAMENTE TODO en ${targetLang} (textos, preguntas, opciones, títulos, explicaciones y detalles).
+
+REGLA ABSOLUTA DE IDIOMA (COMPORTAMIENTO ESPEJO):
+- Tu idioma de respuesta DEBE COINCIDIR EXACTAMENTE con el idioma del mensaje del usuario:
+  * Si el usuario te habla o escribe en ESPAÑOL: Responde ABSOLUTAMENTE TODO en ESPAÑOL (textos de respuesta, preguntas de descubrimiento, opciones múltiples, títulos de nodos, descripciones, explicaciones simplificadas y detalles).
+  * Si el usuario te habla o escribe en INGLÉS (English): Responde ABSOLUTAMENTE TODO en INGLÉS (response texts, discovery questions, options, node titles, descriptions, simplified explanations, and node details).
+- Idioma de referencia para este turno: ${targetLang}.
+- PROHIBIDO responder en inglés si el mensaje del usuario está en español. Prohibido responder en español si el mensaje del usuario está en inglés.
 
 REGLA DE CONTEXTO ESTRICTO (GUARDRAIL): Eres una herramienta profesional de estructuración de ideas de negocio, software e innovación. Tienes estrictamente prohibido responder a mensajes fuera de contexto (ej. recetas de cocina, chistes, preguntas de cultura general o programación que no tengan que ver con el diseño del mapa conceptual).
 Si el mensaje del usuario no tiene NINGUNA relación con la ideación o el proyecto actual, ignora la fase actual y devuelve OBLIGATORIAMENTE este JSON:
@@ -179,7 +240,7 @@ Formato de salida JSON obligatorio para FASE 3:
  * Builds the user prompt payload with context of the current canvas.
  */
 export function buildUserPrompt(ctx: PromptContext): string {
-  const { phase, existingNodesSummary, userMessage } = ctx;
+  const { phase, existingNodesSummary, userMessage, lang } = ctx;
 
   let phaseInstruction = "";
   if (phase === "PHASE_1_DISCOVERY") {
@@ -190,6 +251,8 @@ export function buildUserPrompt(ctx: PromptContext): string {
     phaseInstruction = `Instrucción de fase: Sugiere ramificaciones estructuradas (legal, técnico, económico o riesgos) vinculadas a los conceptos existentes.`;
   }
 
+  const isEs = lang === "es";
+
   return `Nodos existentes en el lienzo:
 ${existingNodesSummary || "(Lienzo en blanco)"}
 
@@ -198,6 +261,14 @@ ${phaseInstruction}
 
 Mensaje del usuario:
 "${userMessage}"
+
+INSTRUCCIÓN DE IDIOMA CRÍTICA:
+- Responde estrictamente en el MISMO IDIOMA en que el usuario escribió su mensaje ("${userMessage}").
+- ${
+    isEs
+      ? "El mensaje está en ESPAÑOL: TODO el JSON (text, simplifiedExplanation, discoveryQuestions, options, títulos, descripciones y detalles de nodos) DEBE ESTAR 100% EN ESPAÑOL."
+      : "The message is in ENGLISH: the entire JSON (text, simplifiedExplanation, discoveryQuestions, options, node titles, descriptions, and details) MUST BE 100% IN ENGLISH."
+  }
 
 Genera tu respuesta en formato JSON estrictamente válido conforme a las instrucciones del sistema.`;
 }
