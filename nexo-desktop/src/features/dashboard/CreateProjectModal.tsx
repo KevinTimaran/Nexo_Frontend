@@ -64,7 +64,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         />
 
         <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-xs font-medium text-slate-700 dark:text-zinc-300">
+          <label className="text-xs font-medium text-[var(--text-main)] dark:text-[var(--text-muted)]">
             {t("projects.create.details")}
           </label>
           <textarea
@@ -73,17 +73,17 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             placeholder={t("projects.create.detailsPlaceholder")}
             rows={3}
             className="
-              w-full rounded-xl text-slate-800 dark:text-zinc-100 text-xs sm:text-sm p-3 placeholder:text-slate-400 dark:placeholder:text-zinc-500
-              bg-slate-100/50 dark:bg-black/40
-              border border-slate-200 dark:border-white/5
+              w-full rounded-xl text-[var(--text-main)] text-xs sm:text-sm p-3 placeholder:text-[var(--text-muted)] dark:placeholder:text-[var(--text-muted)]
+              bg-[var(--bg-app)] dark:bg-[var(--bg-app)]
+              border border-[var(--border-main)] dark:border-[var(--border-main)]
               shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
-              focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
+              focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)] dark:focus:border-[var(--color-accent)]
               transition-all duration-200 resize-none
             "
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200/80 dark:border-white/10">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--border-main)] dark:border-[var(--border-main)]">
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
@@ -91,7 +91,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             type="submit"
             variant="primary"
             loading={loading}
-            className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
+            className="!rounded-xl !bg-[var(--color-primary)] hover:!bg-[var(--color-accent)] !text-[var(--text-main)] shadow-sm"
             icon={<Plus className="w-4 h-4" />}
           >
             {t("projects.create.submit")}
