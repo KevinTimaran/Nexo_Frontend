@@ -31,26 +31,26 @@ export const ConnectivityStatus: React.FC = () => {
     if (backendStatus === "connected") {
       return {
         label: "Servidor Conectado",
-        dotClass: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]",
+        dotClass: "bg-positive shadow-[0_0_8px_rgba(16,185,129,0.7)]",
         pillClass:
-          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/15",
-        icon: <CheckCircle2 className="w-3 h-3 text-emerald-500" />,
+          "bg-positive/10 text-positive dark:text-positive border-positive/30 hover:bg-positive/15",
+        icon: <CheckCircle2 className="w-3 h-3 text-positive" />,
       };
     }
 
     if (backendStatus === "error") {
       return {
         label: "Error Conexión",
-        dotClass: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]",
-        pillClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/15",
-        icon: <AlertTriangle className="w-3 h-3 text-rose-500" />,
+        dotClass: "bg-danger shadow-[0_0_8px_rgba(244,63,94,0.7)]",
+        pillClass: "bg-danger/10 text-danger dark:text-danger border-danger/30 hover:bg-danger/15",
+        icon: <AlertTriangle className="w-3 h-3 text-danger" />,
       };
     }
 
     return {
       label: "Servidor Desconectado",
-      dotClass: "bg-zinc-400",
-      pillClass: "bg-zinc-500/10 text-muted border-zinc-500/25 hover:bg-zinc-500/15",
+      dotClass: "bg-muted",
+      pillClass: "bg-muted/10 text-muted border-line/25 hover:bg-muted/15",
       icon: <ShieldAlert className="w-3 h-3 text-muted" />,
     };
   };
