@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Sun,
-  Moon,
-  Monitor,
   Globe,
   Bell,
   Volume2,
@@ -23,10 +20,9 @@ import {
 } from "lucide-react";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { useTheme } from "../../app/providers/ThemeProvider";
 import { currentLanguage, setLanguage } from "../../i18n";
 import { useAuth } from "../../context/AuthContext";
-import type { Language, ThemeMode } from "../../domain/types";
+import type { Language } from "../../domain/types";
 import {
   getGeminiApiKey,
   getGeminiModel,
@@ -46,7 +42,6 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
-  const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const lang = currentLanguage();
 
@@ -97,49 +92,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     void setLanguage(newLang);
   };
 
-  const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode }[] = [
-    { mode: "light", label: t("settings.themes.light"), icon: <Sun className="w-4 h-4 text-amber-500" /> },
-    { mode: "dark", label: t("settings.themes.dark"), icon: <Moon className="w-4 h-4 text-blue-500" /> },
-    { mode: "system", label: t("settings.themes.system"), icon: <Monitor className="w-4 h-4 text-slate-400 dark:text-zinc-400" /> },
-  ];
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={t("settings.title")}
-      maxWidth="lg"
+      maxWidth="xl"
     >
-      <div className="space-y-6 max-h-[68vh] overflow-y-auto pr-2 pb-6 text-slate-800 dark:text-zinc-100">
-        {/* Appearance Section */}
-        <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1">{t("settings.appearance")}</h4>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mb-3">{t("settings.themeDescription")}</p>
-          <div className="grid grid-cols-3 gap-3">
-            {themeOptions.map((opt) => (
-              <button
-                key={opt.mode}
-                onClick={() => setTheme(opt.mode)}
-                className={`
-                  p-3.5 rounded-2xl border flex flex-col items-center gap-2.5 text-xs font-semibold transition-all duration-200 cursor-pointer
-                  ${
-                    theme === opt.mode
-                      ? "bg-blue-50/80 dark:bg-blue-500/15 border-blue-500/80 dark:border-blue-400 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-500/30"
-                      : "bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/10 text-slate-600 dark:text-zinc-300 hover:bg-white/80 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
-                  }
-                `}
-              >
-                {opt.icon}
-                <span>{opt.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
+      <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 pb-6 text-fg dark:text-fg">
         {/* Language Section */}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1">{t("settings.language")}</h4>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mb-3">{t("settings.languageDescription")}</p>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted dark:text-muted mb-1">{t("settings.language")}</h4>
+          <p className="text-xs text-muted dark:text-muted mb-3">{t("settings.languageDescription")}</p>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handleLangChange("en")}
@@ -147,16 +111,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 p-3.5 rounded-2xl border flex items-center justify-between text-xs font-semibold transition-all duration-200 cursor-pointer
                 ${
                   lang === "en"
-                    ? "bg-blue-50/80 dark:bg-blue-500/15 border-blue-500/80 dark:border-blue-400 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-500/30"
-                    : "bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/10 text-slate-600 dark:text-zinc-300 hover:bg-white/80 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-primary/80 dark:bg-primary/15 border-primary/80 dark:border-primary text-primary dark:text-primary shadow-sm ring-1 ring-primary/30"
+                    : "bg-surface/50 dark:bg-surface/5 border-line/80 dark:border-line/10 text-muted dark:text-muted hover:bg-surface/80 dark:hover:bg-surface/10 hover:text-fg dark:hover:text-fg"
                 }
               `}
             >
               <span className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Globe className="w-4 h-4 text-primary dark:text-primary" />
                 English
               </span>
-              {lang === "en" && <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+              {lang === "en" && <Check className="w-4 h-4 text-primary dark:text-primary" />}
             </button>
 
             <button
@@ -165,106 +129,106 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 p-3.5 rounded-2xl border flex items-center justify-between text-xs font-semibold transition-all duration-200 cursor-pointer
                 ${
                   lang === "es"
-                    ? "bg-blue-50/80 dark:bg-blue-500/15 border-blue-500/80 dark:border-blue-400 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-500/30"
-                    : "bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/10 text-slate-600 dark:text-zinc-300 hover:bg-white/80 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-primary/80 dark:bg-primary/15 border-primary/80 dark:border-primary text-primary dark:text-primary shadow-sm ring-1 ring-primary/30"
+                    : "bg-surface/50 dark:bg-surface/5 border-line/80 dark:border-line/10 text-muted dark:text-muted hover:bg-surface/80 dark:hover:bg-surface/10 hover:text-fg dark:hover:text-fg"
                 }
               `}
             >
               <span className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Globe className="w-4 h-4 text-primary dark:text-primary" />
                 Español
               </span>
-              {lang === "es" && <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+              {lang === "es" && <Check className="w-4 h-4 text-primary dark:text-primary" />}
             </button>
           </div>
         </div>
 
         {/* Interface Preferences */}
-        <div className="space-y-3 pt-3 border-t border-white/60 dark:border-white/10">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">{t("settings.interface")}</h4>
+        <div className="space-y-3 pt-3 border-t border-line/60 dark:border-line/10">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted dark:text-muted">{t("settings.interface")}</h4>
 
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 backdrop-blur-md shadow-xs">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10 backdrop-blur-md shadow-xs">
             <div className="flex items-center gap-3">
-              <Eye className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+              <Eye className="w-4 h-4 text-muted dark:text-muted" />
               <div>
-                <p className="text-xs font-semibold text-slate-800 dark:text-zinc-100">{t("settings.reduceMotion")}</p>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{t("settings.reduceMotionDescription")}</p>
+                <p className="text-xs font-semibold text-fg dark:text-fg">{t("settings.reduceMotion")}</p>
+                <p className="text-[11px] text-muted dark:text-muted">{t("settings.reduceMotionDescription")}</p>
               </div>
             </div>
             <input
               type="checkbox"
               checked={reduceMotion}
               onChange={(e) => setReduceMotion(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="w-4 h-4 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
             />
           </div>
 
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 backdrop-blur-md shadow-xs">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10 backdrop-blur-md shadow-xs">
             <div className="flex items-center gap-3">
-              <Bell className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+              <Bell className="w-4 h-4 text-muted dark:text-muted" />
               <div>
-                <p className="text-xs font-semibold text-slate-800 dark:text-zinc-100">{t("settings.desktopNotifications")}</p>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{t("settings.desktopNotificationsDescription")}</p>
+                <p className="text-xs font-semibold text-fg dark:text-fg">{t("settings.desktopNotifications")}</p>
+                <p className="text-[11px] text-muted dark:text-muted">{t("settings.desktopNotificationsDescription")}</p>
               </div>
             </div>
             <input
               type="checkbox"
               checked={notifications}
               onChange={(e) => setNotifications(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="w-4 h-4 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
             />
           </div>
 
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 backdrop-blur-md shadow-xs">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10 backdrop-blur-md shadow-xs">
             <div className="flex items-center gap-3">
-              <Volume2 className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+              <Volume2 className="w-4 h-4 text-muted dark:text-muted" />
               <div>
-                <p className="text-xs font-semibold text-slate-800 dark:text-zinc-100">{t("settings.sound")}</p>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{t("settings.soundDescription")}</p>
+                <p className="text-xs font-semibold text-fg dark:text-fg">{t("settings.sound")}</p>
+                <p className="text-[11px] text-muted dark:text-muted">{t("settings.soundDescription")}</p>
               </div>
             </div>
             <input
               type="checkbox"
               checked={sound}
               onChange={(e) => setSound(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="w-4 h-4 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
             />
           </div>
         </div>
 
         {/* Google Gemini AI Configuration */}
-        <div className="pt-3 border-t border-white/60 dark:border-white/10 space-y-3">
+        <div className="pt-3 border-t border-line/60 dark:border-line/10 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/25">
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
-              <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-100">Google Gemini AI</h4>
+              <h4 className="text-sm font-bold text-fg dark:text-fg">Google Gemini AI</h4>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">Motor Gemini Activo</span>
+              <span className="text-[11px] text-muted dark:text-muted font-medium">Motor Gemini Activo</span>
               <input
                 type="checkbox"
                 checked={geminiEnabled}
                 onChange={(e) => handleToggleGemini(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-blue-600 accent-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
               />
             </label>
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+          <p className="text-xs text-muted dark:text-muted leading-relaxed">
             Conecta directamente con la API de Google Gemini para alimentar el Chat Copilot, el modo Tutor pedagógico y la generación inteligente del mapa conceptual.
           </p>
 
           {/* API Key Input (Sunken recipe) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <label className="font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+              <label className="font-semibold text-fg dark:text-muted flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-muted dark:text-muted" />
                 Clave API de Gemini
               </label>
               {isFromEnv && (
-                <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-[10px] font-medium text-positive dark:text-positive bg-positive/10 px-2 py-0.5 rounded-full border border-positive/20">
                   Cargada desde .env.local
                 </span>
               )}
@@ -277,18 +241,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 placeholder="AIzaSy..."
                 className="
                   w-full text-xs font-mono px-3.5 py-2.5 pr-10 rounded-xl
-                  text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500
-                  bg-slate-100/50 dark:bg-black/40
-                  border border-slate-200 dark:border-white/5
+                  text-fg dark:text-fg placeholder:text-muted dark:placeholder:text-muted
+                  bg-sunken/50 dark:bg-app/40
+                  border border-line dark:border-line/5
                   shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
-                  focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
+                  focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
                   transition-all duration-200
                 "
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded-lg hover:bg-white/40 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg dark:hover:text-fg p-1 rounded-lg hover:bg-surface/40 dark:hover:bg-surface/10 transition-colors cursor-pointer"
                 title={showKey ? "Ocultar clave" : "Mostrar clave"}
               >
                 {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -299,8 +263,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Model Selection and Test Button */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-                <Cpu className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+              <label className="text-xs font-semibold text-fg dark:text-muted mb-1.5 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-muted dark:text-muted" />
                 Modelo de Gemini
               </label>
               <select
@@ -308,17 +272,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 onChange={(e) => setModel(e.target.value)}
                 className="
                   w-full text-xs px-3 py-2 rounded-xl
-                  text-slate-800 dark:text-zinc-100
-                  bg-slate-100/50 dark:bg-black/40
-                  border border-slate-200 dark:border-white/5
+                  text-fg dark:text-fg
+                  bg-sunken/50 dark:bg-app/40
+                  border border-line dark:border-line/5
                   shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
-                  focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400
+                  focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
                   cursor-pointer
                 "
               >
-                <option value="gemini-2.5-flash" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-zinc-100">gemini-2.5-flash (Rápido y eficiente)</option>
-                <option value="gemini-2.5-pro" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-zinc-100">gemini-2.5-pro (Razonamiento profundo)</option>
-                <option value="gemini-flash-latest" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-zinc-100">gemini-flash-latest (Última versión)</option>
+                <option value="gemini-2.5-flash" className="bg-surface dark:bg-surface text-fg dark:text-fg">gemini-2.5-flash (Rápido y eficiente)</option>
+                <option value="gemini-2.5-pro" className="bg-surface dark:bg-surface text-fg dark:text-fg">gemini-2.5-pro (Razonamiento profundo)</option>
+                <option value="gemini-flash-latest" className="bg-surface dark:bg-surface text-fg dark:text-fg">gemini-flash-latest (Última versión)</option>
               </select>
             </div>
 
@@ -329,16 +293,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 disabled={testing || !apiKey}
                 className="
                   h-[38px] px-3.5 rounded-xl
-                  border border-white/80 dark:border-white/10
-                  bg-white/60 dark:bg-white/10 hover:bg-white/90 dark:hover:bg-white/15
-                  text-xs font-semibold text-slate-700 dark:text-zinc-200
+                  border border-line/80 dark:border-line/10
+                  bg-surface/60 dark:bg-surface/10 hover:bg-surface/90 dark:hover:bg-surface/15
+                  text-xs font-semibold text-fg dark:text-fg
                   flex items-center justify-center gap-2 shadow-xs
                   transition-all active:scale-95 disabled:opacity-50 cursor-pointer
                 "
               >
                 {testing ? (
                   <>
-                    <RotateCw className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+                    <RotateCw className="w-3.5 h-3.5 animate-spin text-primary dark:text-primary" />
                     <span>Probando API...</span>
                   </>
                 ) : (
@@ -356,15 +320,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <div
               className={`p-3 rounded-xl border text-xs flex items-center justify-between transition-all backdrop-blur-sm ${
                 testResult.ok
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                  : "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400"
+                  ? "bg-positive/10 border-positive/30 text-positive dark:text-positive"
+                  : "bg-danger/10 border-danger/30 text-danger dark:text-danger"
               }`}
             >
               <div className="flex items-center gap-2">
                 {testResult.ok ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-positive dark:text-positive shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-danger dark:text-danger shrink-0" />
                 )}
                 <span className="font-medium">
                   {testResult.ok
@@ -384,7 +348,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           <div className="flex items-center justify-between pt-1">
             {savedSuccess ? (
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-positive dark:text-positive flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5" /> Ajustes guardados correctamente
               </span>
             ) : (
@@ -394,7 +358,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               variant="primary"
               size="sm"
               onClick={handleSaveGemini}
-              className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-[0_4px_16px_rgba(37,99,235,0.25)] cursor-pointer"
+              className="!rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-[0_4px_16px_rgba(37,99,235,0.25)] cursor-pointer"
               icon={<Save className="w-3.5 h-3.5" />}
             >
               Guardar Ajustes de Gemini
@@ -404,16 +368,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
         {/* Account Section */}
         {user && (
-          <div className="pt-3 border-t border-white/60 dark:border-white/10 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">{t("settings.account")}</h4>
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 backdrop-blur-md shadow-xs">
+          <div className="pt-3 border-t border-line/60 dark:border-line/10 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted dark:text-muted">{t("settings.account")}</h4>
+            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10 backdrop-blur-md shadow-xs">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary dark:text-primary flex items-center justify-center font-bold">
                   <UserIcon className="w-4 h-4" />
                 </div>
                 <div className="truncate">
-                  <p className="text-xs font-bold text-slate-800 dark:text-zinc-100 truncate">{user.name}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
+                  <p className="text-xs font-bold text-fg dark:text-fg truncate">{user.name}</p>
+                  <p className="text-[11px] text-muted dark:text-muted truncate">{user.email}</p>
                 </div>
               </div>
 
@@ -434,11 +398,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         )}
 
         {/* Footer Version Info */}
-        <div className="text-center pt-2 text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+        <div className="text-center pt-2 text-[11px] font-mono text-muted dark:text-muted">
           {t("settings.version", { version: "1.0.0" })}
         </div>
       </div>
     </Modal>
   );
 };
-
