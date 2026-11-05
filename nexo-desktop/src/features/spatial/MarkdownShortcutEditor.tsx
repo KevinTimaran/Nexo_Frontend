@@ -283,21 +283,21 @@ export const MarkdownShortcutEditor: React.FC<MarkdownShortcutEditorProps> = ({
   const isLimitReached = value.length >= MAX_CHARS;
 
   return (
-    <div className="flex h-full min-h-0 flex-col font-sans bg-[#050505] relative overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col font-sans bg-app relative overflow-hidden">
       {/* Barra Superior Flotante */}
-      <div className="shrink-0 px-6 py-3 flex items-center justify-between select-none bg-[#050505]/80 backdrop-blur-md border-b border-white/5 z-10">
+      <div className="shrink-0 px-6 py-3 flex items-center justify-between select-none bg-app/80 backdrop-blur-md border-b border-line/5 z-10">
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-mono text-zinc-500 tracking-wider uppercase">
+          <span className="text-[11px] font-mono text-muted tracking-wider uppercase">
             Documento
           </span>
         </div>
         
         <div className="flex items-center gap-3 text-[11px] font-mono">
-          <span className="text-zinc-500 bg-white/5 px-2.5 py-1 rounded-full">
+          <span className="text-muted bg-surface/5 px-2.5 py-1 rounded-full">
             {wordCount} palabras
           </span>
           <span className={`px-2.5 py-1 rounded-full transition-colors ${
-            isLimitReached ? "text-red-400 bg-red-400/10" : "text-zinc-500 bg-white/5"
+            isLimitReached ? "text-red-400 bg-red-400/10" : "text-muted bg-surface/5"
           }`}>
             {value.length.toLocaleString()} / {MAX_CHARS.toLocaleString()}
           </span>
@@ -318,9 +318,9 @@ export const MarkdownShortcutEditor: React.FC<MarkdownShortcutEditorProps> = ({
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   style={{ top: slashMenu.top, left: slashMenu.left }}
-                  className="absolute z-50 w-56 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5"
+                  className="absolute z-50 w-56 bg-surface/95 backdrop-blur-xl border border-line/10 rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5"
                 >
-                  <div className="px-2 py-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  <div className="px-2 py-1 text-[10px] font-semibold text-muted uppercase tracking-wider">
                     Formato
                   </div>
                   {[
@@ -333,12 +333,12 @@ export const MarkdownShortcutEditor: React.FC<MarkdownShortcutEditorProps> = ({
                     <button
                       key={item.type}
                       onClick={() => applySlashCommand(item.type)}
-                      className="flex items-center gap-3 w-full px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors group cursor-pointer"
+                      className="flex items-center gap-3 w-full px-2 py-1.5 rounded-lg hover:bg-surface/10 text-left transition-colors group cursor-pointer"
                     >
-                      <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-indigo-400 transition-colors">
+                      <div className="w-6 h-6 rounded bg-surface/5 flex items-center justify-center text-muted group-hover:text-primary transition-colors">
                         <item.icon className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-xs text-zinc-200 font-medium">{item.label}</span>
+                      <span className="text-xs text-fg font-medium">{item.label}</span>
                     </button>
                   ))}
                 </motion.div>
@@ -354,19 +354,19 @@ export const MarkdownShortcutEditor: React.FC<MarkdownShortcutEditorProps> = ({
             const isQuote = block.type === "quote";
 
             const typographyClass = isH1
-              ? "text-4xl font-bold text-white tracking-tight mt-6 mb-2"
+              ? "text-4xl font-bold text-fg tracking-tight mt-6 mb-2"
               : isH2
-              ? "text-2xl font-semibold text-zinc-100 tracking-tight mt-5 mb-1"
+              ? "text-2xl font-semibold text-fg tracking-tight mt-5 mb-1"
               : isH3
-              ? "text-xl font-medium text-zinc-200 mt-4 mb-1"
+              ? "text-xl font-medium text-fg mt-4 mb-1"
               : isQuote
-              ? "text-lg italic text-zinc-400 border-l-4 border-indigo-500/50 pl-4 my-2"
-              : "text-base text-zinc-300 leading-7";
+              ? "text-lg italic text-muted border-l-4 border-primary/50 pl-4 my-2"
+              : "text-base text-muted leading-7";
 
             return (
-              <div key={block.id} className={`flex items-start gap-3 group rounded-md transition-colors ${isAllSelected ? "bg-indigo-500/20 px-2 -mx-2" : ""}`}>
+              <div key={block.id} className={`flex items-start gap-3 group rounded-md transition-colors ${isAllSelected ? "bg-primary/20 px-2 -mx-2" : ""}`}>
                 {isBullet && (
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 mt-3 shrink-0 shadow-[0_0_8px_#818cf8]" />
+                  <span className="w-2 h-2 rounded-full bg-primary mt-3 shrink-0 shadow-[0_0_8px_var(--accent)]" />
                 )}
 
                 <textarea
@@ -395,7 +395,7 @@ export const MarkdownShortcutEditor: React.FC<MarkdownShortcutEditorProps> = ({
                       ? "Escribe algo o presiona '/' para comandos..."
                       : ""
                   }
-                  className={`w-full bg-transparent resize-none outline-none border-0 p-0 placeholder:text-zinc-600 transition-colors ${typographyClass}`}
+                  className={`w-full bg-transparent resize-none outline-none border-0 p-0 placeholder:text-muted transition-colors ${typographyClass}`}
                   style={{ minHeight: isH1 ? "3rem" : isH2 ? "2.5rem" : isH3 ? "2rem" : "1.75rem" }}
                 />
               </div>
