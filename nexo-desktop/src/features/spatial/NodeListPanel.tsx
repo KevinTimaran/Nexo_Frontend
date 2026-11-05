@@ -1,0 +1,413 @@
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
+import { Glass } from "glisse";
+import { Search, X, Network, Filter, MoreVertical, Trash2, Edit2, Check } from "lucide-react";
+import { getSpatialGroup } from "../../domain/spatial";
+import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+
+export const NodeListPanel: React.FC = () => {
+  const [query, setQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  // Estados para el nuevo menú de opciones
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  const spatialNodes = useWorkspaceStore((s) => s.spatialNodes);
+  const spatialGroupColors = useWorkspaceStore((s) => s.spatialGroupColors);
+  const selectedNodeId = useWorkspaceStore((s) => s.selectedNodeId);
+  const focusSpatialNode = useWorkspaceStore((s) => s.focusSpatialNode);
+  const setActiveLeftPanel = useWorkspaceStore((s) => s.setActiveLeftPanel);
+  
+  // Asegúrate de tener estas o equivalentes en tu store para que funcione la lógica
+  const removeSpatialNode = useWorkspaceStore((s) => s.removeSpatialNode); 
+  const updateSpatialNode = useWorkspaceStore((s) => s.updateSpatialNode); 
+
+  const uniqueGroups = useMemo(() => {
+    return Array.from(new Set(spatialNodes.map((node) => node.group)));
+  }, [spatialNodes]);
+
+  const filteredNodes = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    
+    return spatialNodes.filter((node) => {
+      const matchesQuery =
+        !normalized ||
+        node.name.toLowerCase().includes(normalized) ||
+        node.group.toLowerCase().includes(normalized) ||
+        (node.desc && node.desc.toLowerCase().includes(normalized));
+      
+      const matchesGroup = !activeFilter || node.group === activeFilter;
+
+      return matchesQuery && matchesGroup;
+    });
+  }, [spatialNodes, query, activeFilter]);
+
+  const close = () => setActiveLeftPanel(null);
+
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.x > 75 || info.velocity.x > 320) {
+      close();
+    }
+  };
+
+  const handleSelectNode = (nodeId: string) => {
+    // Si estamos editando o interactuando con el menú, no cambiamos el foco principal
+    if (!activeMenu) {
+      focusSpatialNode(nodeId);
+    }
+  };
+
+  const handleToggleMenu = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    if (activeMenu === nodeId) {
+      setActiveMenu(null);
+      setDeleteConfirm(null);
+      setRenameId(null);
+    } else {
+      setActiveMenu(nodeId);
+      setDeleteConfirm(null);
+      setRenameId(null);
+    }
+  };
+
+  const handleConfirmDelete = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    if (removeSpatialNode) removeSpatialNode(nodeId);
+    setDeleteConfirm(null);
+    setActiveMenu(null);
+  };
+
+  const handleSaveRename = (e: React.MouseEvent | React.KeyboardEvent, nodeId: string) => {
+    e.stopPropagation();
+    if (renameValue.trim() && updateSpatialNode) {
+      updateSpatialNode(nodeId, { name: renameValue.trim() });
+    }
+    setRenameId(null);
+    setActiveMenu(null);
+  };
+
+  return (
+    <motion.aside
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={{ right: 0.6, left: 0.1 }}
+      onDragEnd={handleDragEnd}
+      initial={{ opacity: 0, x: -30, scale: 0.96 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -30, scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 340, damping: 26 }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      className="fixed left-24 top-1/2 -translate-y-1/2 z-40 w-96 max-w-[calc(100vw-7.5rem)] h-[72vh] rounded-3xl bg-zinc-950/60 backdrop-blur-2xl ring-1 ring-white/10 p-5 flex flex-col gap-3.5 shadow-2xl select-none overflow-hidden"
+    >
+      <Glass
+        className="absolute inset-0 pointer-events-none rounded-[inherit] -z-10 !bg-transparent"
+        aria-hidden="true"
+      />
+
+      <div
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"
+        aria-hidden="true"
+      />
+
+      <div className="w-10 h-1 rounded-full bg-white/20 mx-auto -mt-1 cursor-grab active:cursor-grabbing" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between pb-1">
+        <div className="flex items-center gap-2">
+          <Network className="w-4 h-4 text-indigo-400" />
+          <h3 className="text-sm font-semibold text-white tracking-tight">
+            Explorador de Nodos
+          </h3>
+          <motion.span 
+            layout
+            className="text-[11px] font-mono text-zinc-400 bg-white/5 px-2 py-0.5 rounded-full ring-1 ring-white/10"
+          >
+            {filteredNodes.length}
+          </motion.span>
+        </div>
+
+        <button
+          type="button"
+          onClick={close}
+          className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center justify-center shrink-0"
+          aria-label="Cerrar panel"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Search Input & Filter Button */}
+      <div className="flex gap-2">
+        <div className="relative flex-1 flex items-center rounded-2xl bg-zinc-900/80 ring-1 ring-white/15 px-3.5 py-2.5 transition-all focus-within:ring-white/40 focus-within:bg-zinc-900">
+          <Search className="w-4 h-4 text-zinc-400 shrink-0 mr-2.5" />
+          <input
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar nodo por nombre o clúster..."
+            className="w-full bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="text-zinc-400 hover:text-white transition-colors p-0.5 cursor-pointer absolute right-3"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        
+        <button
+          onClick={() => setIsFilterOpen(!isFilterOpen)}
+          className={`shrink-0 flex items-center justify-center w-[42px] rounded-2xl transition-all cursor-pointer ring-1 ${
+            isFilterOpen || activeFilter
+              ? "bg-zinc-800 ring-white/40 text-white"
+              : "bg-zinc-900/80 ring-white/15 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:ring-white/30"
+          }`}
+          aria-label="Filtros"
+        >
+          <Filter className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Expanded Filter Panel */}
+      <AnimatePresence>
+        {isFilterOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: "auto", marginBottom: 8 }} // mb-8 da más espacio con las cards
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="relative p-3 rounded-2xl bg-zinc-900/80 ring-1 ring-white/15 mt-1">
+              <p className="text-[11px] font-medium text-zinc-300 mb-2">Filtrar por clúster:</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setActiveFilter(null)}
+                  className={`text-[10px] font-mono px-2 py-1 rounded-lg transition-colors ring-1 ${
+                    activeFilter === null
+                      ? "bg-white/20 text-white ring-white/40 shadow-sm"
+                      : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                  }`}
+                >
+                  Todos
+                </button>
+                {uniqueGroups.map((group) => {
+                  const meta = getSpatialGroup(group);
+                  return (
+                    <button
+                      key={group}
+                      onClick={() => setActiveFilter(group)}
+                      className={`text-[10px] font-mono px-2 py-1 rounded-lg transition-colors ring-1 ${
+                        activeFilter === group
+                          ? "bg-white/20 text-white ring-white/40 shadow-sm"
+                          : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                      }`}
+                    >
+                      {meta.label || group}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Scrollable Mini-Cards List */}
+      <motion.div 
+        layout 
+        // Se añade pt-2 y -mt-2 para dar padding superior sin mover el bloque, evitando que el borde se corte
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden -mr-2 pr-3 pl-2 -ml-2 pt-2 -mt-2 space-y-2 pb-2"
+      >
+        <AnimatePresence mode="popLayout">
+          {filteredNodes.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-12 text-zinc-500 text-xs"
+            >
+              No se encontraron nodos coincidentes.
+            </motion.div>
+          ) : (
+            filteredNodes.map((node) => {
+              const meta = getSpatialGroup(node.group);
+              const color = spatialGroupColors[node.group] ?? meta.color;
+              const isSelected = selectedNodeId === node.id;
+              const isMenuOpen = activeMenu === node.id;
+
+              return (
+                <motion.div
+                  key={node.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  // Animación al eliminar: se desplaza a la izquierda y se encoge sutilmente
+                  exit={{ opacity: 0, scale: 0.85, x: -30, transition: { duration: 0.2, type: "spring" } }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                  onClick={() => handleSelectNode(node.id)}
+                  role="button"
+                  tabIndex={0}
+                  className={`w-full text-left rounded-xl p-2.5 transition-colors cursor-pointer ring-1 relative overflow-hidden flex flex-col ${
+                    isSelected
+                      ? "bg-zinc-800 ring-white/40 shadow-[0_0_12px_rgba(255,255,255,0.08)]"
+                      : isMenuOpen 
+                        ? "bg-zinc-800/90 ring-white/25"
+                        : "bg-zinc-900/85 hover:bg-zinc-800/95 ring-white/15 hover:ring-white/30"
+                  }`}
+                >
+                  {/* Fila Principal de la Tarjeta */}
+                  <div className="flex items-start justify-between gap-2.5 relative z-10">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 pt-0.5">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0 shadow-[0_0_8px_currentColor]"
+                        style={{ backgroundColor: color, color }}
+                      />
+                      <span className="text-xs font-semibold text-white truncate drop-shadow-sm">
+                        {node.name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[9px] font-mono text-zinc-300 bg-white/10 px-1.5 py-0.5 rounded-md ring-1 ring-white/10">
+                        {meta.label}
+                      </span>
+                      {/* Botón de Menú de Opciones */}
+                      <button 
+                        onClick={(e) => handleToggleMenu(e, node.id)}
+                        className={`p-1 rounded-md transition-colors ${
+                          isMenuOpen ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {node.desc && !isMenuOpen && (
+                    <p className="text-[11px] text-zinc-300 line-clamp-1 mt-1 pl-4 relative z-10 leading-snug">
+                      {node.desc}
+                    </p>
+                  )}
+
+                  {/* Panel de Opciones Expandible */}
+                  <AnimatePresence>
+                    {isMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginTop: 10 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div 
+                          className="relative p-2.5 rounded-xl bg-zinc-950/60 ring-1 ring-white/10 flex flex-col gap-2"
+                          onClick={(e) => e.stopPropagation()} // Evita seleccionar el nodo al interactuar con opciones
+                        >
+                          <Glass className="absolute inset-0 rounded-[inherit] -z-10 !bg-transparent opacity-30" />
+                          
+                          <AnimatePresence mode="wait">
+                            {deleteConfirm === node.id ? (
+                              <motion.div 
+                                key="delete"
+                                initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                                className="flex flex-col gap-2.5"
+                              >
+                                <p className="text-[11px] text-zinc-300 leading-snug">
+                                  ¿Eliminar <span className="text-white font-semibold">{node.name}</span>? Esta acción es irreversible.
+                                </p>
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={(e) => handleConfirmDelete(e, node.id)}
+                                    className="flex-1 bg-red-500/20 hover:bg-red-500/35 text-red-200 ring-1 ring-red-500/30 rounded-lg py-1.5 text-[10px] font-semibold transition-colors"
+                                  >
+                                    Sí, eliminar
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
+                                    className="flex-1 bg-white/5 hover:bg-white/15 text-zinc-300 ring-1 ring-white/10 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </motion.div>
+
+                            ) : renameId === node.id ? (
+                              <motion.div 
+                                key="rename"
+                                initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                                className="flex gap-1.5 items-center"
+                              >
+                                <input 
+                                  autoFocus
+                                  value={renameValue}
+                                  onChange={(e) => setRenameValue(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(e, node.id)}
+                                  className="flex-1 bg-zinc-900/80 text-white text-[11px] px-2.5 py-1.5 rounded-lg ring-1 ring-white/20 outline-none focus:ring-white/50 transition-all shadow-inner"
+                                  placeholder="Nuevo nombre..."
+                                />
+                                <button 
+                                  onClick={(e) => handleSaveRename(e, node.id)}
+                                  className="p-1.5 bg-white/15 hover:bg-white/25 rounded-lg ring-1 ring-white/20 text-white transition-colors"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setRenameId(null); }}
+                                  className="p-1.5 bg-white/5 hover:bg-red-500/20 rounded-lg ring-1 ring-white/10 text-zinc-400 hover:text-red-300 transition-colors"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </motion.div>
+
+                            ) : (
+                              <motion.div 
+                                key="options"
+                                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                                className="flex gap-2"
+                              >
+                                <button 
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setRenameId(node.id); 
+                                    setRenameValue(node.name); 
+                                  }} 
+                                  className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/15 text-zinc-200 ring-1 ring-white/10 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
+                                >
+                                  <Edit2 className="w-3 h-3" /> Renombrar
+                                </button>
+                                <button 
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setDeleteConfirm(node.id); 
+                                  }} 
+                                  className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-red-500/20 text-zinc-300 hover:text-red-300 ring-1 ring-white/10 hover:ring-red-500/40 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
+                                >
+                                  <Trash2 className="w-3 h-3" /> Eliminar
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.aside>
+  );
+};
+
+export default NodeListPanel;
