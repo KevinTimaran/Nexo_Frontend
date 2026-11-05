@@ -52,7 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/35 dark:bg-black/65 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 bg-app/35 dark:bg-app/65 backdrop-blur-md cursor-pointer"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -69,10 +69,7 @@ export const Modal: React.FC<ModalProps> = ({
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className={`
               relative z-10 w-full ${widthClasses[maxWidth]}
-              rounded-3xl overflow-hidden
-              bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-              dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-              text-slate-800 dark:text-zinc-100 select-text
+              glass-modal rounded-3xl overflow-hidden text-fg select-text
             `}
           >
             {/* Specular Top Reflection Hairline */}
@@ -82,22 +79,22 @@ export const Modal: React.FC<ModalProps> = ({
             />
 
             {(title || description) && (
-              <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/[0.02]">
+              <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02]">
                 <div className="pr-4">
                   {title && (
-                    <h3 id="modal-title" className="text-lg font-bold tracking-tight text-slate-800 dark:text-zinc-100 leading-snug">
+                    <h3 id="modal-title" className="text-lg font-bold tracking-tight text-fg dark:text-fg leading-snug">
                       {title}
                     </h3>
                   )}
                   {description && (
-                    <p id="modal-description" className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                    <p id="modal-description" className="text-xs text-muted dark:text-muted mt-1 leading-relaxed">
                       {description}
                     </p>
                   )}
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-zinc-100 hover:bg-white/40 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                  className="w-8 h-8 rounded-xl text-muted hover:text-fg dark:hover:text-fg hover:bg-surface/40 dark:hover:bg-surface/10 active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
                   aria-label="Cerrar modal"
                 >
                   <X className="w-4 h-4" />
