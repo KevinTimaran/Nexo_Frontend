@@ -2,7 +2,7 @@
  * Nexo System Prompts & Prompt Engineering Architecture.
  * Modular prompts conditioned on the active ChatPhase state machine.
  */
-import type { ChatPhase, Language } from "../../domain/types";
+import type { ChatPhase, Language, Message } from "../../domain/types";
 
 export interface PromptContext {
   phase: ChatPhase;
@@ -10,6 +10,7 @@ export interface PromptContext {
   projectName?: string;
   existingNodesSummary?: string;
   userMessage: string;
+  messageHistory?: Message[];
 }
 
 /**
@@ -105,16 +106,19 @@ ESTADO ACTUAL: FASE 1 — DESCUBRIMIENTO (PHASE_1_DISCOVERY)
 Objetivo estricto: Definir el "Qué, Quién y Cómo" de la idea sin apresurar soluciones.
 
 TU REGLA DE ORO DE FASE 1:
-Tienes ESTRICTAMENTE PROHIBIDO generar una solución técnica completa, sacar conclusiones precipitadas o crear múltiples nodos conceptuales en el mapa.
-Tu única tarea en esta fase es:
-1. Evaluar con agudeza la idea inicial o la respuesta del usuario con tono consultivo y empático.
-2. Formular exactamente entre 2 y 3 preguntas de opción múltiple muy agudas y estratégicas para delimitar el alcance.
-   - Cada pregunta debe contener 2 o 3 opciones claras y diferenciadas (ej. A) Modelo B2B, B) Modelo B2C, C) Marketplace P2P).
-   - Ejemplo de enfoque: Si el usuario dice "quiero hacer una app agrícola", debes preguntar sobre el modelo de negocio, el usuario final exacto y el problema principal que resuelve.
-3. Evaluar si la idea ya cuenta con suficiente definición (¿está claro qué es, para quién es y cuál es el mecanismo clave?).
-   - Si la idea aún es ambigua o recién empieza: "readyForStructuring": false.
-   - Si la idea ya tiene suficiente claridad y madurez para fijar la piedra angular: "readyForStructuring": true.
-4. En esta Fase 1, "nodes" DEBE SER SIEMPRE UNA LISTA VACÍA ([]). NO crees nodos en el lienzo todavía.
+ESTADO: FASE 1 - DESCUBRIMIENTO.
+El usuario te entregará una idea cruda en el campo 'userMessage'.
+TU MISIÓN OBLIGATORIA: Lee estrictamente la idea del usuario. NO uses ejemplos predefinidos. Genera 2 o 3 preguntas de opción múltiple que sirvan EXCLUSIVAMENTE para delimitar la idea específica que el usuario acaba de proponer. Si el usuario habla de medicina, tus preguntas deben ser sobre pacientes, doctores o clínicas.
+Devuelve el JSON con la propiedad discoveryQuestions.
+
+Requisitos de calidad:
+- Cada pregunta de opción múltiple debe tener 2 o 3 opciones claras, diferenciadas y relevantes al contexto real del usuario (no genéricas).
+- Las preguntas deben ir dirigidas al mundo real del usuario: si habla de medicina, pregunta sobre pacientes, doctores o clínicas. Si habla de comercio, pregunta sobre clientes, canales o rentabilidad. Si habla de tecnología, pregunta sobre arquitectura, escalabilidad o mantenimiento.
+- No uses ejemplos predefinidos. Todas las preguntas deben estar dibujadas a partir de la idea específica del usuario.
+- Evalúa si la idea ya cuenta con suficiente definición (¿está claro qué es, para quién es y cuál es el mecanismo clave?).
+  - Si la idea aún es ambigua o recién empieza: "readyForStructuring": false.
+  - Si la idea ya tiene suficiente claridad y madurez para fijar la piedra angular: "readyForStructuring": true.
+- En esta Fase 1, "nodes" DEBE SER SIEMPRE UNA LISTA VACÍA ([]). NO crees nodos en el lienzo todavía.
 
 Formato de salida JSON obligatorio para FASE 1:
 {
@@ -125,21 +129,8 @@ Formato de salida JSON obligatorio para FASE 1:
   "discoveryQuestions": [
     {
       "id": "q1",
-      "question": "¿Cuál es el modelo de distribución principal?",
-      "options": [
-        "B2B (Directo a empresas y restaurantes)",
-        "B2C (Directo al consumidor final)",
-        "Comunidad colaborativa / P2P"
-      ]
-    },
-    {
-      "id": "q2",
-      "question": "¿Quién es el usuario prioritario en la primera versión?",
-      "options": [
-        "Pequeños productores locales",
-        "Distribuidores mayoristas",
-        "Compradores urbanos"
-      ]
+      "question": "¿Cuál es el aspecto más incierto de tu idea que aún no has resuelto?",
+      "options": []
     }
   ],
   "nodes": []
@@ -240,11 +231,16 @@ Formato de salida JSON obligatorio para FASE 3:
  * Builds the user prompt payload with context of the current canvas.
  */
 export function buildUserPrompt(ctx: PromptContext): string {
-  const { phase, existingNodesSummary, userMessage, lang } = ctx;
+  const { phase, existingNodesSummary, userMessage, lang, messageHistory } = ctx;
 
   let phaseInstruction = "";
   if (phase === "PHASE_1_DISCOVERY") {
-    phaseInstruction = `Instrucción de fase: Evalúa la idea sin generar nodos. Proporciona 2 o 3 preguntas de opción múltiple muy agudas para delimitar Qué, Quién y Cómo. Pon "readyForStructuring": true si la idea ya está madura para el mapa base.`;
+    // ALWAYS center the user's real message: it is the only thing the questions must be about.
+    phaseInstruction = `ESTADO: FASE 1 - DESCUBRIMIENTO.
+    El usuario te entregará una idea cruda en el campo 'userMessage'.
+    TU MISIÓN OBLIGATORIA: Lee estrictamente la idea del usuario. NO uses ejemplos predefinidos. Genera 2 o 3 preguntas de opción múltiple que sirvan EXCLUSIVAMENTE para delimitar la idea específica que el usuario acaba de proponer. Si el usuario habla de medicina, tus preguntas deben ser sobre pacientes, doctores o clínicas.
+    Devuelve el JSON con la propiedad discoveryQuestions.
+    Restricción estricta: Tus preguntas deben estar dibujadas 100% a partir del contenido del 'userMessage' que verás a continuación. No inventes, no usés ejemplos preestablecidos. Todo el contenido de tu respuesta debe estar condicionado a lo que el usuario escribió.`;
   } else if (phase === "PHASE_2_STRUCTURING") {
     phaseInstruction = `Instrucción de fase: Sintetiza lo conversado y genera ÚNICAMENTE el nodo central fundamental en 'nodes' para el lienzo.`;
   } else {
@@ -253,22 +249,38 @@ export function buildUserPrompt(ctx: PromptContext): string {
 
   const isEs = lang === "es";
 
+  // Build the message history section (last 3-4 messages)
+  const messageHistoryText = messageHistory
+    ? messageHistory
+        .slice(-4)
+        .reverse()
+        .map((m) => {
+          const role = m.role === "user" ? "Usuario" : "Asistente";
+          return `${role}: ${m.text}`;
+        })
+        .join("\\n")
+    : "(Sin historial de mensajes)";
+
   return `Nodos existentes en el lienzo:
 ${existingNodesSummary || "(Lienzo en blanco)"}
 
 Fase de interacción: ${phase}
 ${phaseInstruction}
 
-Mensaje del usuario:
+==================================================
+MENSAJE DEL USUARIO (input real - solo surte para las preguntas de esta fase):
+==================================================
 "${userMessage}"
+==================================================
+
+HISTORIAL DE MENSAJES RECIENTES (contexto conversacional):
+==================================================
+${messageHistoryText}
+==================================================
 
 INSTRUCCIÓN DE IDIOMA CRÍTICA:
 - Responde estrictamente en el MISMO IDIOMA en que el usuario escribió su mensaje ("${userMessage}").
-- ${
-    isEs
-      ? "El mensaje está en ESPAÑOL: TODO el JSON (text, simplifiedExplanation, discoveryQuestions, options, títulos, descripciones y detalles de nodos) DEBE ESTAR 100% EN ESPAÑOL."
-      : "The message is in ENGLISH: the entire JSON (text, simplifiedExplanation, discoveryQuestions, options, node titles, descriptions, and details) MUST BE 100% IN ENGLISH."
-  }
+- ${isEs ? "El mensaje está en ESPAÑOL: TODO el JSON (text, simplifiedExplanation, discoveryQuestions, options, títulos, descripciones y detalles de nodos) DEBE ESTAR 100% EN ESPAÑOL." : "The message is in ENGLISH: the entire JSON (text, simplifiedExplanation, discoveryQuestions, options, node titles, descriptions, and details) MUST BE 100% IN ENGLISH."}
 
 Genera tu respuesta en formato JSON estrictamente válido conforme a las instrucciones del sistema.`;
 }
