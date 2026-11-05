@@ -246,6 +246,7 @@ export const geminiAiService: AIService = {
       lang: effectiveLang,
       existingNodesSummary: existingSummary,
       userMessage: text,
+      messageHistory: request.messageHistory,
     });
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
