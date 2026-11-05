@@ -96,7 +96,7 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 relative overflow-hidden select-none font-sans">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-app dark:bg-app text-fg dark:text-fg relative overflow-hidden select-none font-sans">
       {/* ─── 1. Elegant Mesh Gradient & VisionOS Ambient Orbs ─── */}
       <div
         aria-hidden="true"
@@ -104,11 +104,11 @@ export const LoginView: React.FC = () => {
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-blue-200/50 dark:bg-indigo-900/40 z-0"
+        className="pointer-events-none absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-primary/20 dark:bg-surface/40 z-0"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 -right-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-emerald-200/50 dark:bg-emerald-900/30 z-0"
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[620px] h-[620px] rounded-full blur-[120px] bg-positive/15 dark:bg-surface/30 z-0"
       />
       <div
         aria-hidden="true"
@@ -125,9 +125,9 @@ export const LoginView: React.FC = () => {
         <div
           className="
             relative rounded-3xl overflow-hidden
-            bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-            dark:bg-black/20 dark:border-white/10 dark:shadow-2xl
-            text-slate-800 dark:text-zinc-100 select-text
+            bg-surface/70 backdrop-blur-2xl border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+            dark:bg-app/20 dark:border-line/10 dark:shadow-2xl
+            text-fg dark:text-fg select-text
           "
         >
           {/* Specular hairline top reflection */}
@@ -144,8 +144,8 @@ export const LoginView: React.FC = () => {
                 className="
                   relative w-15 h-15 rounded-2xl
                   bg-gradient-to-br from-blue-600 to-indigo-600
-                  flex items-center justify-center text-white
-                  shadow-lg shadow-blue-500/25 ring-1 ring-white/40
+                  flex items-center justify-center text-fg
+                  shadow-lg shadow-blue-500/25 ring-1 ring-line/40
                   transition-transform duration-300 hover:scale-[1.03]
                   mb-3
                 "
@@ -153,27 +153,27 @@ export const LoginView: React.FC = () => {
                 <Sparkles className="w-7 h-7 drop-shadow-sm" />
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-2 top-1 h-6 rounded-full bg-white/25 blur-md"
+                  className="pointer-events-none absolute inset-x-2 top-1 h-6 rounded-full bg-surface/25 blur-md"
                 />
               </div>
 
-              <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-zinc-100">
+              <h1 className="text-2xl font-bold tracking-tight text-fg dark:text-fg">
                 {t("app.name")}
               </h1>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-[280px] leading-relaxed">
+              <p className="text-xs text-muted dark:text-muted mt-1 max-w-[280px] leading-relaxed">
                 {t("app.tagline")}
               </p>
             </div>
 
             {/* Mode Switcher Tabs */}
-            <div className="flex p-1 bg-slate-200/50 dark:bg-white/5 rounded-2xl mb-5 border border-slate-200/70 dark:border-white/10 relative">
+            <div className="flex p-1 bg-sunken/50 dark:bg-surface/5 rounded-2xl mb-5 border border-line/70 dark:border-line/10 relative">
               <button
                 type="button"
                 onClick={() => switchMode("login")}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all duration-200 cursor-pointer ${
                   mode === "login"
-                    ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white"
+                    ? "bg-surface dark:bg-surface/15 text-fg dark:text-fg shadow-xs"
+                    : "text-muted hover:text-fg dark:text-muted dark:hover:text-fg"
                 }`}
               >
                 {t("auth.loginTab", { defaultValue: "Iniciar sesión" })}
@@ -183,8 +183,8 @@ export const LoginView: React.FC = () => {
                 onClick={() => switchMode("register")}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all duration-200 cursor-pointer ${
                   mode === "register"
-                    ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white"
+                    ? "bg-surface dark:bg-surface/15 text-fg dark:text-fg shadow-xs"
+                    : "text-muted hover:text-fg dark:text-muted dark:hover:text-fg"
                 }`}
               >
                 {t("auth.registerTab", { defaultValue: "Crear cuenta" })}
@@ -199,7 +199,7 @@ export const LoginView: React.FC = () => {
                     label={t("auth.email")}
                     type="email"
                     placeholder={t("auth.emailPlaceholder")}
-                    icon={<Mail className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
+                    icon={<Mail className="w-4 h-4 text-muted dark:text-muted" />}
                     autoComplete="email"
                     autoFocus
                     disabled={isLoading}
@@ -214,7 +214,7 @@ export const LoginView: React.FC = () => {
                     label={t("auth.password")}
                     type={showPassword ? "text" : "password"}
                     placeholder={t("auth.passwordPlaceholder")}
-                    icon={<Lock className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
+                    icon={<Lock className="w-4 h-4 text-muted dark:text-muted" />}
                     autoComplete="current-password"
                     disabled={isLoading}
                     error={loginErrors.password?.message}
@@ -226,8 +226,8 @@ export const LoginView: React.FC = () => {
                         disabled={isLoading}
                         className="
                           w-8 h-8 flex items-center justify-center
-                          rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-zinc-200
-                          hover:bg-white/40 dark:hover:bg-white/10 active:scale-95
+                          rounded-lg text-muted hover:text-fg dark:hover:text-fg
+                          hover:bg-surface/40 dark:hover:bg-surface/10 active:scale-95
                           transition-all duration-200 cursor-pointer
                           disabled:opacity-50
                         "
@@ -244,7 +244,7 @@ export const LoginView: React.FC = () => {
                 <div className="flex justify-end -mt-1">
                   <button
                     type="button"
-                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 transition-all rounded-md px-1 cursor-pointer"
+                    className="text-xs font-medium text-primary dark:text-primary hover:underline underline-offset-4 transition-all rounded-md px-1 cursor-pointer"
                   >
                     {t("auth.forgotPassword", { defaultValue: "¿Olvidaste tu contraseña?" })}
                   </button>
@@ -260,8 +260,8 @@ export const LoginView: React.FC = () => {
                       exit={{ opacity: 0, y: -6, height: 0 }}
                       className="
                         p-3 rounded-xl
-                        bg-rose-500/10 border border-rose-500/25
-                        text-rose-600 dark:text-rose-400 text-xs font-medium
+                        bg-danger/10 border border-danger/25
+                        text-danger dark:text-danger text-xs font-medium
                         flex items-start gap-2 backdrop-blur-sm
                       "
                     >
@@ -276,7 +276,7 @@ export const LoginView: React.FC = () => {
                   variant="primary"
                   size="lg"
                   loading={isLoading}
-                  className="w-full mt-2 !rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-[0_4px_16px_rgba(37,99,235,0.3)] cursor-pointer"
+                  className="w-full mt-2 !rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-[0_4px_16px_rgba(37,99,235,0.3)] cursor-pointer"
                   icon={<ArrowRight className="w-4 h-4" />}
                 >
                   {isLoading ? t("auth.submitting") : t("auth.submit")}
@@ -290,7 +290,7 @@ export const LoginView: React.FC = () => {
                     label={t("auth.name", { defaultValue: "Nombre completo" })}
                     type="text"
                     placeholder={t("auth.namePlaceholder", { defaultValue: "Ej. Kevin Rivera" })}
-                    icon={<UserIcon className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
+                    icon={<UserIcon className="w-4 h-4 text-muted dark:text-muted" />}
                     autoComplete="name"
                     autoFocus
                     disabled={isLoading}
@@ -305,7 +305,7 @@ export const LoginView: React.FC = () => {
                     label={t("auth.email", { defaultValue: "Correo electrónico" })}
                     type="email"
                     placeholder={t("auth.emailPlaceholder", { defaultValue: "kevin@nexo.ai" })}
-                    icon={<Mail className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
+                    icon={<Mail className="w-4 h-4 text-muted dark:text-muted" />}
                     autoComplete="email"
                     disabled={isLoading}
                     error={registerErrors.email?.message}
@@ -319,7 +319,7 @@ export const LoginView: React.FC = () => {
                     label={t("auth.password", { defaultValue: "Contraseña" })}
                     type={showPassword ? "text" : "password"}
                     placeholder={t("auth.passwordPlaceholder", { defaultValue: "Mín. 8 car., 1 mayúscula, 1 número, 1 símbolo" })}
-                    icon={<Lock className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
+                    icon={<Lock className="w-4 h-4 text-muted dark:text-muted" />}
                     autoComplete="new-password"
                     disabled={isLoading}
                     error={registerErrors.password?.message}
@@ -331,8 +331,8 @@ export const LoginView: React.FC = () => {
                         disabled={isLoading}
                         className="
                           w-8 h-8 flex items-center justify-center
-                          rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-zinc-200
-                          hover:bg-white/40 dark:hover:bg-white/10 active:scale-95
+                          rounded-lg text-muted hover:text-fg dark:hover:text-fg
+                          hover:bg-surface/40 dark:hover:bg-surface/10 active:scale-95
                           transition-all duration-200 cursor-pointer
                           disabled:opacity-50
                         "
@@ -350,7 +350,7 @@ export const LoginView: React.FC = () => {
                     label={t("auth.confirmPassword", { defaultValue: "Confirmar contraseña" })}
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder={t("auth.confirmPasswordPlaceholder", { defaultValue: "Repite tu contraseña" })}
-                    icon={<Lock className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
+                    icon={<Lock className="w-4 h-4 text-muted dark:text-muted" />}
                     autoComplete="new-password"
                     disabled={isLoading}
                     error={registerErrors.confirmPassword?.message}
@@ -362,8 +362,8 @@ export const LoginView: React.FC = () => {
                         disabled={isLoading}
                         className="
                           w-8 h-8 flex items-center justify-center
-                          rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-zinc-200
-                          hover:bg-white/40 dark:hover:bg-white/10 active:scale-95
+                          rounded-lg text-muted hover:text-fg dark:hover:text-fg
+                          hover:bg-surface/40 dark:hover:bg-surface/10 active:scale-95
                           transition-all duration-200 cursor-pointer
                           disabled:opacity-50
                         "
@@ -386,8 +386,8 @@ export const LoginView: React.FC = () => {
                       exit={{ opacity: 0, y: -6, height: 0 }}
                       className="
                         p-3 rounded-xl
-                        bg-rose-500/10 border border-rose-500/25
-                        text-rose-600 dark:text-rose-400 text-xs font-medium
+                        bg-danger/10 border border-danger/25
+                        text-danger dark:text-danger text-xs font-medium
                         flex items-start gap-2 backdrop-blur-sm
                       "
                     >
@@ -402,7 +402,7 @@ export const LoginView: React.FC = () => {
                   variant="primary"
                   size="lg"
                   loading={isLoading}
-                  className="w-full mt-2 !rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-[0_4px_16px_rgba(37,99,235,0.3)] cursor-pointer"
+                  className="w-full mt-2 !rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-[0_4px_16px_rgba(37,99,235,0.3)] cursor-pointer"
                   icon={<ArrowRight className="w-4 h-4" />}
                 >
                   {isLoading ? t("auth.submitting") : t("auth.registerButton", { defaultValue: "Registrarse" })}
@@ -411,7 +411,7 @@ export const LoginView: React.FC = () => {
             )}
 
             {/* Divider */}
-            <div className="mt-5 flex items-center gap-3 text-xs text-slate-400 dark:text-zinc-500">
+            <div className="mt-5 flex items-center gap-3 text-xs text-muted dark:text-muted">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/10 to-transparent" />
               <span className="tracking-wider uppercase font-semibold text-[10px]">
                 {t("auth.or", { defaultValue: "o" })}
@@ -420,14 +420,14 @@ export const LoginView: React.FC = () => {
             </div>
 
             {/* Bottom Toggle Prompt */}
-            <p className="mt-3.5 text-center text-xs text-slate-500 dark:text-zinc-400">
+            <p className="mt-3.5 text-center text-xs text-muted dark:text-muted">
               {mode === "login" ? (
                 <>
                   {t("auth.noAccount", { defaultValue: "¿No tienes cuenta?" })}{" "}
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
-                    className="font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
+                    className="font-semibold text-primary dark:text-primary hover:underline underline-offset-4 cursor-pointer"
                   >
                     {t("auth.requestAccess", { defaultValue: "Crea una cuenta" })}
                   </button>
@@ -438,7 +438,7 @@ export const LoginView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
-                    className="font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-4 cursor-pointer"
+                    className="font-semibold text-primary dark:text-primary hover:underline underline-offset-4 cursor-pointer"
                   >
                     {t("auth.loginAction", { defaultValue: "Inicia sesión" })}
                   </button>
@@ -450,16 +450,16 @@ export const LoginView: React.FC = () => {
             <div
               className="
                 mt-6 p-3.5 rounded-2xl
-                bg-white/40 dark:bg-white/5
-                border border-white/50 dark:border-white/10
+                bg-surface/40 dark:bg-surface/5
+                border border-line/50 dark:border-line/10
                 backdrop-blur-md
-                text-xs text-slate-600 dark:text-zinc-400
+                text-xs text-muted dark:text-muted
                 flex items-start gap-2.5 leading-normal shadow-xs
               "
             >
-              <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-primary dark:text-primary shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-slate-800 dark:text-zinc-100">
+                <span className="font-semibold text-fg dark:text-fg">
                   {t("auth.adapterTitle", { defaultValue: "Adaptador de Autenticación:" })}{" "}
                 </span>
                 <span>
