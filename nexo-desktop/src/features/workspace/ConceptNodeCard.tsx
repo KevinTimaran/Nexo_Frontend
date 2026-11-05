@@ -11,15 +11,15 @@ const PHASE_CONFIG: Record<
 > = {
   planning: {
     label: "Planificación",
-    bar: "bg-emerald-500",
-    badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    text: "text-emerald-500",
+    bar: "bg-positive",
+    badge: "bg-positive/15 text-positive dark:text-positive border-positive/30",
+    text: "text-positive",
   },
   execution: {
     label: "Ejecución",
-    bar: "bg-blue-500",
-    badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    text: "text-blue-500",
+    bar: "bg-primary",
+    badge: "bg-primary/15 text-primary dark:text-primary border-primary/30",
+    text: "text-primary",
   },
   validation: {
     label: "Validación",
@@ -32,7 +32,7 @@ const PHASE_CONFIG: Record<
 const PRIORITY_BADGE: Record<NodePriority, { label: string; style: string }> = {
   high: {
     label: "Alta",
-    style: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+    style: "bg-danger/15 text-danger dark:text-danger border-danger/30",
   },
   medium: {
     label: "Media",
@@ -40,7 +40,7 @@ const PRIORITY_BADGE: Record<NodePriority, { label: string; style: string }> = {
   },
   low: {
     label: "Baja",
-    style: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
+    style: "bg-muted/15 text-muted dark:text-muted border-line/30",
   },
 };
 
@@ -66,7 +66,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
       <div
         className={`
           w-[264px] rounded-2xl
-          bg-surface/90 dark:bg-zinc-950/90
+          bg-surface/90 dark:bg-app/90
           backdrop-blur-2xl backdrop-saturate-150
           border transition-all duration-200 group relative select-none
           shadow-[0_8px_20px_-6px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)]
@@ -76,7 +76,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
           ${
             selected
               ? "border-concept-fg ring-2 ring-concept-fg/40 shadow-[0_0_24px_-4px_rgba(37,99,235,0.35)] scale-[1.02]"
-              : "border-line/80 dark:border-white/10 hover:border-concept-fg/40"
+              : "border-line/80 dark:border-line/10 hover:border-concept-fg/40"
           }
         `}
       >
@@ -90,24 +90,24 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
         <Handle
           type="target"
           position={Position.Top}
-          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 transition-transform group-hover:scale-125 shadow-xs"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-line dark:!border-line transition-transform group-hover:scale-125 shadow-xs"
         />
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 transition-transform group-hover:scale-125 shadow-xs"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-line dark:!border-line transition-transform group-hover:scale-125 shadow-xs"
         />
         <Handle
           type="target"
           id="left"
           position={Position.Left}
-          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 shadow-xs"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-line dark:!border-line shadow-xs"
         />
         <Handle
           type="source"
           id="right"
           position={Position.Right}
-          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-white dark:!border-zinc-950 shadow-xs"
+          className="!w-2.5 !h-2.5 !bg-concept-fg !border-2 !border-line dark:!border-line shadow-xs"
         />
 
         {/* 1. Barra superior muy fina con el color de su fase */}
@@ -156,7 +156,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
 
           {/* 5. Footer con metadata */}
           {data.metadata && (
-            <div className="pt-2 border-t border-line/60 dark:border-white/5 flex items-center justify-between text-[11px] text-muted">
+            <div className="pt-2 border-t border-line/60 dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
               <span className="truncate max-w-[200px] font-mono text-[10px]">
                 {data.metadata}
               </span>
