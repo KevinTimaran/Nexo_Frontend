@@ -6,12 +6,16 @@ import {
   Check,
   Loader2,
   FolderKanban,
+  FileText,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { services } from "../../services";
 import { detectMessageLanguage } from "../../services/ai/prompts";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import { ConceptCanvas } from "./ConceptCanvas";
 import { AIChatDrawer } from "./AIChatDrawer";
 import { NodeInspectorSheet } from "./NodeInspectorSheet";
@@ -34,6 +38,7 @@ export const WorkspaceView: React.FC = () => {
     workspace,
     setWorkspace,
     canvasMode,
+    setCanvasMode,
     selectedNodeId,
     selectNode,
     expandedDocNodeId,
@@ -97,6 +102,9 @@ export const WorkspaceView: React.FC = () => {
 
     const messageLang = detectMessageLanguage(text, lang);
 
+    // Send last 3-4 messages to maintain conversational context
+    const recentMessageHistory = workspace.messages.slice(-3);
+
     try {
       const response = await services.ai.reply({
         text,
@@ -104,6 +112,7 @@ export const WorkspaceView: React.FC = () => {
         lang: messageLang,
         replyTo: userMessage.id,
         chatPhase: activePhase,
+        messageHistory: recentMessageHistory,
       });
 
       const nextNodes = [...workspace.map.nodes, ...response.newNodes];
@@ -184,19 +193,19 @@ export const WorkspaceView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 space-y-3 select-none font-sans relative overflow-hidden">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-app dark:bg-app text-fg dark:text-fg space-y-3 select-none font-sans relative overflow-hidden">
         {/* Ambient VisionOS Light Orbs */}
         <div
-          className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
+          className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-primary/20 dark:bg-surface/40 blur-[120px] z-0"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
+          className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-positive/15 dark:bg-surface/30 blur-[120px] z-0"
           aria-hidden="true"
         />
-        <div className="relative z-10 p-5 rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl flex flex-col items-center gap-3">
-          <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
-          <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">{t("workspace.loading")}</p>
+        <div className="relative z-10 p-5 rounded-3xl bg-surface/70 backdrop-blur-2xl border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-app/20 dark:border-line/10 dark:shadow-2xl flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-primary dark:text-primary animate-spin" />
+          <p className="text-xs text-muted dark:text-muted font-medium">{t("workspace.loading")}</p>
         </div>
       </div>
     );
@@ -204,23 +213,23 @@ export const WorkspaceView: React.FC = () => {
 
   if (!workspace || !workspace.map) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-center p-6 select-none font-sans relative overflow-hidden">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-app dark:bg-app text-center p-6 select-none font-sans relative overflow-hidden">
         {/* Ambient VisionOS Light Orbs */}
         <div
-          className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
+          className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-primary/20 dark:bg-surface/40 blur-[120px] z-0"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
+          className="pointer-events-none absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-positive/15 dark:bg-surface/30 blur-[120px] z-0"
           aria-hidden="true"
         />
-        <div className="relative z-10 p-8 rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-black/20 dark:border-white/10 dark:shadow-2xl max-w-sm flex flex-col items-center text-slate-800 dark:text-zinc-100">
-          <div className="w-12 h-12 rounded-2xl bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 flex items-center justify-center text-slate-400 dark:text-zinc-400 mb-3 shadow-xs">
+        <div className="relative z-10 p-8 rounded-3xl bg-surface/70 backdrop-blur-2xl border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:bg-app/20 dark:border-line/10 dark:shadow-2xl max-w-sm flex flex-col items-center text-fg dark:text-fg">
+          <div className="w-12 h-12 rounded-2xl bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 flex items-center justify-center text-muted dark:text-muted mb-3 shadow-xs">
             <FolderKanban className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-100">{t("workspace.notFound.title")}</h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
-          <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4 !rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white">
+          <h3 className="text-sm font-bold text-fg dark:text-fg">{t("workspace.notFound.title")}</h3>
+          <p className="text-xs text-muted dark:text-muted mt-1 max-w-xs">{t("workspace.notFound.description")}</p>
+          <Button variant="primary" size="sm" onClick={() => navigate("/")} className="mt-4 !rounded-xl !bg-primary hover:!bg-primary !text-fg">
             {t("workspace.notFound.action")}
           </Button>
         </div>
@@ -246,15 +255,15 @@ export const WorkspaceView: React.FC = () => {
   return (
     <div
       ref={workspaceContainerRef}
-      className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-zinc-100 font-sans select-none"
+      className="w-full h-full flex flex-col relative overflow-hidden bg-app dark:bg-app text-fg dark:text-fg font-sans select-none"
     >
       {/* ─── Ambient VisionOS Light Orbs for Glass Refraction ─── */}
       <div
-        className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-blue-200/50 dark:bg-indigo-900/40 blur-[120px] z-0"
+        className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-primary/20 dark:bg-surface/40 blur-[120px] z-0"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-emerald-200/50 dark:bg-emerald-900/30 blur-[120px] z-0"
+        className="pointer-events-none absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-positive/15 dark:bg-surface/30 blur-[120px] z-0"
         aria-hidden="true"
       />
       <div
@@ -262,46 +271,93 @@ export const WorkspaceView: React.FC = () => {
         aria-hidden="true"
       />
 
-      {/* Floating Headers (Divididos en dos componentes independientes) */}
+      {/* Unified VisionOS Top Navigation Bar */}
       {!(canvasMode === "spatial" && (isZenMode || docViewMode === "fullscreen")) && (
-        <>
-          {/* Botón de Regreso - Superior Izquierdo */}
-          <button
-            onClick={() => navigate("/")}
-            className="
-              absolute top-6 left-6 z-30
-              flex items-center gap-1.5 px-4 py-2.5 rounded-full
-              bg-white/70 dark:bg-zinc-950/60 backdrop-blur-2xl
-              border border-white/80 dark:border-white/10
-              shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-2xl
-              text-xs font-semibold text-slate-700 dark:text-zinc-200
-              hover:bg-white/90 dark:hover:bg-white/5 transition-all cursor-pointer select-none
-            "
-          >
-            <ChevronLeft className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">Proyectos</span>
-          </button>
+        <header className="relative z-30 w-full px-6 py-4 flex items-center justify-between gap-4 pointer-events-auto">
+          {/* Left: Back Button & Project Identification */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="
+                flex items-center gap-1.5 px-3.5 py-2 rounded-2xl
+                bg-surface/70 dark:bg-app/60 backdrop-blur-2xl
+                border border-line/80 dark:border-line/10
+                shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl
+                text-xs font-semibold text-fg dark:text-fg
+                hover:bg-surface/90 dark:hover:bg-surface/5 transition-all cursor-pointer select-none
+              "
+              title="Volver a Proyectos"
+            >
+              <ChevronLeft className="w-4 h-4 text-primary dark:text-primary" />
+              <span className="hidden sm:inline">Proyectos</span>
+            </button>
 
-          {/* Nombre del Proyecto - Superior Centro */}
-          <div
-            className="
-              absolute top-6 left-1/2 -translate-x-1/2 z-30
-              flex items-center gap-3 px-5 py-2.5 rounded-full
-              bg-white/70 dark:bg-zinc-950/60 backdrop-blur-2xl
-              border border-white/80 dark:border-white/10
-              shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-2xl select-none
-            "
-          >
-            <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
-              {workspace.project.name}
-            </h2>
-            <div className="h-4 w-px bg-slate-300/60 dark:bg-white/10" />
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/25">
-              <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              {t("workspace.saved")}
-            </span>
+            <div
+              className="
+                hidden md:flex items-center gap-2.5 px-4 py-2 rounded-2xl
+                bg-surface/70 dark:bg-app/60 backdrop-blur-2xl
+                border border-line/80 dark:border-line/10
+                shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl select-none
+              "
+            >
+              <h2 className="text-xs sm:text-sm font-bold text-fg dark:text-fg tracking-tight max-w-[200px] truncate">
+                {workspace.project.name}
+              </h2>
+              <div className="h-3.5 w-px bg-sunken/60 dark:bg-surface/10" />
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-positive dark:text-positive bg-positive/15 px-2 py-0.5 rounded-full border border-positive/25">
+                <Check className="w-3 h-3 text-positive dark:text-positive" />
+                {t("workspace.saved")}
+              </span>
+            </div>
           </div>
-        </>
+
+          {/* Center: Global View Mode Switcher */}
+          <div className="flex items-center justify-center">
+            <ViewModeToggle mode={canvasMode} onChange={setCanvasMode} />
+          </div>
+
+          {/* Right: Actions (Document Export & AI Copilot Toggle) */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDocModalOpen(true)}
+              className="
+                flex items-center gap-1.5 px-3.5 py-2 rounded-2xl
+                bg-surface/70 dark:bg-app/60 backdrop-blur-2xl
+                border border-line/80 dark:border-line/10
+                shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl
+                text-xs font-semibold text-fg dark:text-fg
+                hover:bg-surface/90 dark:hover:bg-surface/5 transition-all cursor-pointer select-none
+              "
+              title="Generar Documento Ejecutivo"
+            >
+              <FileText className="w-4 h-4 text-positive dark:text-positive" />
+              <span className="hidden lg:inline">{t("workspace.exportDoc", "Documento")}</span>
+            </button>
+
+            {canvasMode !== "spatial" && (
+              <button
+                onClick={toggleChat}
+                className={`
+                  flex items-center gap-1.5 px-3.5 py-2 rounded-2xl
+                  backdrop-blur-2xl transition-all cursor-pointer select-none text-xs font-semibold
+                  ${
+                    isChatOpen
+                      ? "bg-primary text-fg shadow-[0_4px_16px_rgba(37,99,235,0.35)] border border-primary"
+                      : "bg-surface/70 dark:bg-app/60 border border-line/80 dark:border-line/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl text-fg dark:text-fg hover:bg-surface/90 dark:hover:bg-surface/5"
+                  }
+                `}
+                title={isChatOpen ? "Cerrar Chat IA" : "Abrir Chat IA"}
+              >
+                {isChatOpen ? (
+                  <PanelRightClose className="w-4 h-4" />
+                ) : (
+                  <PanelRightOpen className="w-4 h-4 text-primary dark:text-primary" />
+                )}
+                <span className="hidden sm:inline">Copilot IA</span>
+              </button>
+            )}
+          </div>
+        </header>
       )}
 
       {/* Main Workspace Body */}
