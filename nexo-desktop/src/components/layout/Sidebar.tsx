@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside
       className={`
         relative h-full sidebar-glass flex flex-col justify-between transition-all duration-300 z-20
-        border-r border-line/80 dark:border-white/10
+        border-r border-line/80 dark:border-line/10
         ${collapsed ? "w-16" : "w-[240px]"}
       `}
     >
@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => navigate("/")}
             className="flex items-center gap-2.5 px-2 py-1 rounded-xl cursor-pointer hover:bg-hover transition-colors"
           >
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-concept-fg to-concept-fg/80 flex items-center justify-center text-white shadow-xs">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-concept-fg to-concept-fg/80 flex items-center justify-center text-fg shadow-xs">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {collapsed && (
           <div
             onClick={() => navigate("/")}
-            className="w-7 h-7 mx-auto rounded-lg bg-gradient-to-br from-concept-fg to-concept-fg/80 flex items-center justify-center text-white shadow-xs cursor-pointer"
+            className="w-7 h-7 mx-auto rounded-lg bg-gradient-to-br from-concept-fg to-concept-fg/80 flex items-center justify-center text-fg shadow-xs cursor-pointer"
             title={t("app.name")}
           >
             <Sparkles className="w-4 h-4" />
@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={({ isActive }) =>
               `flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-body transition-all duration-200 focus-ring cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-concept-fg to-concept-fg/90 text-white font-semibold shadow-[0_4px_14px_-3px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.3)]"
+                  ? "bg-gradient-to-r from-concept-fg to-concept-fg/90 text-fg font-semibold shadow-[0_4px_14px_-3px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.3)]"
                   : "text-fg/80 hover:text-fg hover:bg-hover"
               } ${collapsed ? "justify-center px-0" : ""}`
             }
@@ -116,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             {({ isActive }) => (
               <>
-                <FolderKanban className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-concept-fg"}`} />
+                <FolderKanban className={`w-4 h-4 shrink-0 ${isActive ? "text-fg" : "text-concept-fg"}`} />
                 {!collapsed && <span>{t("nav.projects")}</span>}
               </>
             )}
@@ -141,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       transition-all duration-150 flex items-center justify-between cursor-pointer focus-ring
                       ${
                         isActive
-                          ? "bg-surface/90 dark:bg-white/[0.08] text-fg font-semibold border border-line-soft dark:border-white/10 shadow-2xs"
+                          ? "bg-surface/90 dark:bg-surface/[0.08] text-fg font-semibold border border-line-soft dark:border-line/10 shadow-2xs"
                           : "text-muted hover:text-fg hover:bg-hover"
                       }
                     `}
@@ -156,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer / User Settings */}
-      <div className="p-3 space-y-1.5 border-t border-line/60 dark:border-white/10">
+      <div className="p-3 space-y-1.5 border-t border-line/60 dark:border-line/10">
         <button
           onClick={onOpenSettings}
           className={`
@@ -170,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         {!collapsed && user && (
-          <div className="flex items-center justify-between p-2 rounded-xl bg-surface/60 dark:bg-white/[0.03] border border-line-soft dark:border-white/10 shadow-2xs">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-surface/60 dark:bg-surface/[0.03] border border-line-soft dark:border-line/10 shadow-2xs">
             <div className="min-w-0 pr-2">
               <p className="text-caption font-semibold text-fg truncate">{user.name}</p>
               <p className="text-[10px] text-muted truncate">{user.email}</p>
