@@ -32,7 +32,7 @@ export interface NewProjectInput {
   description: string;
 }
 
-export type CanvasMode = "notion" | "obsidian";
+export type CanvasMode = "notion" | "obsidian" | "spatial";
 
 /**
  * Domain-specific thematic category for research and concept analysis.
