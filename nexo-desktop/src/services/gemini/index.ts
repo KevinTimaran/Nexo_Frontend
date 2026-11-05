@@ -17,7 +17,7 @@ import type {
 } from "../../domain/types";
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
 import { mockServices } from "../mock";
-import { getSystemInstruction, buildUserPrompt } from "../ai/prompts";
+import { getSystemInstruction, buildUserPrompt, detectMessageLanguage } from "../ai/prompts";
 
 export type { AICardType };
 
@@ -222,14 +222,16 @@ export const geminiAiService: AIService = {
     const apiKey = getGeminiApiKey();
     const model = getGeminiModel();
 
+    const { text, map, lang, replyTo, chatPhase } = request;
+    const now = new Date().toISOString();
+
+    const effectiveLang = detectMessageLanguage(text, lang);
+
     // If Gemini is not configured, fall back directly to mock
     if (!apiKey) {
       console.info("Gemini API key no configurada, usando servicio simulado.");
-      return mockServices.ai.reply(request);
+      return mockServices.ai.reply({ ...request, lang: effectiveLang });
     }
-
-    const { text, map, lang, replyTo, chatPhase } = request;
-    const now = new Date().toISOString();
 
     const activePhase: ChatPhase =
       chatPhase || (map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY");
@@ -238,10 +240,10 @@ export const geminiAiService: AIService = {
       .map((n) => `- [${n.kind.toUpperCase()} | ${n.phase || "planning"} | ${n.category || "technical"}] ${n.title}: ${n.description}`)
       .join("\n");
 
-    const systemInstruction = getSystemInstruction(activePhase, lang);
+    const systemInstruction = getSystemInstruction(activePhase, effectiveLang);
     const promptText = buildUserPrompt({
       phase: activePhase,
-      lang,
+      lang: effectiveLang,
       existingNodesSummary: existingSummary,
       userMessage: text,
     });
@@ -264,7 +266,7 @@ export const geminiAiService: AIService = {
       if (!response.ok) {
         const errorText = await response.text();
         console.warn(`Error en API de Gemini (${response.status}):`, errorText);
-        return mockServices.ai.reply(request);
+        return mockServices.ai.reply({ ...request, lang: effectiveLang });
       }
 
       const data = await response.json();
@@ -350,7 +352,7 @@ export const geminiAiService: AIService = {
             insightItems.length > 0
               ? {
                   title:
-                    lang === "es"
+                    effectiveLang === "es"
                       ? "Estructura conceptual generada por Gemini"
                       : "Conceptual structure by Gemini",
                   items: insightItems,
@@ -374,22 +376,25 @@ export const geminiAiService: AIService = {
       };
     } catch (err) {
       console.error("Error al procesar respuesta con Gemini, utilizando respaldo simulado:", err);
-      return mockServices.ai.reply(request);
+      return mockServices.ai.reply({ ...request, lang: effectiveLang });
     }
   },
 
   async explain(request: AITutorRequest): Promise<string> {
     const apiKey = getGeminiApiKey();
     const model = getGeminiModel();
-
-    if (!apiKey) {
-      return mockServices.ai.explain(request);
-    }
-
     const { messageText, conceptTitle, conceptDescription, lang } = request;
 
-    const isSpanishExplain = lang === "es" || /[áéíóúñ¿¡]|\b(el|la|los|las|un|una|de|en|que|es|por|para|con|no|si|como|explicar|concepto|que significa|ejemplo)\b/i.test(messageText + " " + (conceptTitle || ""));
-    const targetLang = isSpanishExplain ? "Español" : "English";
+    const effectiveLang = detectMessageLanguage(
+      `${messageText} ${conceptTitle || ""}`,
+      lang
+    );
+
+    if (!apiKey) {
+      return mockServices.ai.explain({ ...request, lang: effectiveLang });
+    }
+
+    const targetLang = effectiveLang === "es" ? "Español" : "English";
 
     const prompt = `Actúa como un profesor universitario y mentor de producto excepcionalmente pedagógico y claro.
 Tu misión es explicar en términos súper comprensibles el siguiente concepto o análisis:
@@ -398,13 +403,12 @@ ${conceptTitle ? `Concepto: "${conceptTitle}"` : ""}
 ${conceptDescription ? `Descripción del concepto: "${conceptDescription}"` : ""}
 Mensaje o contexto a explicar: "${messageText}"
 
-Idioma obligatorio: ${targetLang}. Si la consulta está en español, responde totalmente en Español.
+Idioma obligatorio: ${targetLang}. Si la consulta o contexto está en español, responde totalmente en Español. Si está en inglés, responde totalmente en Inglés.
 
 Genera una respuesta didáctica estructurada con EXACTAMENTE los siguientes 3 puntos numerados:
 1. ¿Qué significa en palabras sencillas? (Explicación clara y sin tecnicismos innecesarios en ${targetLang})
 2. Ejemplo o analogía de la vida cotidiana (Una analogía práctica y visual para estudiantes en ${targetLang})
 3. Próximo paso práctico recomendado (Una acción concreta que el usuario puede hacer hoy en ${targetLang})`;
-
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -422,16 +426,16 @@ Genera una respuesta didáctica estructurada con EXACTAMENTE los siguientes 3 pu
       });
 
       if (!response.ok) {
-        return mockServices.ai.explain(request);
+        return mockServices.ai.explain({ ...request, lang: effectiveLang });
       }
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      return text?.trim() || mockServices.ai.explain(request);
+      return text?.trim() || mockServices.ai.explain({ ...request, lang: effectiveLang });
     } catch (err) {
       console.warn("Fallo en modo tutor con Gemini, usando respaldo:", err);
-      return mockServices.ai.explain(request);
+      return mockServices.ai.explain({ ...request, lang: effectiveLang });
     }
   },
 };
