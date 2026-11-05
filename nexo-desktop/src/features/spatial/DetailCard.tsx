@@ -41,7 +41,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
       aria-label={`Detalle del nodo ${node.name}`}
     >
       {/* Header with Cluster Indicator and Close Button */}
-      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+      <div className="flex items-center justify-between pb-2 border-b border-line/5">
         <div className="flex items-center gap-2">
           <span
             className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]"
@@ -50,7 +50,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
               color: clusterColor,
             }}
           />
-          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
             Clúster: {node.group}
           </span>
         </div>
@@ -61,7 +61,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
             e.stopPropagation();
             onClose();
           }}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
+          className="p-1.5 rounded-lg text-muted hover:text-fg hover:bg-surface/10 active:scale-90 transition-all cursor-pointer"
           aria-label="Cerrar detalle"
         >
           <X className="w-4 h-4" />
@@ -70,25 +70,25 @@ export const DetailCard: React.FC<DetailCardProps> = ({
 
       {/* Node Title & Description */}
       <div>
-        <h3 className="text-base font-bold text-white tracking-tight">
+        <h3 className="text-base font-bold text-fg tracking-tight">
           {node.name}
         </h3>
-        <p className="text-xs text-zinc-300 mt-1.5 leading-relaxed">
+        <p className="text-xs text-muted mt-1.5 leading-relaxed">
           {node.desc}
         </p>
       </div>
 
       {/* Stats Pill */}
-      <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-white/5 p-2.5 rounded-xl ring-1 ring-white/10">
+      <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-surface/5 p-2.5 rounded-xl ring-1 ring-line/10">
         <div>
-          <span className="text-zinc-500 block text-[10px]">IMPORTANCIA</span>
-          <span className="font-bold text-indigo-400">
+          <span className="text-muted block text-[10px]">IMPORTANCIA</span>
+          <span className="font-bold text-primary">
             {Math.round(node.importance * 100)}%
           </span>
         </div>
         <div>
-          <span className="text-zinc-500 block text-[10px]">MASA ORBE</span>
-          <span className="font-bold text-emerald-400">
+          <span className="text-muted block text-[10px]">MASA ORBE</span>
+          <span className="font-bold text-positive">
             {node.val} val
           </span>
         </div>
@@ -101,7 +101,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
           e.stopPropagation();
           onOpenDoc();
         }}
-        className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-[0.98] text-white text-xs font-semibold shadow-[0_0_20px_rgba(99,102,241,0.35)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-[0.98] text-fg text-xs font-semibold shadow-[0_0_20px_rgba(99,102,241,0.35)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all cursor-pointer"
       >
         <FileText className="w-4 h-4" />
         <span>Abrir Documento Notion</span>
@@ -109,9 +109,9 @@ export const DetailCard: React.FC<DetailCardProps> = ({
 
       {/* Connected Neighbour Nodes */}
       {connectedNeighbors.length > 0 && (
-        <div className="pt-2 border-t border-white/5 flex flex-col gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-            <Share2 className="w-3 h-3 text-indigo-400" />
+        <div className="pt-2 border-t border-line/5 flex flex-col gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted flex items-center gap-1.5">
+            <Share2 className="w-3 h-3 text-primary" />
             <span>Conexiones ({connectedNeighbors.length})</span>
           </span>
 
@@ -124,12 +124,12 @@ export const DetailCard: React.FC<DetailCardProps> = ({
                   e.stopPropagation();
                   onSelectNeighbor(neighbor.id);
                 }}
-                className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-[0.99] ring-1 ring-white/5 hover:ring-white/15 text-left transition-all text-xs cursor-pointer group"
+                className="flex items-center justify-between p-2 rounded-xl bg-surface/5 hover:bg-surface/10 active:scale-[0.99] ring-1 ring-line/5 hover:ring-line/15 text-left transition-all text-xs cursor-pointer group"
               >
-                <span className="text-zinc-300 group-hover:text-white truncate font-medium">
+                <span className="text-muted group-hover:text-fg truncate font-medium">
                   {neighbor.name}
                 </span>
-                <ExternalLink className="w-3 h-3 text-zinc-500 group-hover:text-indigo-400 shrink-0 ml-1" />
+                <ExternalLink className="w-3 h-3 text-muted group-hover:text-primary shrink-0 ml-1" />
               </button>
             ))}
           </div>
