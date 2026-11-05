@@ -9,7 +9,6 @@ import {
   FileText,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
-import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import { NodeCanvasLayout } from "./NodeCanvasLayout";
 import { DeepDiveModal } from "./DeepDiveModal";
 import type {
@@ -37,7 +36,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   isChatOpen = false,
 }) => {
   const { t } = useTranslation();
-  const { canvasMode, setCanvasMode, openDeepDive } = useWorkspaceStore();
+  const { canvasMode, openDeepDive } = useWorkspaceStore();
 
   const openDocumentDeepDive = (node: ConceptNode) => {
     openDeepDive(node.id);
@@ -96,23 +95,18 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
 
   return (
     <div className="relative w-full h-full bg-transparent overflow-hidden select-none">
-      {/* Top-Centered Segmented Control: Dual-Mode Switcher */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 animate-rise-in">
-        <ViewModeToggle mode={canvasMode} onChange={setCanvasMode} />
-      </div>
-
       {/* ============================================================== */}
       {/* MODE 1: KNOWLEDGE VIEW ('notion') - Structured Editorial Board */}
       {/* ============================================================== */}
       {canvasMode === "notion" && (
         <div
-          className={`w-full h-full overflow-y-auto px-6 sm:px-10 pt-20 pb-12 animate-fade-in select-text transition-all duration-300 ease-out ${
+          className={`w-full h-full overflow-y-auto px-6 sm:px-10 pt-4 pb-12 animate-fade-in select-text transition-all duration-300 ease-out ${
             isChatOpen ? "xl:pr-[460px] lg:pr-[420px]" : ""
           }`}
         >
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Editorial Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line/80 dark:border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line/80 dark:border-line/10">
               <div>
                 <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-fg flex items-center gap-2.5">
                   <FileText className="w-6 h-6 text-concept-fg" />
@@ -127,7 +121,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                 onClick={onOpenAddNode}
                 className="
                   inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl
-                  bg-gradient-to-b from-concept-fg to-concept-fg/90 text-white text-caption font-semibold
+                  bg-gradient-to-b from-concept-fg to-concept-fg/90 text-fg text-caption font-semibold
                   shadow-[0_4px_14px_-3px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.3)]
                   hover:brightness-105 active:scale-95 transition-all self-start sm:self-auto cursor-pointer focus-ring
                 "
@@ -140,22 +134,22 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
             {/* 3 Research Phase Columns (Creative Glass Lanes) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               {/* Column 1: Planning */}
-              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-white/10 bg-surface/65 dark:bg-zinc-950/65 backdrop-blur-2xl shadow-xs">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-white/10">
+              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs">
+                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-line/10">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-positive shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
                       {t("phases.planning")}
                     </h3>
                   </div>
-                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-white/10 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-line/10 shadow-2xs">
                     {planningNodes.length}
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {planningNodes.length === 0 ? (
-                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-white/15 text-center text-caption text-muted bg-surface/30">
+                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-line/15 text-center text-caption text-muted bg-surface/30">
                       Sin conceptos en planificación
                     </div>
                   ) : (
@@ -164,8 +158,8 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                         key={node.id}
                         onClick={() => openDocumentDeepDive(node)}
                         className={`
-                          p-4 rounded-2xl border border-line/80 dark:border-white/10
-                          bg-surface/85 dark:bg-zinc-900/85 backdrop-blur-xl
+                          p-4 rounded-2xl border border-line/80 dark:border-line/10
+                          bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
                           shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_0_rgba(255,255,255,0.7)]
                           dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.06)]
                           hover:shadow-[0_12px_28px_-6px_rgba(15,23,42,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]
@@ -203,7 +197,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                           </p>
                         )}
 
-                        <div className="pt-2 border-t border-line-soft dark:border-white/5 flex items-center justify-between text-[11px] text-muted">
+                        <div className="pt-2 border-t border-line-soft dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
                           <span>Ref: {node.id.slice(0, 8)}</span>
                           <span className="inline-flex items-center gap-1 text-concept-fg font-medium group-hover:translate-x-0.5 transition-transform">
                             <span>Ver documento</span>
@@ -217,22 +211,22 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
               </div>
 
               {/* Column 2: Execution */}
-              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-white/10 bg-surface/65 dark:bg-zinc-950/65 backdrop-blur-2xl shadow-xs">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-white/10">
+              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs">
+                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-line/10">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
                       {t("phases.execution")}
                     </h3>
                   </div>
-                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-white/10 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-line/10 shadow-2xs">
                     {executionNodes.length}
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {executionNodes.length === 0 ? (
-                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-white/15 text-center text-caption text-muted bg-surface/30">
+                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-line/15 text-center text-caption text-muted bg-surface/30">
                       Sin conceptos en ejecución
                     </div>
                   ) : (
@@ -241,8 +235,8 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                         key={node.id}
                         onClick={() => openDocumentDeepDive(node)}
                         className={`
-                          p-4 rounded-2xl border border-line/80 dark:border-white/10
-                          bg-surface/85 dark:bg-zinc-900/85 backdrop-blur-xl
+                          p-4 rounded-2xl border border-line/80 dark:border-line/10
+                          bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
                           shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_0_rgba(255,255,255,0.7)]
                           dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.06)]
                           hover:shadow-[0_12px_28px_-6px_rgba(15,23,42,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]
@@ -280,7 +274,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                           </p>
                         )}
 
-                        <div className="pt-2 border-t border-line-soft dark:border-white/5 flex items-center justify-between text-[11px] text-muted">
+                        <div className="pt-2 border-t border-line-soft dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
                           <span>Ref: {node.id.slice(0, 8)}</span>
                           <span className="inline-flex items-center gap-1 text-concept-fg font-medium group-hover:translate-x-0.5 transition-transform">
                             <span>Ver documento</span>
@@ -294,22 +288,22 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
               </div>
 
               {/* Column 3: Validation */}
-              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-white/10 bg-surface/65 dark:bg-zinc-950/65 backdrop-blur-2xl shadow-xs">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-white/10">
+              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs">
+                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-line/10">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                     <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
                       {t("phases.validation")}
                     </h3>
                   </div>
-                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-white/10 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-line/10 shadow-2xs">
                     {validationNodes.length}
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {validationNodes.length === 0 ? (
-                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-white/15 text-center text-caption text-muted bg-surface/30">
+                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-line/15 text-center text-caption text-muted bg-surface/30">
                       Sin conceptos en validación
                     </div>
                   ) : (
@@ -318,8 +312,8 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                         key={node.id}
                         onClick={() => openDocumentDeepDive(node)}
                         className={`
-                          p-4 rounded-2xl border border-line/80 dark:border-white/10
-                          bg-surface/85 dark:bg-zinc-900/85 backdrop-blur-xl
+                          p-4 rounded-2xl border border-line/80 dark:border-line/10
+                          bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
                           shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_0_rgba(255,255,255,0.7)]
                           dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.06)]
                           hover:shadow-[0_12px_28px_-6px_rgba(15,23,42,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]
@@ -357,7 +351,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                           </p>
                         )}
 
-                        <div className="pt-2 border-t border-line-soft dark:border-white/5 flex items-center justify-between text-[11px] text-muted">
+                        <div className="pt-2 border-t border-line-soft dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
                           <span>Ref: {node.id.slice(0, 8)}</span>
                           <span className="inline-flex items-center gap-1 text-concept-fg font-medium group-hover:translate-x-0.5 transition-transform">
                             <span>Ver documento</span>
