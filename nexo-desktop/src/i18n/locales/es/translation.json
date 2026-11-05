@@ -236,6 +236,9 @@
     "appearance": "Apariencia",
     "theme": "Tema",
     "themeDescription": "Sistema sigue la apariencia de tu computadora.",
+    "accentColor": "Color principal",
+    "accentColorDescription": "Aplica este color a los controles y acentos de toda la aplicación.",
+    "chooseAccentColor": "Elegir color principal",
     "themes": {
       "light": "Claro",
       "dark": "Oscuro",
