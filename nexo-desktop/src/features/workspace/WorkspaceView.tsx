@@ -11,6 +11,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { services } from "../../services";
+import { detectMessageLanguage } from "../../services/ai/prompts";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
@@ -94,11 +95,13 @@ export const WorkspaceView: React.FC = () => {
 
     setThinking(true);
 
+    const messageLang = detectMessageLanguage(text, lang);
+
     try {
       const response = await services.ai.reply({
         text,
         map: workspace.map,
-        lang,
+        lang: messageLang,
         replyTo: userMessage.id,
         chatPhase: activePhase,
       });
