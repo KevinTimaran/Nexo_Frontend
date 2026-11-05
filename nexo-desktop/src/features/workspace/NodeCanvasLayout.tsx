@@ -11,7 +11,6 @@ import "reactflow/dist/style.css";
 import { Plus, Layers, Info } from "lucide-react";
 import { ConceptNodeCard } from "./ConceptNodeCard";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
-import { useTheme } from "../../app/providers/ThemeProvider";
 
 interface NodeCanvasLayoutProps {
   onOpenAddNode?: () => void;
@@ -20,7 +19,6 @@ interface NodeCanvasLayoutProps {
 export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
   onOpenAddNode,
 }) => {
-  const { theme } = useTheme();
   const {
     nodes,
     edges,
@@ -32,11 +30,22 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
     syncFlowElements,
   } = useWorkspaceStore();
 
-  const isDark =
-    theme === "dark" ||
-    (theme === "system" &&
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const accentColor =
+    typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "var(--accent)"
+      : "var(--accent)";
+  const positiveColor =
+    typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--positive-fg").trim() || "var(--positive-fg)"
+      : "var(--positive-fg)";
+  const riskColor =
+    typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--risk-fg").trim() || "var(--risk-fg)"
+      : "var(--risk-fg)";
+  const mutedColor =
+    typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() || "var(--muted)"
+      : "var(--muted)";
 
   // Register custom node type
   const nodeTypes: NodeTypes = useMemo(
@@ -53,7 +62,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
     }
   }, [workspace, nodes.length, syncFlowElements]);
 
-  const dotColor = isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)";
+  const dotColor = getComputedStyle(document.documentElement).getPropertyValue("--dot").trim() || "rgba(255, 255, 255, 0.12)";
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-transparent select-none">
@@ -74,7 +83,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
           type: "smoothstep",
           animated: true,
           style: {
-            stroke: isDark ? "#3b82f6" : "#2563eb",
+            stroke: accentColor,
             strokeWidth: 2,
           },
         }}
@@ -90,7 +99,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
         {/* Controles de Zoom y Ajuste (Creative Glass) */}
         <Controls
           position="bottom-right"
-          className="!bg-surface/85 dark:!bg-zinc-950/85 !border !border-line/80 dark:!border-white/10 !backdrop-blur-2xl !shadow-lg !rounded-2xl !overflow-hidden !m-4"
+          className="!bg-surface/85 dark:!bg-app/85 !border !border-line/80 dark:!border-line/10 !backdrop-blur-2xl !shadow-lg !rounded-2xl !overflow-hidden !m-4"
           showInteractive={false}
         />
 
@@ -99,18 +108,18 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
           position="bottom-left"
           nodeColor={(n) => {
             const phase = n.data?.phase;
-            if (phase === "planning") return "#10b981";
-            if (phase === "execution") return "#3b82f6";
-            if (phase === "validation") return "#f59e0b";
-            return "#64748b";
+            if (phase === "planning") return positiveColor;
+            if (phase === "execution") return accentColor;
+            if (phase === "validation") return riskColor;
+            return mutedColor;
           }}
-          maskColor={isDark ? "rgba(8, 12, 21, 0.75)" : "rgba(241, 243, 247, 0.75)"}
-          className="!bg-surface/85 dark:!bg-zinc-950/85 !border !border-line/80 dark:!border-white/10 !backdrop-blur-2xl !shadow-md !rounded-2xl !overflow-hidden !m-4 !w-36 !h-24 hidden md:block"
+          maskColor="color-mix(in srgb, var(--app) 75%, transparent)"
+          className="!bg-surface/85 dark:!bg-app/85 !border !border-line/80 dark:!border-line/10 !backdrop-blur-2xl !shadow-md !rounded-2xl !overflow-hidden !m-4 !w-36 !h-24 hidden md:block"
         />
 
         {/* Barra superior izquierda: Estado del Lienzo */}
         <Panel position="top-left" className="!m-4">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl glass-pill shadow-xs border border-line/80 dark:border-white/10 text-caption">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl glass-pill shadow-xs border border-line/80 dark:border-line/10 text-caption">
             <div className="flex items-center gap-1.5 text-concept-fg font-bold">
               <Layers className="w-3.5 h-3.5" />
               <span>Mapa Conceptual</span>
@@ -135,7 +144,7 @@ export const NodeCanvasLayout: React.FC<NodeCanvasLayoutProps> = ({
 
         {/* Tip flotante discreto */}
         <Panel position="top-right" className="!m-4 hidden sm:block">
-          <div className="px-3 py-1.5 rounded-2xl glass-pill border border-line-soft dark:border-white/10 text-[11px] text-muted flex items-center gap-1.5">
+          <div className="px-3 py-1.5 rounded-2xl glass-pill border border-line-soft dark:border-line/10 text-[11px] text-muted flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5 text-muted" />
             <span>Haz clic en un nodo para abrir su detalle profundo</span>
           </div>
