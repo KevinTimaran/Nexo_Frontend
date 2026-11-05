@@ -236,6 +236,9 @@
     "appearance": "Appearance",
     "theme": "Theme",
     "themeDescription": "System follows your computer's appearance.",
+    "accentColor": "Accent color",
+    "accentColorDescription": "Apply this color to controls and accents across the application.",
+    "chooseAccentColor": "Choose accent color",
     "themes": {
       "light": "Light",
       "dark": "Dark",
