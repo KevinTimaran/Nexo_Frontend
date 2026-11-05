@@ -40,6 +40,7 @@ export interface AIReplyRequest {
   lang: Language;
   replyTo: string;
   chatPhase?: ChatPhase;
+  messageHistory?: Message[];
 }
 
 export interface AITutorRequest {
