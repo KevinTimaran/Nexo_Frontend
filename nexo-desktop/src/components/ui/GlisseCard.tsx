@@ -24,15 +24,15 @@ export interface GlisseCardProps extends Omit<HTMLMotionProps<"div">, "children"
 
 const VARIANT_STYLES: Record<GlisseCardVariant, string> = {
   default:
-    "bg-zinc-950/60 backdrop-blur-2xl ring-1 ring-white/10 rounded-2xl p-4 shadow-2xl",
+    "glass-card rounded-2xl p-4",
   hud:
-    "bg-zinc-950/60 backdrop-blur-2xl ring-1 ring-white/10 rounded-2xl p-4 shadow-2xl",
+    "glass-card rounded-2xl p-4",
   modal:
-    "bg-zinc-900/80 backdrop-blur-3xl ring-1 ring-white/10 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]",
+    "glass-modal rounded-3xl",
   subtle:
-    "bg-zinc-950/40 backdrop-blur-xl ring-1 ring-white/10 rounded-xl p-3 shadow-xl",
+    "glass-card rounded-xl p-3",
   elevated:
-    "bg-zinc-950/70 backdrop-blur-2xl ring-1 ring-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.7)]",
+    "glass-card rounded-2xl p-4",
 };
 
 /**
@@ -200,7 +200,7 @@ export const GlisseCard = forwardRef<HTMLDivElement, GlisseCardProps>(
     return (
       <motion.div
         ref={handleRef}
-        className={`lg-glass pointer-events-auto ${isSelectable ? "select-text" : "select-none"} relative overflow-hidden text-white transition-[border-color,box-shadow] duration-200 ${VARIANT_STYLES[variant]} ${className}`}
+        className={`lg-glass pointer-events-auto ${isSelectable ? "select-text" : "select-none"} relative overflow-hidden text-fg transition-[background-color,border-color,box-shadow,color] duration-200 ${VARIANT_STYLES[variant]} ${className}`}
         onPointerMove={handlePointerMove}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -213,6 +213,12 @@ export const GlisseCard = forwardRef<HTMLDivElement, GlisseCardProps>(
         whileTap={whileTap ?? defaultTap}
         transition={transition ?? defaultTransition}
         style={{
+          borderRadius: variant === "subtle" ? "calc(var(--radius-card, 16px) * 0.75)" : "var(--radius-card, 16px)",
+          backgroundColor: "var(--card-bg, rgba(9,9,11,0.6))",
+          borderColor: "var(--card-border, rgba(255,255,255,0.1))",
+          opacity: "var(--card-opacity, 1)",
+          boxShadow: "var(--shadow-card, 0 12px 32px -8px rgba(0, 0, 0, 0.55))",
+          color: "var(--fg, #f8fafc)",
           ...glowStyle,
           ...style,
         }}
