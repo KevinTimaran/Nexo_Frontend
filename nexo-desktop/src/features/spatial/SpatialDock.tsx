@@ -106,10 +106,10 @@ const MagneticDockButton: React.FC<MagneticDockButtonProps> = ({
         aria-label={label}
         aria-pressed={isActive}
         aria-keyshortcuts={shortcut}
-        className={`group relative w-11 h-11 rounded-full flex items-center justify-center cursor-pointer outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/60 ${
+        className={`group relative w-11 h-11 rounded-full flex items-center justify-center cursor-pointer outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-concept-fg ${
           isActive
-            ? "text-white"
-            : "bg-zinc-950/40 text-zinc-300 hover:text-white hover:bg-zinc-800/60"
+            ? "text-fg"
+            : "bg-surface text-muted hover:text-fg hover:bg-elevated"
         }`}
       >
         {isActive && (
@@ -117,13 +117,13 @@ const MagneticDockButton: React.FC<MagneticDockButtonProps> = ({
             layoutId="spatial-dock-active-pill"
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
             aria-hidden="true"
-            className="absolute inset-0 rounded-full bg-zinc-800 shadow-[0_2px_12px_rgba(0,0,0,0.45)]"
+            className="absolute inset-0 rounded-full bg-elevated shadow-md border border-border-color"
           />
         )}
 
         {isActive && (
           <span
-            className="absolute left-1 w-1 h-3 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]"
+            className="absolute left-1 w-1 h-3 rounded-full bg-primary shadow-[0_0_8px_var(--accent)]"
             style={
               tint
                 ? { backgroundColor: tint, boxShadow: `0 0 8px ${tint}` }
@@ -147,11 +147,11 @@ const MagneticDockButton: React.FC<MagneticDockButtonProps> = ({
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -10, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 600, damping: 30 }}
-            className="pointer-events-none absolute left-14 z-50 flex items-center gap-2 whitespace-nowrap rounded-xl bg-zinc-950/90 backdrop-blur-xl px-3 py-1.5 text-xs font-medium text-white shadow-xl ring-1 ring-white/10"
+            className="pointer-events-none absolute left-14 z-50 flex items-center gap-2 whitespace-nowrap rounded-xl bg-app/90 backdrop-blur-xl px-3 py-1.5 text-xs font-medium text-fg shadow-xl ring-1 ring-line/10"
           >
             <span>{label}</span>
             {shortcut && (
-              <kbd className="rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-200">
+              <kbd className="rounded-md bg-surface/15 px-1.5 py-0.5 text-[10px] font-semibold text-fg">
                 {shortcut}
               </kbd>
             )}
@@ -213,7 +213,7 @@ export const SpatialDock: React.FC = () => {
 
   const zenItem: DockItem = {
     key: "zen",
-    icon: <Flower2 className="w-5 h-5 text-emerald-400" />,
+    icon: <Flower2 className="w-5 h-5 text-positive" />,
     label: "Modo Zen",
     shortcut: "Z",
     onClick: toggleZenMode,
@@ -301,7 +301,11 @@ export const SpatialDock: React.FC = () => {
         initial={{ opacity: 0, x: -24, scale: 0.95 }}
         animate={{ opacity: 1, x: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 450, damping: 28 }}
-        className="relative rounded-[2rem] bg-zinc-900/60 backdrop-blur-2xl p-2 flex flex-col gap-2.5 shadow-2xl"
+        className="sidebar-glass relative rounded-[2rem] p-2 flex flex-col gap-2.5"
+        style={{
+          backgroundColor: "var(--card-bg, rgba(9,9,11,0.6))",
+          borderColor: "var(--card-border, rgba(255,255,255,0.1))",
+        }}
       >
         <Glass
           className="absolute inset-0 rounded-[inherit] pointer-events-none !bg-transparent !border-0 !ring-0 !shadow-none"
