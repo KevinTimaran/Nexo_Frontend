@@ -64,14 +64,14 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
     >
       <div className="space-y-4">
         {/* Document Preview Box */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-100/50 dark:bg-black/40 border border-slate-200 dark:border-white/5 font-mono text-xs text-slate-800 dark:text-zinc-100 max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner backdrop-blur-md">
+        <div className="p-4 sm:p-5 rounded-2xl bg-sunken/50 dark:bg-app/40 border border-line dark:border-line/5 font-mono text-xs text-fg dark:text-fg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner backdrop-blur-md">
           {markdownContent}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-white/10">
-          <span className="bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/10 px-2.5 py-1 rounded-full text-[11px] font-mono text-slate-600 dark:text-zinc-300 flex items-center gap-1.5 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center justify-between pt-3 border-t border-line/80 dark:border-line/10">
+          <span className="bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 px-2.5 py-1 rounded-full text-[11px] font-mono text-muted dark:text-muted flex items-center gap-1.5 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-primary dark:text-primary" />
             {map.nodes.length} {t("dashboard.concepts", { defaultValue: "conceptos incluidos" })}
           </span>
 
@@ -83,7 +83,7 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
               type="button"
               variant="primary"
               onClick={handleCopy}
-              className="!rounded-xl !bg-blue-600 hover:!bg-blue-500 !text-white shadow-sm"
+              className="!rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-sm"
               icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             >
               {copied ? t("common.copied") : t("common.copy", { defaultValue: "Copiar Markdown" })}
