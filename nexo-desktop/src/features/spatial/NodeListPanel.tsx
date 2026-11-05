@@ -103,7 +103,12 @@ export const NodeListPanel: React.FC = () => {
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
-      className="fixed left-24 top-1/2 -translate-y-1/2 z-40 w-96 max-w-[calc(100vw-7.5rem)] h-[72vh] rounded-3xl bg-zinc-950/60 backdrop-blur-2xl ring-1 ring-white/10 p-5 flex flex-col gap-3.5 shadow-2xl select-none overflow-hidden"
+      className="fixed left-24 top-1/2 -translate-y-1/2 z-40 w-96 max-w-[calc(100vw-7.5rem)] h-[72vh] rounded-3xl backdrop-blur-2xl border border-border-color p-5 flex flex-col gap-3.5 shadow-2xl select-none overflow-hidden text-fg"
+      style={{
+        borderRadius: "var(--radius-card, 24px)",
+        backgroundColor: "var(--card-bg, rgba(9,9,11,0.6))",
+        borderColor: "var(--card-border, rgba(255,255,255,0.1))",
+      }}
     >
       <Glass
         className="absolute inset-0 pointer-events-none rounded-[inherit] -z-10 !bg-transparent"
@@ -115,18 +120,18 @@ export const NodeListPanel: React.FC = () => {
         aria-hidden="true"
       />
 
-      <div className="w-10 h-1 rounded-full bg-white/20 mx-auto -mt-1 cursor-grab active:cursor-grabbing" />
+      <div className="w-10 h-1 rounded-full bg-border-color mx-auto -mt-1 cursor-grab active:cursor-grabbing" />
 
       {/* Header */}
       <div className="flex items-center justify-between pb-1">
         <div className="flex items-center gap-2">
-          <Network className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-sm font-semibold text-white tracking-tight">
+          <Network className="w-4 h-4 text-concept-fg" />
+          <h3 className="text-sm font-semibold text-fg tracking-tight">
             Explorador de Nodos
           </h3>
           <motion.span 
             layout
-            className="text-[11px] font-mono text-zinc-400 bg-white/5 px-2 py-0.5 rounded-full ring-1 ring-white/10"
+            className="text-[11px] font-mono text-muted bg-surface px-2 py-0.5 rounded-full border border-border-color"
           >
             {filteredNodes.length}
           </motion.span>
@@ -135,7 +140,7 @@ export const NodeListPanel: React.FC = () => {
         <button
           type="button"
           onClick={close}
-          className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center justify-center shrink-0"
+          className="w-8 h-8 rounded-full bg-surface hover:bg-elevated text-muted hover:text-fg transition-colors cursor-pointer flex items-center justify-center shrink-0 border border-border-color"
           aria-label="Cerrar panel"
         >
           <X className="w-4 h-4" />
@@ -144,20 +149,20 @@ export const NodeListPanel: React.FC = () => {
 
       {/* Search Input & Filter Button */}
       <div className="flex gap-2">
-        <div className="relative flex-1 flex items-center rounded-2xl bg-zinc-900/80 ring-1 ring-white/15 px-3.5 py-2.5 transition-all focus-within:ring-white/40 focus-within:bg-zinc-900">
-          <Search className="w-4 h-4 text-zinc-400 shrink-0 mr-2.5" />
+        <div className="relative flex-1 flex items-center rounded-2xl bg-surface border border-border-color px-3.5 py-2.5 transition-all focus-within:border-concept-fg focus-within:bg-elevated">
+          <Search className="w-4 h-4 text-muted shrink-0 mr-2.5" />
           <input
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar nodo por nombre o clúster..."
-            className="w-full bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none"
+            className="w-full bg-transparent text-xs text-fg placeholder:text-muted outline-none"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="text-zinc-400 hover:text-white transition-colors p-0.5 cursor-pointer absolute right-3"
+              className="text-muted hover:text-fg transition-colors p-0.5 cursor-pointer absolute right-3"
               aria-label="Limpiar búsqueda"
             >
               <X className="w-3.5 h-3.5" />
@@ -169,8 +174,8 @@ export const NodeListPanel: React.FC = () => {
           onClick={() => setIsFilterOpen(!isFilterOpen)}
           className={`shrink-0 flex items-center justify-center w-[42px] rounded-2xl transition-all cursor-pointer ring-1 ${
             isFilterOpen || activeFilter
-              ? "bg-zinc-800 ring-white/40 text-white"
-              : "bg-zinc-900/80 ring-white/15 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:ring-white/30"
+              ? "bg-surface ring-line/40 text-fg"
+              : "bg-surface/80 ring-line/15 text-muted hover:text-fg hover:bg-surface hover:ring-line/30"
           }`}
           aria-label="Filtros"
         >
@@ -187,15 +192,15 @@ export const NodeListPanel: React.FC = () => {
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
             className="overflow-hidden"
           >
-            <div className="relative p-3 rounded-2xl bg-zinc-900/80 ring-1 ring-white/15 mt-1">
-              <p className="text-[11px] font-medium text-zinc-300 mb-2">Filtrar por clúster:</p>
+            <div className="relative p-3 rounded-2xl bg-surface/80 ring-1 ring-line/15 mt-1">
+              <p className="text-[11px] font-medium text-muted mb-2">Filtrar por clúster:</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setActiveFilter(null)}
                   className={`text-[10px] font-mono px-2 py-1 rounded-lg transition-colors ring-1 ${
                     activeFilter === null
-                      ? "bg-white/20 text-white ring-white/40 shadow-sm"
-                      : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                      ? "bg-surface/20 text-fg ring-line/40 shadow-sm"
+                      : "bg-surface/5 text-muted ring-line/10 hover:bg-surface/10 hover:text-fg"
                   }`}
                 >
                   Todos
@@ -208,8 +213,8 @@ export const NodeListPanel: React.FC = () => {
                       onClick={() => setActiveFilter(group)}
                       className={`text-[10px] font-mono px-2 py-1 rounded-lg transition-colors ring-1 ${
                         activeFilter === group
-                          ? "bg-white/20 text-white ring-white/40 shadow-sm"
-                          : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                          ? "bg-surface/20 text-fg ring-line/40 shadow-sm"
+                          : "bg-surface/5 text-muted ring-line/10 hover:bg-surface/10 hover:text-fg"
                       }`}
                     >
                       {meta.label || group}
@@ -234,7 +239,7 @@ export const NodeListPanel: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-12 text-zinc-500 text-xs"
+              className="text-center py-12 text-muted text-xs"
             >
               No se encontraron nodos coincidentes.
             </motion.div>
@@ -257,12 +262,12 @@ export const NodeListPanel: React.FC = () => {
                   onClick={() => handleSelectNode(node.id)}
                   role="button"
                   tabIndex={0}
-                  className={`w-full text-left rounded-xl p-2.5 transition-colors cursor-pointer ring-1 relative overflow-hidden flex flex-col ${
+                  className={`w-full text-left rounded-xl p-2.5 transition-colors cursor-pointer border relative overflow-hidden flex flex-col ${
                     isSelected
-                      ? "bg-zinc-800 ring-white/40 shadow-[0_0_12px_rgba(255,255,255,0.08)]"
+                      ? "bg-elevated border-concept-fg shadow-md"
                       : isMenuOpen 
-                        ? "bg-zinc-800/90 ring-white/25"
-                        : "bg-zinc-900/85 hover:bg-zinc-800/95 ring-white/15 hover:ring-white/30"
+                        ? "bg-elevated border-border-color"
+                        : "bg-surface hover:bg-elevated border-border-color"
                   }`}
                 >
                   {/* Fila Principal de la Tarjeta */}
@@ -272,20 +277,20 @@ export const NodeListPanel: React.FC = () => {
                         className="w-2 h-2 rounded-full shrink-0 shadow-[0_0_8px_currentColor]"
                         style={{ backgroundColor: color, color }}
                       />
-                      <span className="text-xs font-semibold text-white truncate drop-shadow-sm">
+                      <span className="text-xs font-semibold text-fg truncate">
                         {node.name}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[9px] font-mono text-zinc-300 bg-white/10 px-1.5 py-0.5 rounded-md ring-1 ring-white/10">
+                      <span className="text-[9px] font-mono text-muted bg-surface px-1.5 py-0.5 rounded-md border border-border-color">
                         {meta.label}
                       </span>
                       {/* Botón de Menú de Opciones */}
                       <button 
                         onClick={(e) => handleToggleMenu(e, node.id)}
                         className={`p-1 rounded-md transition-colors ${
-                          isMenuOpen ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white hover:bg-white/10"
+                          isMenuOpen ? "bg-surface/20 text-fg" : "text-muted hover:text-fg hover:bg-surface/10"
                         }`}
                       >
                         <MoreVertical className="w-3.5 h-3.5" />
@@ -294,7 +299,7 @@ export const NodeListPanel: React.FC = () => {
                   </div>
 
                   {node.desc && !isMenuOpen && (
-                    <p className="text-[11px] text-zinc-300 line-clamp-1 mt-1 pl-4 relative z-10 leading-snug">
+                    <p className="text-[11px] text-muted line-clamp-1 mt-1 pl-4 relative z-10 leading-snug">
                       {node.desc}
                     </p>
                   )}
@@ -309,7 +314,7 @@ export const NodeListPanel: React.FC = () => {
                         className="overflow-hidden"
                       >
                         <div 
-                          className="relative p-2.5 rounded-xl bg-zinc-950/60 ring-1 ring-white/10 flex flex-col gap-2"
+                          className="relative p-2.5 rounded-xl bg-app/60 ring-1 ring-line/10 flex flex-col gap-2"
                           onClick={(e) => e.stopPropagation()} // Evita seleccionar el nodo al interactuar con opciones
                         >
                           <Glass className="absolute inset-0 rounded-[inherit] -z-10 !bg-transparent opacity-30" />
@@ -321,8 +326,8 @@ export const NodeListPanel: React.FC = () => {
                                 initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
                                 className="flex flex-col gap-2.5"
                               >
-                                <p className="text-[11px] text-zinc-300 leading-snug">
-                                  ¿Eliminar <span className="text-white font-semibold">{node.name}</span>? Esta acción es irreversible.
+                                <p className="text-[11px] text-muted leading-snug">
+                                  ¿Eliminar <span className="text-fg font-semibold">{node.name}</span>? Esta acción es irreversible.
                                 </p>
                                 <div className="flex gap-2">
                                   <button 
@@ -333,7 +338,7 @@ export const NodeListPanel: React.FC = () => {
                                   </button>
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
-                                    className="flex-1 bg-white/5 hover:bg-white/15 text-zinc-300 ring-1 ring-white/10 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
+                                    className="flex-1 bg-surface/5 hover:bg-surface/15 text-muted ring-1 ring-line/10 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
                                   >
                                     Cancelar
                                   </button>
@@ -351,18 +356,18 @@ export const NodeListPanel: React.FC = () => {
                                   value={renameValue}
                                   onChange={(e) => setRenameValue(e.target.value)}
                                   onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(e, node.id)}
-                                  className="flex-1 bg-zinc-900/80 text-white text-[11px] px-2.5 py-1.5 rounded-lg ring-1 ring-white/20 outline-none focus:ring-white/50 transition-all shadow-inner"
+                                  className="flex-1 bg-surface/80 text-fg text-[11px] px-2.5 py-1.5 rounded-lg ring-1 ring-line/20 outline-none focus:ring-line/50 transition-all shadow-inner"
                                   placeholder="Nuevo nombre..."
                                 />
                                 <button 
                                   onClick={(e) => handleSaveRename(e, node.id)}
-                                  className="p-1.5 bg-white/15 hover:bg-white/25 rounded-lg ring-1 ring-white/20 text-white transition-colors"
+                                  className="p-1.5 bg-surface/15 hover:bg-surface/25 rounded-lg ring-1 ring-line/20 text-fg transition-colors"
                                 >
                                   <Check className="w-3.5 h-3.5" />
                                 </button>
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setRenameId(null); }}
-                                  className="p-1.5 bg-white/5 hover:bg-red-500/20 rounded-lg ring-1 ring-white/10 text-zinc-400 hover:text-red-300 transition-colors"
+                                  className="p-1.5 bg-surface/5 hover:bg-red-500/20 rounded-lg ring-1 ring-line/10 text-muted hover:text-red-300 transition-colors"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
@@ -380,7 +385,7 @@ export const NodeListPanel: React.FC = () => {
                                     setRenameId(node.id); 
                                     setRenameValue(node.name); 
                                   }} 
-                                  className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/15 text-zinc-200 ring-1 ring-white/10 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
+                                  className="flex-1 flex items-center justify-center gap-1.5 bg-surface/5 hover:bg-surface/15 text-fg ring-1 ring-line/10 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
                                 >
                                   <Edit2 className="w-3 h-3" /> Renombrar
                                 </button>
@@ -389,7 +394,7 @@ export const NodeListPanel: React.FC = () => {
                                     e.stopPropagation(); 
                                     setDeleteConfirm(node.id); 
                                   }} 
-                                  className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-red-500/20 text-zinc-300 hover:text-red-300 ring-1 ring-white/10 hover:ring-red-500/40 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
+                                  className="flex-1 flex items-center justify-center gap-1.5 bg-surface/5 hover:bg-red-500/20 text-muted hover:text-red-300 ring-1 ring-line/10 hover:ring-red-500/40 rounded-lg py-1.5 text-[10px] font-medium transition-colors"
                                 >
                                   <Trash2 className="w-3 h-3" /> Eliminar
                                 </button>
