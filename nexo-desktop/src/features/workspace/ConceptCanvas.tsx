@@ -9,7 +9,6 @@ import {
   FileText,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
-import { NodeCanvasLayout } from "./NodeCanvasLayout";
 import { DeepDiveModal } from "./DeepDiveModal";
 import type {
   ConceptMap,
@@ -366,13 +365,6 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* MODE 2: SPATIAL VIEW ('obsidian') - Interactive React Flow */}
-      {/* ============================================================== */}
-      {canvasMode === "obsidian" && (
-        <NodeCanvasLayout onOpenAddNode={onOpenAddNode} />
       )}
 
       {/* Floating Deep-Dive Notion Modal Overlay */}
