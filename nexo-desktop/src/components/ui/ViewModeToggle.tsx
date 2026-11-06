@@ -59,7 +59,7 @@ export const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
         `}
       >
         <Network className="w-3.5 h-3.5 text-concept-fg shrink-0" />
-        <span>Constelación Obsidian</span>
+        <span>Copilot IA</span>
       </button>
 
       <button
