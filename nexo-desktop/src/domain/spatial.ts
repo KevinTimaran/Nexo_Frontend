@@ -39,7 +39,7 @@ export interface SpatialProjectBrief {
 }
 
 export const SPATIAL_GROUPS: readonly SpatialGroupMeta[] = [
-  { id: "core", label: "Núcleo", color: "gren" },
+  { id: "core", label: "Núcleo", color: "#818cf8" },
   { id: "research", label: "Investigación", color: "#22d3ee" },
   { id: "product", label: "Producto", color: "#34d399" },
   { id: "engineering", label: "Ingeniería", color: "#f472b6" },
