@@ -18,7 +18,8 @@ import type {
   ResearchPhase,
 } from "../../domain/types";
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
-import { getSystemInstruction, buildUserPrompt, detectMessageLanguage } from "../ai/prompts";
+import { getSystemInstruction, buildUserPrompt, detectMessageLanguage, sanitizeAssistantText } from "../ai/prompts";
+import { normalizeGenerativeUIBlock } from "../ai/generativeUi";
 import { normalizeCategory } from "../../domain/constants";
 
 export type { AICardType };
@@ -74,8 +75,10 @@ export const STORAGE_KEY_OPENAI_KEY = "nexo.openai.key";
 export const STORAGE_KEY_OPENAI_MODEL = "nexo.openai.model";
 export const STORAGE_KEY_OPENAI_ENABLED = "nexo.openai.enabled";
 export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+
+// Direct literal access so Vite statically replaces environment variables during build
 export const DEFAULT_OPENAI_API_KEY =
-  (typeof import.meta !== "undefined" && (import.meta as unknown as { env?: { VITE_OPENAI_API_KEY?: string } })?.env?.VITE_OPENAI_API_KEY) ||
+  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) ||
   (typeof process !== "undefined" && process.env?.VITE_OPENAI_API_KEY) ||
   "";
 
@@ -87,13 +90,16 @@ const uid = (prefix: string) =>
 
 /**
  * Returns the configured OpenAI API key with strict precedence:
- * 1. Checks user override in localStorage ("nexo.openai.key")
- * 2. Checks in-memory override (for testing and runtime config)
- * 3. Checks environment variable VITE_OPENAI_API_KEY (.env.local / import.meta.env / process.env)
+ * 1. Checks in-memory override (for testing and runtime config)
+ * 2. Checks user override in localStorage ("nexo.openai.key")
+ * 3. Checks environment variable VITE_OPENAI_API_KEY (.env / import.meta.env / process.env)
  * 4. In browser/Tauri window runtime: falls back to DEFAULT_OPENAI_API_KEY
- * 5. In headless/node test runner: returns empty string if no key is configured.
  */
 export function getOpenAIApiKey(): string {
+  if (inMemoryKey !== null) {
+    return inMemoryKey.trim();
+  }
+
   try {
     if (typeof localStorage !== "undefined") {
       const custom = localStorage.getItem(STORAGE_KEY_OPENAI_KEY);
@@ -102,20 +108,38 @@ export function getOpenAIApiKey(): string {
   } catch {
     // Ignore storage issues
   }
-  if (inMemoryKey && inMemoryKey.trim().length > 0) {
-    return inMemoryKey.trim();
-  }
-  const envMeta = (import.meta as unknown as { env?: { VITE_OPENAI_API_KEY?: string } })?.env?.VITE_OPENAI_API_KEY;
+
+  const envMeta =
+    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) ||
+    (typeof process !== "undefined" && process.env?.VITE_OPENAI_API_KEY);
+
   if (envMeta && envMeta.trim().length > 0) return envMeta.trim();
 
-  if (typeof process !== "undefined" && process.env?.VITE_OPENAI_API_KEY) {
-    const processKey = process.env.VITE_OPENAI_API_KEY;
-    if (processKey && processKey.trim().length > 0) return processKey.trim();
+  // In Node/CLI runner, read from .env if not loaded into process.env
+  if (typeof process !== "undefined" && typeof window === "undefined") {
+    try {
+      const nodeReq = (globalThis).require;
+      if (!nodeReq) return "";
+      const fsNode = nodeReq("node:fs");
+      const pathNode = nodeReq("node:path");
+      const cwd = process.cwd();
+      for (const envFile of [".env", ".env.local"]) {
+        const fullPath = pathNode.resolve(cwd, envFile);
+        if (fsNode.existsSync(fullPath)) {
+          const content = fsNode.readFileSync(fullPath, "utf-8");
+          const m = content.match(/VITE_OPENAI_API_KEY\s*=\s*([^\r\n]+)/);
+          if (m && m[1].trim()) {
+            return m[1].trim();
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
   }
 
-  // In browser/Tauri environment, ensure we always use the production OpenAI API key
-  if (typeof window !== "undefined") {
-    return DEFAULT_OPENAI_API_KEY;
+  if (DEFAULT_OPENAI_API_KEY && DEFAULT_OPENAI_API_KEY.trim().length > 0) {
+    return DEFAULT_OPENAI_API_KEY.trim();
   }
 
   return "";
@@ -125,6 +149,10 @@ export function getOpenAIApiKey(): string {
  * Returns the active OpenAI model (defaults to gpt-4o-mini).
  */
 export function getOpenAIModel(): string {
+  if (inMemoryModel !== null) {
+    return inMemoryModel.trim();
+  }
+
   try {
     if (typeof localStorage !== "undefined") {
       const custom = localStorage.getItem(STORAGE_KEY_OPENAI_MODEL);
@@ -133,22 +161,19 @@ export function getOpenAIModel(): string {
   } catch {
     // Ignore storage issues
   }
-  if (inMemoryModel && inMemoryModel.trim().length > 0) {
-    return inMemoryModel.trim();
-  }
-  const envModel = (import.meta as unknown as { env?: { VITE_OPENAI_MODEL?: string } })?.env?.VITE_OPENAI_MODEL;
+
+  const envModel =
+    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_OPENAI_MODEL) ||
+    (typeof process !== "undefined" && process.env?.VITE_OPENAI_MODEL);
+
   if (envModel && envModel.trim().length > 0) return envModel.trim();
 
-  if (typeof process !== "undefined" && process.env?.VITE_OPENAI_MODEL) {
-    const processModel = process.env.VITE_OPENAI_MODEL;
-    if (processModel && processModel.trim().length > 0) return processModel.trim();
-  }
   return DEFAULT_OPENAI_MODEL;
 }
 
 export function setOpenAIConfig(key?: string, model?: string): void {
   if (key !== undefined) {
-    inMemoryKey = key.trim().length === 0 ? null : key.trim();
+    inMemoryKey = key.trim();
     try {
       if (typeof localStorage !== "undefined") {
         if (key.trim().length === 0) {
@@ -373,6 +398,7 @@ interface OpenAIStructuredReply {
   cardType?: AICardType;
   readyForStructuring?: boolean;
   discoveryQuestions?: DiscoveryQuestion[];
+  ui?: unknown;
   nodes?: Array<{
     title: string;
     description: string;
@@ -424,7 +450,8 @@ export const openaiAiService: AIService = {
       lang: effectiveLang,
       existingNodesSummary: existingSummary,
       userMessage: text,
-      messageHistory: request.messageHistory,
+      // The history is supplied as dedicated chat messages below.
+      messageHistory: undefined,
     });
 
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
@@ -441,7 +468,7 @@ export const openaiAiService: AIService = {
         if (m.text && m.text.trim().length > 0) {
           messages.push({
             role: m.role === "user" ? "user" : "assistant",
-            content: m.text,
+            content: m.role === "assistant" && m.ui ? `${m.text}\nEstado interactivo guardado: ${JSON.stringify(m.ui)}` : m.text,
           });
         }
       }
@@ -485,13 +512,31 @@ export const openaiAiService: AIService = {
         throw new OpenAIError("Respuesta vacía o incompleta de OpenAI.", "EMPTY_RESPONSE", 200);
       }
 
-      const parsed: OpenAIStructuredReply = JSON.parse(rawJson);
+      let cleanJson = rawJson.trim();
+      if (cleanJson.startsWith("```")) {
+        cleanJson = cleanJson.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      }
+
+      let parsed: OpenAIStructuredReply;
+      try {
+        parsed = JSON.parse(cleanJson);
+      } catch {
+        parsed = {
+          action: "chat",
+          message: rawJson,
+        };
+      }
+      const generativeUI = normalizeGenerativeUIBlock(parsed.ui);
 
       const newNodes: ConceptNode[] = [];
       const newRelations: ConceptRelation[] = [];
       const isWarning = parsed.cardType === "warning";
 
-      if (activePhase !== "PHASE_1_DISCOVERY" && !isWarning) {
+      if (
+        activePhase !== "PHASE_1_DISCOVERY" &&
+        !isWarning &&
+        generativeUI?.type !== "idea_cards"
+      ) {
         let currentMapNodes = [...map.nodes];
         const anchorNode = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
 
@@ -589,8 +634,10 @@ export const openaiAiService: AIService = {
         ...newNodes.map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
       ];
 
-      const action = parsed.action;
-      const effectiveText = parsed.message || parsed.text || "";
+      const action = generativeUI ? "chat" : parsed.action;
+      const contextTopic = map.nodes[0]?.title || undefined;
+      const rawText = parsed.message || parsed.text || "";
+      const effectiveText = sanitizeAssistantText(rawText, effectiveLang, contextTopic);
       const rawQuestions = parsed.questions || parsed.discoveryQuestions || [];
       const isReadyAction = action === "ready";
       const isChatAction = action === "chat";
@@ -606,7 +653,9 @@ export const openaiAiService: AIService = {
             allowCustom: q.allowCustom ?? true,
           }));
 
-      const isReadyStructuring = isWarning
+      const isReadyStructuring = generativeUI
+        ? false
+        : isWarning
         ? false
         : isReadyAction
           ? true
@@ -622,9 +671,14 @@ export const openaiAiService: AIService = {
           replyTo,
           cardType: parsed.cardType || "idea",
           text: effectiveText,
-          simplifiedExplanation: parsed.simplifiedExplanation || (isReadyAction ? "Idea lista para estructuración." : ""),
+          simplifiedExplanation: sanitizeAssistantText(
+            parsed.simplifiedExplanation || (isReadyAction ? "Idea lista para estructuración." : ""),
+            effectiveLang,
+            contextTopic
+          ),
           chatPhase: activePhase,
           action: action,
+          ui: generativeUI,
           readyForStructuring: isReadyStructuring,
           dimensions: (parsed as any).dimensions || (isReadyAction ? ["economic", "social", "technical", "legal"] : undefined),
           discoveryQuestions: mappedQuestions,

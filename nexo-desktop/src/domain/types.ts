@@ -96,6 +96,12 @@ export interface ConceptNode {
   group?: string;
   val?: number;        // Relative orb radius (1..25)
   importance?: number; // 0..1; >0.6 emits PointLight in 3D
+  semanticKey?: string;
+  origin?: "ai_initial" | "ai_expansion" | "user" | "approved";
+  verification?: "confirmed" | "unconfirmed" | "unknown";
+  sourceFactIds?: string[];
+  definitionVersion?: string;
+  manuallyEditedFields?: string[];
 }
 
 export interface ConceptRelation {
@@ -110,6 +116,9 @@ export interface ConceptRelation {
   value?: number;
   label?: string;
   type?: string;
+  semanticKey?: string;
+  origin?: "ai_initial" | "ai_expansion" | "user" | "approved";
+  definitionVersion?: string;
 }
 
 export interface ConceptMap {
@@ -137,6 +146,9 @@ interface BaseMessage {
 
 export interface UserMessage extends BaseMessage {
   role: "user";
+  eventId?: string;
+  questionnaireId?: string;
+  answers?: Record<string, string | string[]>;
 }
 
 export type ChatPhase = "PHASE_1_DISCOVERY" | "PHASE_2_STRUCTURING" | "PHASE_3_EXPANSION";
@@ -154,8 +166,76 @@ export interface DiscoveryQuestion {
 
 export type AICardType = "idea" | "explanation" | "recommendation" | "warning";
 
+export type GenerativeUIType = "timeline" | "decision_comparator" | "idea_cards";
+
+export interface TimelineItem {
+  id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  dependencies: string[];
+  milestone?: boolean;
+  status: "planned" | "in_progress" | "done";
+}
+
+export interface TimelineUIBlock {
+  type: "timeline";
+  title: string;
+  description?: string;
+  items: TimelineItem[];
+}
+
+export interface DecisionCriterion {
+  id: string;
+  label: string;
+  weight: number;
+}
+
+export interface DecisionOption {
+  id: string;
+  title: string;
+  description?: string;
+  scores: Record<string, number>;
+}
+
+export interface DecisionComparatorUIBlock {
+  type: "decision_comparator";
+  title: string;
+  description?: string;
+  criteria: DecisionCriterion[];
+  options: DecisionOption[];
+  selectedOptionId?: string;
+}
+
+export interface ActionableIdea {
+  id: string;
+  title: string;
+  description: string;
+  benefits: string[];
+  resources: string[];
+  relations: string[];
+  status: "pending" | "approved" | "discarded" | "mapped";
+  category?: NodeCategory;
+  priority?: NodePriority;
+  phase?: ResearchPhase;
+}
+
+export interface IdeaCardsUIBlock {
+  type: "idea_cards";
+  title: string;
+  description?: string;
+  items: ActionableIdea[];
+}
+
+export type GenerativeUIBlock =
+  | TimelineUIBlock
+  | DecisionComparatorUIBlock
+  | IdeaCardsUIBlock;
+
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
+  requestId?: string;
   insight?: Insight;
   /** The user message this answers; used for Retry. */
   replyTo?: string;
@@ -179,6 +259,8 @@ export interface AssistantMessage extends BaseMessage {
   readyForStructuring?: boolean;
   /** Strict router action returned by AI in discovery phase */
   action?: "chat" | "questionnaire" | "ready" | "dimensions";
+  /** Contextual interactive interface generated for this conversational turn. */
+  ui?: GenerativeUIBlock;
   /** Actionable node candidate that can be mapped directly to canvas */
   actionableNode?: {
     title: string;
@@ -210,6 +292,8 @@ export interface ChatMessage {
   options?: string[];
   questions?: QuestionnaireQuestion[];
   dimensions?: StrategicDimension[];
+  ui?: GenerativeUIBlock;
+  questionnaireId?: string;
 }
 
 export const INITIAL_DISCOVERY_MESSAGES: ChatMessage[] = [
@@ -227,10 +311,34 @@ export interface AIResponse {
   newRelations: ConceptRelation[];
 }
 
+export type ProjectArchetype = "business" | "research" | "software" | "creative" | "operational" | "general";
+export interface ProjectFact {
+  key: string;
+  value: string;
+  status: "confirmed" | "unconfirmed" | "unknown";
+  sourceMessageIds: string[];
+}
+export interface DiscoveryState {
+  lifecycle: "discovering" | "ready" | "generating" | "generated" | "generation_error" | "legacy_unknown";
+  archetype: ProjectArchetype;
+  facts: ProjectFact[];
+  requiredTopics: Array<{ key: string; importance: "blocking" | "helpful" | "optional" }>;
+  askedQuestionKeys: string[];
+  answeredQuestionKeys: string[];
+  candidateDefinitionVersion?: string;
+  stableDefinitionVersion?: string;
+  generatedDefinitionVersion?: string;
+  completionAnchorMessageId?: string;
+  generationLedger: Record<string, { status: "pending" | "applied" | "failed"; requestId: string }>;
+  tombstones: string[];
+}
+
 export interface Workspace {
   project: Project;
   map: ConceptMap;
   messages: Message[];
+  discovery?: DiscoveryState;
+  revision?: number;
 }
 
 export interface GeneratedDocument {

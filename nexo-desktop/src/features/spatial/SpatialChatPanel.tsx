@@ -189,30 +189,33 @@ export const SpatialChatPanel: React.FC = () => {
         messageHistory: updatedMessages,
       });
 
-      const aiMessage: Message = response.message;
-      const nextMessages = [...updatedMessages, aiMessage];
+      const aiMessage: Message = { ...response.message, replyTo: userMsgId, requestId: userMsgId };
 
       if (workspace) {
+        const latest = useWorkspaceStore.getState().workspace;
+        if (!latest || latest.project.id !== workspace.project.id) return;
+        const nextMessages = [...latest.messages.filter((message) => !(message.role === "assistant" && message.replyTo === userMsgId)), aiMessage];
         const nextNodes =
           response.newNodes && response.newNodes.length > 0
-            ? [...workspace.map.nodes, ...response.newNodes]
-            : workspace.map.nodes;
+            ? [...latest.map.nodes, ...response.newNodes.map((node) => ({ ...node, origin: "ai_expansion" as const, verification: "unconfirmed" as const }))]
+            : latest.map.nodes;
         const nextRelations =
           response.newRelations && response.newRelations.length > 0
-            ? [...workspace.map.relations, ...response.newRelations]
-            : workspace.map.relations;
+            ? [...latest.map.relations, ...response.newRelations.map((relation) => ({ ...relation, origin: "ai_expansion" as const }))]
+            : latest.map.relations;
         const nextMap: ConceptMap = { nodes: nextNodes, relations: nextRelations };
 
         setWorkspace({
-          ...workspace,
+          ...latest,
           map: nextMap,
           messages: nextMessages,
         });
 
-        if (workspace.project?.id) {
-          services.workspace.save(workspace.project.id, nextMap, nextMessages);
+        if (latest.project?.id) {
+          void services.workspace.save(latest.project.id, nextMap, nextMessages, latest.discovery).catch(console.error);
         }
       } else {
+        const nextMessages = [...updatedMessages, aiMessage];
         setLocalMessages(nextMessages);
       }
     } catch (err: any) {

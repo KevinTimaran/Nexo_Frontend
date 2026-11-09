@@ -6,8 +6,8 @@
  */
 import type { ServiceMode } from "../domain/types";
 import type { Services } from "./contracts";
-import { geminiAiService, isGeminiConfigured, isGeminiEnabled } from "./gemini";
-import { openaiAiService, isOpenAIConfigured, isOpenAIEnabled } from "./openai";
+import { geminiAiService, isGeminiConfigured } from "./gemini";
+import { openaiAiService, isOpenAIConfigured } from "./openai";
 import { httpServices } from "./http";
 import { mockServices } from "./mock";
 
@@ -19,6 +19,43 @@ export type AIProvider = "openai" | "gemini";
 let inMemoryProvider: AIProvider | null = null;
 
 export function getAiProvider(): AIProvider {
+  if (inMemoryProvider === "openai" || inMemoryProvider === "gemini") {
+    return inMemoryProvider;
+  }
+
+  // 1. Env variable takes precedence (configured in .env)
+  const envProvider =
+    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_AI_PROVIDER) ||
+    (typeof process !== "undefined" && process.env?.VITE_AI_PROVIDER);
+
+  if (envProvider === "openai" || envProvider === "gemini") {
+    return envProvider as AIProvider;
+  }
+
+  if (typeof process !== "undefined" && typeof window === "undefined") {
+    try {
+      const nodeRequire = (globalThis as unknown as { require?: (mod: string) => unknown }).require;
+      if (nodeRequire) {
+        const fs = nodeRequire("node:fs") as typeof import("fs");
+        const path = nodeRequire("node:path") as typeof import("path");
+        const cwd = process.cwd();
+        for (const envFile of [".env", ".env.local"]) {
+          const fullPath = path.resolve(cwd, envFile);
+          if (fs.existsSync(fullPath)) {
+            const content = fs.readFileSync(fullPath, "utf-8");
+            const m = content.match(/VITE_AI_PROVIDER\s*=\s*([^\r\n]+)/);
+            if (m && (m[1].trim() === "openai" || m[1].trim() === "gemini")) {
+              return m[1].trim() as AIProvider;
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  // 2. Check localStorage override (only if user changed it in Settings)
   try {
     if (typeof localStorage !== "undefined") {
       const saved = localStorage.getItem(AI_PROVIDER_STORAGE_KEY);
@@ -27,17 +64,8 @@ export function getAiProvider(): AIProvider {
   } catch {
     // Ignore storage issues
   }
-  if (inMemoryProvider === "openai" || inMemoryProvider === "gemini") {
-    return inMemoryProvider;
-  }
-  const envProvider = (import.meta as unknown as { env?: { VITE_AI_PROVIDER?: string } })?.env?.VITE_AI_PROVIDER;
-  if (envProvider === "openai" || envProvider === "gemini") return envProvider;
 
-  if (typeof process !== "undefined" && process.env?.VITE_AI_PROVIDER) {
-    const p = process.env.VITE_AI_PROVIDER;
-    if (p === "openai" || p === "gemini") return p;
-  }
-
+  // 3. Fallbacks
   if (isOpenAIConfigured()) return "openai";
   if (isGeminiConfigured()) return "gemini";
   return "openai";
@@ -101,34 +129,28 @@ class ServiceRegistry {
     const base = this.currentMode === "server" ? httpServices : mockServices;
     const provider = getAiProvider();
 
-    if (provider === "gemini") {
-      if (isGeminiEnabled()) {
-        return {
-          ...base,
-          ai: geminiAiService,
-        };
-      }
-      return base;
-    }
-
     if (provider === "openai") {
-      if (isOpenAIEnabled()) {
-        return {
-          ...base,
-          ai: openaiAiService,
-        };
-      }
-      return base;
-    }
-
-    if (isOpenAIEnabled()) {
       return {
         ...base,
         ai: openaiAiService,
       };
     }
 
-    if (isGeminiEnabled()) {
+    if (provider === "gemini") {
+      return {
+        ...base,
+        ai: geminiAiService,
+      };
+    }
+
+    if (isOpenAIConfigured()) {
+      return {
+        ...base,
+        ai: openaiAiService,
+      };
+    }
+
+    if (isGeminiConfigured()) {
       return {
         ...base,
         ai: geminiAiService,

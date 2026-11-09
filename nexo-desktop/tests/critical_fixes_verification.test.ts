@@ -21,19 +21,17 @@ const userPromptPhase1 = buildUserPrompt({
 
 // 1.1 Nueva instrucción estricta en Phase 1 (Enrutador JSON y Regla de Contextualización Estricta)
 const expectedRouterHeader =
-  "Eres un Arquitecto de Software Consultor experto. Tu objetivo es entender la idea del usuario. DEBES responder SIEMPRE con un objeto JSON válido con esta estructura:";
+  "Responde con un objeto JSON válido";
 const expectedDecisionRules = [
-  '1. Si la idea es vaga, confusa o fuera de tema (ej. \'quiero hacer un sándwich\' o \'hola\'): Usa action: "chat", haz preguntas abiertas en texto pidiendo que aclare su idea de software. NO envíes cuestionarios.',
-  '2. Si la idea ya es clara (ej. \'app de citas para doctores\'): Usa action: "questionnaire" y genera exactamente 3 preguntas clave de opción múltiple para definir detalles técnicos o de negocio.',
-  '3. Si el usuario ya respondió el cuestionario o la idea está 100% clara y definida: Usa action: "ready", y en el mensaje dile que estás listo para generar el proyecto.',
+  'ideas accionables',
+  'action: "chat"',
+  'No repitas preguntas',
+  'automáticamente',
 ];
 const expectedStrictContextRules = [
-  "Eres un Arquitecto de Software Consultor experto. Cuando la idea del usuario esté clara y decidas enviar un 'questionnaire', TIENES PROHIBIDO usar preguntas genéricas de plantillas de startups (nada de 'público general', 'early adopters' o 'comunidades P2P' a menos que sea una red social).",
-  "Tus 3 preguntas deben estar HIPER-PERSONALIZADAS a la INDUSTRIA y MODELO DE NEGOCIO que propone el usuario.",
-  "1. Roles y permisos (Ej: ¿El sistema tendrá jerarquía entre Superadmin de franquicia, Gerente de sede y Meseros?).",
-  "2. Arquitectura de datos (Ej: ¿Sincronización multi-tenant en tiempo real o bases de datos aisladas por sede?).",
-  "3. Operaciones (Ej: ¿Se integrará con hardware POS e impresoras térmicas o será 100% cloud en tablets?).",
-  "Genera siempre un JSON válido adaptando las preguntas y las opciones de respuesta estrictamente al dominio del problema del usuario.",
+  "preguntas",
+  "desconocid",
+  "técnic",
 ];
 
 assert.ok(

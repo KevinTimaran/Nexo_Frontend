@@ -16,6 +16,7 @@ import type {
   Project,
   User,
   Workspace,
+  DiscoveryState,
 } from "../domain/types";
 
 export interface AuthService {
@@ -42,7 +43,7 @@ export interface FolderService {
 export interface WorkspaceService {
   /** Resolves `null` when the project does not exist. */
   load(projectId: string, lang: Language): Promise<Workspace | null>;
-  save(projectId: string, map: ConceptMap, messages: Message[]): void;
+  save(projectId: string, map: ConceptMap, messages: Message[], discovery?: DiscoveryState): Promise<void>;
 }
 
 export interface AIReplyRequest {

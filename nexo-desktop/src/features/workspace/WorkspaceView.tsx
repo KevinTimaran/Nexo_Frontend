@@ -15,20 +15,31 @@ import {
   Layers,
 } from "lucide-react";
 import { services } from "../../services";
-import { detectMessageLanguage } from "../../services/ai/prompts";
+import { detectMessageLanguage, isPlaceholderResponse, sanitizeAssistantText } from "../../services/ai/prompts";
+import { filterRepeatedQuestions, nextDiscoveryQuestion, questionKey, recordUserInput, syncIdeaFacts } from "../../services/ai/discovery";
+import { buildGroundedGraph, reconcileGraph } from "../../services/ai/reconcileGraph";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import { ConceptCanvas } from "./ConceptCanvas";
 import { AIChatDrawer } from "./AIChatDrawer";
-import { FullScreenDiscoveryChat, type ChatMessage } from "./FullScreenDiscoveryChat";
+import { FullScreenDiscoveryChat } from "./FullScreenDiscoveryChat";
 import { NotionModalViewer } from "./NotionModalViewer";
 import { GenerateDocumentModal } from "../documents/GenerateDocumentModal";
 import { SpaceWorkspace } from "../spatial/SpaceWorkspace";
 import { Button } from "../../components/ui/Button";
 import { NexoLogo } from "../../components/brand/NexoLogo";
-import type { ConceptMap, ConceptNode, Message, ChatPhase, ProjectIcon } from "../../domain/types";
+import type {
+  ActionableIdea,
+  AssistantMessage,
+  ConceptMap,
+  ConceptNode,
+  GenerativeUIBlock,
+  Message,
+  ChatPhase,
+  ProjectIcon,
+} from "../../domain/types";
 
 const PROJECT_HEADER_ICONS: Record<ProjectIcon, React.ReactNode> = {
   lightbulb: <Lightbulb className="w-3.5 h-3.5" />,
@@ -57,12 +68,10 @@ export const WorkspaceView: React.FC = () => {
     expandedDocNodeId,
     setExpandedDocNodeId,
     isThinking,
-    setThinking,
     isChatOpen,
     toggleChat,
     moveNode,
     removeNode,
-    chatPhase,
     setChatPhase,
     isZenMode,
     docViewMode,
@@ -70,14 +79,17 @@ export const WorkspaceView: React.FC = () => {
     setArchitectureUnlocked,
     discoveryMessages,
     discoverySelectedOptions,
-    setDiscoveryMessages,
     setDiscoverySelectedOptions,
+    addNodeFromChat,
     resetWorkspace,
   } = useWorkspaceStore();
 
   const [loading, setLoading] = useState(true);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const pendingRequestRef = useRef<string | null>(null);
+  const failedMessageIdRef = useRef<string | null>(null);
+  const generationRef = useRef<string | null>(null);
 
   // Reset workspace state upon navigating away so landing mode is fresh when reopening
   useEffect(() => {
@@ -104,166 +116,225 @@ export const WorkspaceView: React.FC = () => {
   // Persist session edits
   const saveSession = (map: ConceptMap, messages: Message[]) => {
     if (!projectId) return;
-    services.workspace.save(projectId, map, messages);
+    void services.workspace.save(projectId, map, messages, useWorkspaceStore.getState().workspace?.discovery).catch(console.error);
   };
 
-  const handleSendMessage = async (text: string, overridePhase?: ChatPhase) => {
-    if (!workspace || !projectId) return;
+  const handleSendMessage = async (text: string, overridePhase?: ChatPhase, questionnaireId?: string, answers?: Record<string, string | string[]>, retryMessageId?: string) => {
+    const current = useWorkspaceStore.getState();
+    const activeWorkspace = current.workspace;
+    if (!activeWorkspace || !projectId || pendingRequestRef.current) return;
+    if (!retryMessageId && questionnaireId && activeWorkspace.messages.some((m) => m.role === "user" && m.questionnaireId === questionnaireId)) return;
 
-    const activePhase = overridePhase || chatPhase;
-
-    const userMessage: Message = {
-      id: Math.random().toString(36).substring(2, 9),
+    let activePhase = overridePhase || ((activeWorkspace.discovery?.lifecycle === "generated" || activeWorkspace.map.nodes.length > 0) ? "PHASE_3_EXPANSION" : current.chatPhase);
+    const prior = retryMessageId && activeWorkspace.messages.find((m) => m.role === "user" && m.id === retryMessageId);
+    const userMessage: Message = prior && prior.role === "user" ? prior : {
+      id: crypto.randomUUID(),
+      eventId: crypto.randomUUID(),
       role: "user",
       createdAt: new Date().toISOString(),
       text,
+      questionnaireId,
+      answers,
     };
-
-    const updatedMessages = [...workspace.messages, userMessage];
-    const updatedWorkspace = { ...workspace, messages: updatedMessages };
-    setWorkspace(updatedWorkspace);
-    saveSession(workspace.map, updatedMessages);
-
-    setThinking(true);
+    pendingRequestRef.current = userMessage.id;
+    failedMessageIdRef.current = null;
+    const history = activeWorkspace.messages.filter((m) => m.id !== userMessage.id);
+    if (!prior) {
+      const updatedMessages = [...history, userMessage];
+      const nextDiscovery = recordUserInput(activeWorkspace.discovery!, userMessage);
+      if (nextDiscovery.lifecycle === "discovering") activePhase = "PHASE_1_DISCOVERY";
+      current.setWorkspace({ ...activeWorkspace, messages: updatedMessages, discovery: nextDiscovery });
+      saveSession(activeWorkspace.map, updatedMessages);
+    }
+    current.setThinking(true);
     setChatError(null);
 
     const messageLang = detectMessageLanguage(text, lang);
 
-    // Provide conversation history in forward chronological order
-    const recentMessageHistory = workspace.messages;
-
     try {
       const response = await services.ai.reply({
         text,
-        map: workspace.map,
+        map: activeWorkspace.map,
         lang: messageLang,
         replyTo: userMessage.id,
         chatPhase: activePhase,
-        messageHistory: recentMessageHistory,
+        messageHistory: history,
       });
-
-      const nextNodes = [...(workspace.map?.nodes || []), ...(response.newNodes || [])];
-      const nextRelations = [...(workspace.map?.relations || []), ...(response.newRelations || [])];
+      const latest = useWorkspaceStore.getState().workspace;
+      if (!latest || latest.project.id !== projectId) return;
+      if (activePhase === "PHASE_1_DISCOVERY" && latest.discovery && response.message.action === "questionnaire") {
+        const aiQuestions = response.message.discoveryQuestions && response.message.discoveryQuestions.length > 0
+          ? response.message.discoveryQuestions
+          : nextDiscoveryQuestion(latest.discovery);
+        const filteredQuestions = latest.discovery.lifecycle === "ready" ? [] : filterRepeatedQuestions(latest.discovery, latest.messages, aiQuestions);
+        response.message.discoveryQuestions = filteredQuestions;
+        if (!response.message.discoveryQuestions.length) {
+          response.message.action = "chat";
+          if (!response.message.text || isPlaceholderResponse(response.message.text)) {
+            response.message.text = latest.discovery.lifecycle === "ready" ? "Ya tengo una base para organizar tu proyecto. Puedes seguir contándome detalles o explorar otras ideas." : "Podemos seguir conversando. Cuéntame ese detalle cuando quieras; también puedes decir que aún no lo sabes.";
+          }
+        } else if (!response.message.text || isPlaceholderResponse(response.message.text)) {
+          response.message.text = "Para entender mejor tu idea, hay algo que quisiera saber:";
+        }
+      }
+      if (latest.discovery?.lifecycle === "generated" || activePhase === "PHASE_3_EXPANSION" || (latest.map?.nodes && latest.map.nodes.length > 0)) {
+        response.message.action = "chat";
+        response.message.readyForStructuring = false;
+        response.message.discoveryQuestions = [];
+        delete (response.message as any).dimensions;
+      }
+      response.message.text = sanitizeAssistantText(response.message.text, messageLang);
+      if (response.message.simplifiedExplanation) {
+        response.message.simplifiedExplanation = sanitizeAssistantText(response.message.simplifiedExplanation, messageLang);
+      }
+      if (latest.discovery?.lifecycle === "discovering" && response.message.action === "ready") {
+        response.message.action = "chat";
+        response.message.readyForStructuring = false;
+        if (!response.message.text || isPlaceholderResponse(response.message.text)) {
+          response.message.text = nextDiscoveryQuestion(latest.discovery)[0]?.question ?? "Cuéntame un poco más sobre lo que quieres crear o lograr.";
+        }
+      }
+      const askedKeys = (response.message.discoveryQuestions ?? []).map((question) => questionKey(question.question));
+      const discoveryWithQuestions = latest.discovery && askedKeys.length
+        ? { ...latest.discovery, askedQuestionKeys: [...new Set([...latest.discovery.askedQuestionKeys, ...askedKeys])] }
+        : latest.discovery;
+      const discovery = discoveryWithQuestions ? syncIdeaFacts(discoveryWithQuestions, response.message.ui, response.message.id) : undefined;
+      const requestedGraphChange = activePhase === "PHASE_2_STRUCTURING" || (activePhase === "PHASE_3_EXPANSION" && /^explorar punto de vista/i.test(text)) || /\b(agrega|añade|anade|incorpora|crea|mapear|add)\b.{0,40}\b(nodo|concepto|tablero|mapa|node)\b/i.test(text);
+      const proposedNodes = requestedGraphChange ? response.newNodes || [] : [];
+      const nextNodes = [...latest.map.nodes, ...proposedNodes.filter((n) => !latest.map.nodes.some((existing) => existing.id === n.id)).map((n) => ({ ...n, origin: "ai_expansion" as const, verification: "unconfirmed" as const }))];
+      const nextRelations = [...latest.map.relations, ...(requestedGraphChange ? response.newRelations || [] : []).filter((r) => !latest.map.relations.some((existing) => existing.id === r.id) && nextNodes.some((node) => node.id === r.from) && nextNodes.some((node) => node.id === r.to)).map((r) => ({ ...r, origin: "ai_expansion" as const }))];
       const nextMap: ConceptMap = { nodes: nextNodes, relations: nextRelations };
-      const nextMessages = [...updatedMessages, response.message];
-
-      setWorkspace({
-        ...workspace,
+      const nextMessages = [...latest.messages.filter((m) => !(m.role === "assistant" && m.replyTo === userMessage.id)), { ...response.message, replyTo: userMessage.id, requestId: userMessage.id }];
+      useWorkspaceStore.getState().setWorkspace({
+        ...latest,
         map: nextMap,
         messages: nextMessages,
+        discovery,
       });
-
       saveSession(nextMap, nextMessages);
 
-      if (isDiscoveryMode) {
-        const currentDiscovery = useWorkspaceStore.getState().discoveryMessages;
-        const lastMsg = currentDiscovery[currentDiscovery.length - 1];
-        const listWithUser =
-          lastMsg && lastMsg.role === "user" && lastMsg.content === text
-            ? currentDiscovery
-            : [
-                ...currentDiscovery,
-                {
-                  id: userMessage.id,
-                  role: "user" as const,
-                  content: text,
-                  type: "text" as const,
-                },
-              ];
-
-        const newDiscoveryMsgs: ChatMessage[] = [];
-        const action = (response.message as any).action;
-        const isReady =
-          action === "ready" ||
-          Boolean(
-            response.message.readyForStructuring &&
-              (!response.message.discoveryQuestions || response.message.discoveryQuestions.length === 0)
-          );
-        const hasQuestions = Boolean(
-          response.message.discoveryQuestions &&
-            response.message.discoveryQuestions.length > 0 &&
-            action !== "ready"
-        );
-
-        if (hasQuestions) {
-          newDiscoveryMsgs.push({
-            id: response.message.id || `msg-${Date.now()}`,
-            role: "assistant",
-            content: response.message.text,
-            type: "questionnaire",
-            questions: response.message.discoveryQuestions!.map((dq, idx) => ({
-              id: dq.id || `dq-${Date.now()}-${idx}`,
-              question: dq.question,
-              options: dq.options || [],
-              type: dq.type,
-              allowCustom: dq.allowCustom,
-            })),
-          });
-        } else if (isReady) {
-          newDiscoveryMsgs.push({
-            id: response.message.id || `msg-${Date.now()}`,
-            role: "assistant",
-            content: response.message.text,
-            type: "ready",
-            dimensions: (response.message as any).dimensions,
-          });
-        } else {
-          newDiscoveryMsgs.push({
-            id: response.message.id || `msg-${Date.now()}`,
-            role: "assistant",
-            content: response.message.text,
-            type: "text",
-          });
-        }
-        setDiscoveryMessages([...listWithUser, ...newDiscoveryMsgs]);
-      }
-
-      if (response.newNodes.length > 0) {
-        showToast(`Se mapearon ${response.newNodes.length} nuevos conceptos.`, "success");
+      if (proposedNodes.length > 0) {
+        showToast(`Se mapearon ${proposedNodes.length} nuevos conceptos.`, "success");
         setArchitectureUnlocked(true);
         if (activePhase === "PHASE_2_STRUCTURING" || activePhase === "PHASE_1_DISCOVERY") {
           setChatPhase("PHASE_3_EXPANSION");
         }
       }
     } catch (err: unknown) {
+      failedMessageIdRef.current = userMessage.id;
       const errorMsg = err instanceof Error ? err.message : t("chat.error.title");
       setChatError(errorMsg);
       showToast(errorMsg, "error");
     } finally {
-      setThinking(false);
+      pendingRequestRef.current = null;
+      useWorkspaceStore.getState().setThinking(false);
     }
   };
 
-  const handleGenerateBaseMap = async () => {
-    if (!workspace || !projectId) return;
-    setChatPhase("PHASE_2_STRUCTURING");
-    const userMsgs = discoveryMessages.filter((m) => m.role === "user");
-    const userIdea =
-      userMsgs.map((m) => m.content).join(" | ") ||
-      workspace.project.description ||
-      workspace.project.name;
-    const prompt = `Estructura el proyecto "${workspace.project.name}" (Idea y decisiones: ${userIdea}) y sus dimensiones estratégicas (económica, social, técnica y legal) en el mapa conceptual.`;
-    await handleSendMessage(prompt, "PHASE_2_STRUCTURING");
-  };
+  useEffect(() => {
+    const discovery = workspace?.discovery;
+    const version = discovery?.candidateDefinitionVersion;
+    if (!workspace || !projectId || !discovery || !version || discovery.lifecycle === "legacy_unknown" || discovery.lifecycle === "discovering" || discovery.lifecycle === "generation_error" || discovery.generatedDefinitionVersion === version || isThinking) return;
+    const timer = window.setTimeout(async () => {
+      const state = useWorkspaceStore.getState();
+      const current = state.workspace;
+      const definition = current?.discovery;
+      if (!current || current.project.id !== projectId || !definition || definition.candidateDefinitionVersion !== version || state.isThinking || generationRef.current) return;
+      if (definition.generationLedger[version]?.status === "applied") return;
+      const requestId = definition.generationLedger[version]?.requestId ?? `${projectId}:${version}`;
+      generationRef.current = requestId;
+      const pending = { ...definition, lifecycle: "generating" as const, stableDefinitionVersion: version, generationLedger: { ...definition.generationLedger, [version]: { status: "pending" as const, requestId } } };
+      state.setWorkspace({ ...current, discovery: pending });
+      try {
+        await services.workspace.save(projectId, current.map, current.messages, pending);
+        const generated = buildGroundedGraph(pending, current.project.name);
+        const latest = useWorkspaceStore.getState().workspace;
+        if (!latest || latest.project.id !== projectId || latest.discovery?.candidateDefinitionVersion !== version) return;
+        const map = reconcileGraph(latest.map, generated, pending, version);
+        const applied = {
+          ...pending,
+          lifecycle: "generated" as const,
+          generatedDefinitionVersion: version,
+          completionAnchorMessageId: pending.completionAnchorMessageId ?? latest.messages[latest.messages.length - 1]?.id,
+          generationLedger: { ...pending.generationLedger, [version]: { status: "applied" as const, requestId } },
+        };
+        state.setWorkspace({ ...latest, map, discovery: applied });
+        state.setChatPhase("PHASE_3_EXPANSION");
+        await services.workspace.save(projectId, map, latest.messages, applied);
+      } catch (error) {
+        const latest = useWorkspaceStore.getState().workspace;
+        if (latest?.discovery) {
+          const failed = { ...latest.discovery, lifecycle: "generation_error" as const, generationLedger: { ...latest.discovery.generationLedger, [version]: { status: "failed" as const, requestId } } };
+          state.setWorkspace({ ...latest, discovery: failed });
+          void services.workspace.save(projectId, latest.map, latest.messages, failed).catch(console.error);
+        }
+        setChatError(error instanceof Error ? error.message : "No se pudo generar el proyecto");
+      } finally { generationRef.current = null; }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [workspace?.discovery?.candidateDefinitionVersion, workspace?.discovery?.lifecycle, isThinking, projectId]);
 
   const handleGenerateArchitecture = async () => {
-    try {
-      if (!workspace?.map?.nodes?.length) {
-        await handleGenerateBaseMap();
-      }
-      setArchitectureUnlocked(true);
-      setCanvasMode("notion");
-    } catch {
-      // Error is caught and surfaced in handleSendMessage
+    const latest = useWorkspaceStore.getState().workspace;
+    if (latest?.discovery?.lifecycle === "generation_error") {
+      useWorkspaceStore.getState().setWorkspace({ ...latest, discovery: { ...latest.discovery, lifecycle: "ready" } });
+      return;
     }
+    if (!latest?.map.nodes.length) return;
+    setCanvasMode("notion");
   };
 
-  const handleChatSendMessage = async (text: string) => {
+  const handleChatSendMessage = async (text: string, questionnaireId?: string, answers?: Record<string, string | string[]>) => {
     const isDimensionExplore = /(explorar punto de vista|punto de vista|dimensi[oó]n)\s*(econ[oó]mic|social|t[eé]cnic|legal|humano|mesero|pasajer)/i.test(text);
-    if (isDimensionExplore && !workspace?.map?.nodes?.length) {
-      await handleSendMessage(text, "PHASE_2_STRUCTURING");
-    } else {
-      await handleSendMessage(text);
+    await handleSendMessage(text, isDimensionExplore && workspace?.map?.nodes?.length ? "PHASE_3_EXPANSION" : undefined, questionnaireId, answers);
+  };
+
+  const handleGenerativeUIChange = (messageId: string, ui: GenerativeUIBlock) => {
+    const state = useWorkspaceStore.getState();
+    const activeWorkspace = state.workspace;
+    if (!activeWorkspace) return;
+
+    const nextMessages = activeWorkspace.messages.map((message) =>
+      message.id === messageId && message.role === "assistant"
+        ? ({ ...message, ui } as AssistantMessage)
+        : message
+    );
+    const nextWorkspace = { ...activeWorkspace, messages: nextMessages, discovery: activeWorkspace.discovery ? syncIdeaFacts(activeWorkspace.discovery, ui, messageId) : undefined };
+
+    state.setWorkspace(nextWorkspace);
+    void services.workspace.save(activeWorkspace.project.id, activeWorkspace.map, nextMessages, nextWorkspace.discovery).catch(console.error);
+  };
+
+  const handleAddIdeaToBoard = (_messageId: string, idea: ActionableIdea) => {
+    const details = [
+      "### Resumen Ejecutivo",
+      idea.description,
+      "",
+      "### Beneficios",
+      ...(idea.benefits.length > 0 ? idea.benefits.map((item) => `- ${item}`) : ["- Por validar"]),
+      "",
+      "### Recursos necesarios",
+      ...(idea.resources.length > 0 ? idea.resources.map((item) => `- ${item}`) : ["- Por definir"]),
+      "",
+      "### Relaciones sugeridas",
+      ...(idea.relations.length > 0 ? idea.relations.map((item) => `- ${item}`) : ["- Sin relaciones sugeridas"]),
+    ].join("\n");
+
+    const node = addNodeFromChat({
+      title: idea.title,
+      description: idea.description,
+      kind: "concept",
+      category: idea.category,
+      priority: idea.priority,
+      phase: idea.phase ?? "planning",
+      metadata: "Creado desde una tarjeta accionable del chat",
+      details,
+      relevanceScore: idea.priority === "high" ? 9 : idea.priority === "low" ? 4 : 7,
+    });
+
+    if (node) {
+      setArchitectureUnlocked(true);
+      showToast(`“${idea.title}” se añadió al Tablero de Conceptos.`, "success");
     }
   };
 
@@ -456,7 +527,6 @@ export const WorkspaceView: React.FC = () => {
               messages={discoveryMessages}
               initialMessages={discoveryMessages}
               initialSelectedOptions={discoverySelectedOptions}
-              onMessagesChange={setDiscoveryMessages}
               onSelectedOptionsChange={setDiscoverySelectedOptions}
               onSendMessage={handleChatSendMessage}
               onSelectOption={(questionId, option) => {
@@ -466,26 +536,19 @@ export const WorkspaceView: React.FC = () => {
                 });
               }}
               onGenerateArchitecture={handleGenerateArchitecture}
+              generationStatus={workspace.discovery?.lifecycle}
               onNavigateToMode={async (mode) => {
-                try {
-                  if (!workspace?.map?.nodes?.length) {
-                    await handleGenerateBaseMap();
-                  }
-                  setArchitectureUnlocked(true);
-                  setCanvasMode(mode);
-                } catch {
-                  // Error is caught and surfaced in handleSendMessage
-                }
+                if (useWorkspaceStore.getState().workspace?.map.nodes.length) setCanvasMode(mode);
               }}
               isThinking={isThinking}
               error={chatError}
               onRetry={() => {
                 setChatError(null);
-                const lastUserMsg = [...discoveryMessages]
-                  .reverse()
-                  .find((m) => m.role === "user");
-                if (lastUserMsg) void handleSendMessage(lastUserMsg.content);
+                const lastUserMsg = useWorkspaceStore.getState().workspace?.messages.find((m) => m.id === failedMessageIdRef.current);
+                if (lastUserMsg?.role === "user") void handleSendMessage(lastUserMsg.text, undefined, lastUserMsg.questionnaireId, lastUserMsg.answers, lastUserMsg.id);
               }}
+              onGenerativeUIChange={handleGenerativeUIChange}
+              onAddIdeaToBoard={handleAddIdeaToBoard}
             />
           ) : (
             <ConceptCanvas
@@ -527,14 +590,11 @@ export const WorkspaceView: React.FC = () => {
             isThinking={isThinking}
             error={chatError}
             onSendMessage={handleSendMessage}
-            onGenerateBaseMap={handleGenerateBaseMap}
             onSelectNode={(nodeId) => selectNode(nodeId)}
             onRetry={() => {
               setChatError(null);
-              const lastUserMsg = [...workspace.messages]
-                .reverse()
-                .find((m) => m.role === "user");
-              if (lastUserMsg) void handleSendMessage(lastUserMsg.text);
+              const lastUserMsg = useWorkspaceStore.getState().workspace?.messages.find((m) => m.id === failedMessageIdRef.current);
+              if (lastUserMsg?.role === "user") void handleSendMessage(lastUserMsg.text, undefined, lastUserMsg.questionnaireId, lastUserMsg.answers, lastUserMsg.id);
             }}
           />
         )}

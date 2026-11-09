@@ -26,6 +26,7 @@ import {
 import { findDuplicateConcept } from "../services/ai/prompts";
 import { normalizeCategory } from "../domain/constants";
 import { services } from "../services";
+import { initialDiscovery } from "../services/ai/discovery";
 
 export interface ConceptNodeData extends ConceptNode {
   onOpenDeepDive?: (id: string) => void;
@@ -62,7 +63,6 @@ interface WorkspaceState {
   setThinking: (thinking: boolean) => void;
   setChatOpen: (isOpen: boolean) => void;
   toggleChat: () => void;
-  setDiscoveryMessages: (messages: ChatMessage[]) => void;
   setDiscoverySelectedOptions: (selected: Record<string, string | string[]>) => void;
   resetWorkspace: () => void;
 
@@ -147,7 +147,7 @@ interface WorkspaceState {
 
 const persistSession = (projectId: string, map: ConceptMap, messages: Message[]) => {
   try {
-    services.workspace.save(projectId, map, messages);
+    void services.workspace.save(projectId, map, messages, useWorkspaceStore.getState().workspace?.discovery).catch(console.error);
   } catch (error) {
     console.error("Failed to persist workspace session", error);
   }
@@ -412,6 +412,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       expandedDocNodeId: null,
       chatPhase: "PHASE_1_DISCOVERY",
       isArchitectureUnlocked: false,
+      discoveryMessages: INITIAL_DISCOVERY_MESSAGES,
+      discoverySelectedOptions: {},
     }),
 
   setWorkspace: (workspace) => {
@@ -429,11 +431,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       });
       return;
     }
+    workspace = { ...workspace, discovery: workspace.discovery ?? initialDiscovery(Boolean(workspace.map?.nodes && workspace.map.nodes.length > 0)) };
     const prevProjectId = get().workspace?.project?.id;
     const isNewProject = prevProjectId !== workspace.project?.id;
     const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
     const hasGeneratedNodes = Boolean(workspace.map?.nodes && workspace.map.nodes.length > 0);
-    const inferredPhase: ChatPhase = hasGeneratedNodes
+    if (hasGeneratedNodes && workspace.discovery && workspace.discovery.lifecycle === "legacy_unknown") {
+      workspace = { ...workspace, discovery: { ...workspace.discovery, lifecycle: "generated" } };
+    }
+    const inferredPhase: ChatPhase = workspace.discovery?.lifecycle === "generated" || (hasGeneratedNodes && workspace.discovery?.lifecycle === "legacy_unknown")
       ? "PHASE_3_EXPANSION"
       : "PHASE_1_DISCOVERY";
     const landingMode = resolveInitialLandingMode(workspace.map);
@@ -459,6 +465,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
                 role: "user" as const,
                 content: m.text,
                 type: "text" as const,
+                 questionnaireId: m.questionnaireId,
               };
             }
             const asst = m as AssistantMessage;
@@ -475,15 +482,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
                   type: dq.type,
                   allowCustom: dq.allowCustom,
                 })),
-              };
-            }
-            if (asst.action === "ready" || asst.readyForStructuring) {
-              return {
-                id: asst.id,
-                role: "assistant" as const,
-                content: asst.text,
-                type: "ready" as const,
-                dimensions: asst.dimensions,
+                ui: asst.ui,
               };
             }
             return {
@@ -491,10 +490,41 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               role: "assistant" as const,
               content: asst.text,
               type: "text" as const,
+              ui: asst.ui,
             };
           })
         : INITIAL_DISCOVERY_MESSAGES;
 
+    const lifecycle = workspace.discovery?.lifecycle;
+    if (lifecycle === "generated" || (hasGeneratedNodes && lifecycle !== "generation_error")) {
+      const anchorId = workspace.discovery?.completionAnchorMessageId ?? reconstructedDiscovery.find((m) => m.role === "user")?.id;
+      const anchorIndex = anchorId ? reconstructedDiscovery.findIndex((message) => message.id === anchorId) : -1;
+      const insertAt = anchorIndex >= 0
+        ? anchorIndex + 1
+        : (reconstructedDiscovery.length > 2 ? 2 : reconstructedDiscovery.length);
+
+      const cardId = `generation-status-${workspace.project.id}`;
+      if (!reconstructedDiscovery.some((message) => message.id === cardId || message.type === "ready")) {
+        reconstructedDiscovery.splice(insertAt, 0, {
+          id: cardId,
+          role: "assistant",
+          type: "ready",
+          content: "Tu tablero y la vista neuronal ya muestran la estructura inicial de tu proyecto. Puedes seguir conversando y ajustarla.",
+        });
+      }
+    } else if (lifecycle === "generation_error") {
+      const cardId = `generation-status-${workspace.project.id}`;
+      if (!reconstructedDiscovery.some((message) => message.id === cardId || message.type === "ready")) {
+        reconstructedDiscovery.push({
+          id: cardId,
+          role: "assistant",
+          type: "ready",
+          content: "Hubo un problema al guardar la estructura inicial. Puedes reintentar.",
+        });
+      }
+    }
+
+    const selectedOptions = Object.assign({}, isNewProject ? {} : get().discoverySelectedOptions, ...workspace.messages.filter((m): m is Extract<Message, { role: "user" }> => m.role === "user" && Boolean(m.answers)).map((m) => m.answers));
     set({
       workspace,
       nodes,
@@ -505,11 +535,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       spatialDocs,
       chatPhase: inferredPhase,
       isArchitectureUnlocked: hasGeneratedNodes,
+      discoveryMessages: reconstructedDiscovery,
+      discoverySelectedOptions: selectedOptions,
       ...(isNewProject
         ? {
             canvasMode: landingMode,
-            discoveryMessages: reconstructedDiscovery,
-            discoverySelectedOptions: {},
           }
         : {}),
     });
@@ -531,7 +561,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
 
-  setDiscoveryMessages: (discoveryMessages) => set({ discoveryMessages }),
 
   setDiscoverySelectedOptions: (discoverySelectedOptions) => set({ discoverySelectedOptions }),
 
@@ -551,7 +580,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const nextNodes = workspace.map.nodes.map((node) => {
       if (node.id !== id) return node;
-      const patched = { ...node, ...updates };
+      const patched = { ...node, ...updates, manuallyEditedFields: [...new Set([...(node.manuallyEditedFields ?? []), ...Object.keys(updates)])] };
       if (updates.title !== undefined) {
         const trimmed = updates.title.trim();
         if (trimmed.length > 0) {
@@ -640,6 +669,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   onEdgesChange: (changes: EdgeChange[]) => {
     set({ edges: applyEdgeChanges(changes, get().edges) });
+    const removedIds = new Set(changes.filter((change) => change.type === "remove").map((change) => change.id));
+    const { workspace } = get();
+    if (!workspace || removedIds.size === 0) return;
+    const removed = workspace.map.relations.filter((relation) => removedIds.has(relation.id));
+    if (removed.length === 0) return;
+    const nextMap = { ...workspace.map, relations: workspace.map.relations.filter((relation) => !removedIds.has(relation.id)) };
+    const discovery = workspace.discovery ? { ...workspace.discovery, tombstones: [...new Set([...workspace.discovery.tombstones, ...removed.map((relation) => relation.semanticKey ?? relation.id)])] } : undefined;
+    set({ workspace: { ...workspace, map: nextMap, discovery }, spatialLinks: projectSpatialLinks(nextMap.relations), links: projectSpatialLinks(nextMap.relations) });
+    persistSession(workspace.project.id, nextMap, workspace.messages);
   },
 
   onConnect: (connection: Connection) => {
@@ -658,7 +696,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (workspace) {
       const nextRelations = [
         ...workspace.map.relations,
-        { id: newEdge.id, from: connection.source, to: connection.target },
+        { id: newEdge.id, from: connection.source, to: connection.target, origin: "user" as const },
       ];
       const nextMap = { ...workspace.map, relations: nextRelations };
       set({ workspace: { ...workspace, map: nextMap } });
@@ -683,6 +721,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const newNode: ConceptNode = {
       id,
       ...nodeData,
+      origin: nodeData.origin ?? "user",
       category,
       priority,
       name: nodeData.title,
@@ -735,7 +774,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       (rel) => rel.from !== nodeId && rel.to !== nodeId && rel.source !== nodeId && rel.target !== nodeId
     );
     const nextMap = { nodes: nextNodes, relations: nextRelations };
-    const nextWorkspace = { ...workspace, map: nextMap };
+    const removed = workspace.map.nodes.find((node) => node.id === nodeId);
+    const discovery = removed && workspace.discovery
+      ? { ...workspace.discovery, tombstones: [...new Set([...workspace.discovery.tombstones, removed.semanticKey ?? removed.id])] }
+      : workspace.discovery;
+    const nextWorkspace = { ...workspace, map: nextMap, discovery };
     const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
 
     const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
@@ -870,6 +913,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const newNode: ConceptNode = {
       id,
+      origin: "approved",
+      verification: "confirmed",
       kind: nodeDraft.kind,
       category,
       priority,

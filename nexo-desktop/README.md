@@ -1,25 +1,58 @@
-# Tauri + React + Typescript
+# Nexo Desktop
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Aplicación React + TypeScript con Vite, empaquetada como aplicación de escritorio con Tauri. El backend usa Spring Boot y Java 21.
 
-## Recommended IDE Setup
+## Ejecutar en Windows
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+Abre dos terminales de PowerShell desde la carpeta raíz `AppPc`.
 
+### Terminal 1: backend
 
+```powershell
+cd .\back\Nexo_Backend\nexo-api
+.\mvnw.cmd spring-boot:run
+```
 
+El API queda disponible en `http://localhost:8080`. Su estado se puede comprobar en `http://localhost:8080/api/v1/health`.
 
-# Correr el proyecto
+### Terminal 2: frontend web
 
-## Backend
-cd ~/Universidad/Diseno_de_interfaces/Proyectos/AppPc/Nexo_Backend/Nexo_Backend/nexo-api
-./mvnw spring-boot:run
+```powershell
+cd .\Fromt\Nexo_Frontend\nexo-desktop
+npm ci
+npm run dev
+```
 
-## frontend 
-cd ~/Universidad/Diseno_de_interfaces/Proyectos/AppPc/Nexo_Frontend/nexo-desktop
-npm run tauri dev   
+Vite muestra en la terminal la dirección local, normalmente `http://localhost:1420`.
 
+### Aplicación de escritorio Tauri
 
-# Hoja de Ruta de Implementación
+Con el backend ejecutándose:
 
-Para la planificación arquitectónica y la especificación detallada por fases (Fases 01 a 09), consulte la [Hoja de Ruta Maestra de Implementación](../../../docs/implementation/README.md).
+```powershell
+cd .\Fromt\Nexo_Frontend\nexo-desktop
+npm run tauri dev
+```
+
+## Verificación
+
+```powershell
+# Frontend
+npm run build
+npm test
+
+# Backend
+cd ..\..\..\back\Nexo_Backend\nexo-api
+.\mvnw.cmd test
+```
+
+## Herramientas necesarias
+
+- Node.js LTS y npm
+- Java 21
+- Rust estable y Cargo
+- Visual Studio Build Tools 2022 con las herramientas de C++
+- Microsoft Edge WebView2
+- Git
+
+Al instalar herramientas o modificar el `PATH`, cierra y vuelve a abrir PowerShell para cargar las variables nuevas.

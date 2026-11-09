@@ -24,17 +24,20 @@ import {
 import type { AIReplyRequest, AITutorRequest } from "../src/services/contracts";
 
 let localApiKey = DEFAULT_OPENAI_API_KEY;
-try {
-  const envPath = path.resolve(process.cwd(), ".env.local");
-  if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, "utf-8");
-    const m = content.match(/VITE_OPENAI_API_KEY\s*=\s*([^\r\n]+)/);
-    if (m && m[1].trim()) {
-      localApiKey = m[1].trim();
+for (const envFile of [".env", ".env.local"]) {
+  try {
+    const envPath = path.resolve(process.cwd(), envFile);
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf-8");
+      const m = content.match(/VITE_OPENAI_API_KEY\s*=\s*([^\r\n]+)/);
+      if (m && m[1].trim()) {
+        localApiKey = m[1].trim();
+        break;
+      }
     }
+  } catch {
+    // Ignore
   }
-} catch {
-  // Ignore
 }
 
 console.log("=== VERIFICACIÓN DE INTEGRACIÓN OPENAI GPT EN NEXO ===");
@@ -70,12 +73,13 @@ setOpenAIConfig("test-key-override", "gpt-4o");
 assert.strictEqual(getOpenAIApiKey(), "test-key-override");
 assert.strictEqual(getOpenAIModel(), "gpt-4o");
 
-setOpenAIConfig("", "gpt-4o-mini");
+setOpenAIConfig(localApiKey, "gpt-4o-mini");
 assert.strictEqual(getOpenAIModel(), "gpt-4o-mini");
 console.log("✓ Configuración y precedencia verificadas.");
 
 // 3. Verificación de Lanzamiento de Errores sin Clave
 console.log("\n[3/5] Verificando eliminación de fallbacks silenciosos (debe fallar si no hay clave)...");
+setOpenAIConfig("   ", "gpt-4o-mini"); // Explicit empty override for testing
 let replyThrew = false;
 try {
   await openaiAiService.reply({

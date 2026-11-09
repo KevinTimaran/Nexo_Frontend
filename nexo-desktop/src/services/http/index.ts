@@ -17,6 +17,7 @@ import {
   type Project,
   type User,
   type Workspace,
+  type DiscoveryState,
 } from "../../domain/types";
 import type {
   AIReplyRequest,
@@ -299,20 +300,86 @@ const httpFolders: FolderService = {
   },
 };
 
+interface PendingWorkspace { map: ConceptMap; messages: Message[]; discovery?: DiscoveryState; operationId: string; baseRevision: number }
+const workspaceRevisions = new Map<string, number>();
+const workspaceQueues = new Map<string, Promise<unknown>>();
+const pendingKey = (projectId: string) => `nexo.pending.workspace.${projectId}`;
+const operationsKey = (projectId: string) => `nexo.workspace.operations.${projectId}`;
+function acknowledgedOperations(projectId: string): string[] {
+  try { return JSON.parse(localStorage.getItem(operationsKey(projectId)) ?? "[]") as string[]; } catch { return []; }
+}
+function acknowledgeOperation(projectId: string, operationId: string): void {
+  try { localStorage.setItem(operationsKey(projectId), JSON.stringify([...new Set([...acknowledgedOperations(projectId), operationId])].slice(-64))); } catch { /* Server ledger remains authoritative. */ }
+}
+function readPending(projectId: string): PendingWorkspace | null {
+  try { const raw = localStorage.getItem(pendingKey(projectId)); return raw ? JSON.parse(raw) as PendingWorkspace : null; } catch { return null; }
+}
+function writePending(projectId: string, pending: PendingWorkspace): void {
+  try {
+    const previous = readPending(projectId);
+    if (previous && (previous.baseRevision ?? 0) > pending.baseRevision) return;
+    localStorage.setItem(pendingKey(projectId), JSON.stringify(pending));
+  } catch { /* In-memory request still proceeds. */ }
+}
+function clearPending(projectId: string): void {
+  try { localStorage.removeItem(pendingKey(projectId)); } catch { /* Ignore unavailable storage. */ }
+}
+async function sendWorkspaceSnapshot(projectId: string, pending: PendingWorkspace, expectedRevision: number): Promise<Workspace> {
+  const url = `${getStoredApiUrl().replace(/\/+$/, "")}/projects/${projectId}/workspace`;
+  const send = (revision: number, draft: PendingWorkspace) => fetch(url, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...draft, expectedRevision: revision }),
+  });
+  let response = await send(expectedRevision, pending);
+  if (response.status === 409) {
+    const current = await response.json() as Workspace;
+    const tombstones = new Set(pending.discovery?.tombstones ?? []);
+    const nodeIds = new Set(pending.map.nodes.map((node) => node.id));
+    const nodes = [...pending.map.nodes, ...current.map.nodes.filter((node) => !nodeIds.has(node.id) && !tombstones.has(node.semanticKey ?? node.id))];
+    const relationIds = new Set(pending.map.relations.map((relation) => relation.id));
+    const relations = [...pending.map.relations, ...current.map.relations.filter((relation) => !relationIds.has(relation.id) && nodes.some((node) => node.id === relation.from) && nodes.some((node) => node.id === relation.to))];
+    const messageIds = new Set(pending.messages.map((message) => message.id));
+    const messages = [...current.messages.filter((message) => !messageIds.has(message.id)), ...pending.messages];
+    response = await send(current.revision ?? 0, { ...pending, map: { nodes, relations }, messages });
+  }
+  if (!response.ok) throw new Error(`No se pudo guardar el workspace: HTTP ${response.status}`);
+  const saved = await response.json() as Workspace;
+  workspaceRevisions.set(projectId, saved.revision ?? 0);
+  return saved;
+}
+
 const httpWorkspace: WorkspaceService = {
   async load(projectId: string, lang: Language): Promise<Workspace | null> {
-    return httpFetch<Workspace | null>(`/projects/${projectId}/workspace?lang=${lang}`, {
+    const current = await httpFetch<Workspace | null>(`/projects/${projectId}/workspace?lang=${lang}`, {
       method: "GET",
     });
+    if (!current) return null;
+    workspaceRevisions.set(projectId, current.revision ?? 0);
+    const pending = readPending(projectId);
+    if (!pending) return current;
+    if (acknowledgedOperations(projectId).includes(pending.operationId)) { clearPending(projectId); return current; }
+    try {
+      const saved = await sendWorkspaceSnapshot(projectId, pending, current.revision ?? 0);
+      acknowledgeOperation(projectId, pending.operationId);
+      clearPending(projectId);
+      return saved;
+    }
+    catch { return { ...current, map: pending.map, messages: pending.messages, discovery: pending.discovery }; }
   },
-  save(projectId: string, map: ConceptMap, messages: Message[]): void {
-    // Fire-and-forget background synchronization
-    void httpFetch<void>(`/projects/${projectId}/workspace`, {
-      method: "PUT",
-      body: JSON.stringify({ map, messages }),
-    }).catch((err) => {
-      console.warn("Fallo de sincronización con servidor backend:", err);
+  save(projectId: string, map: ConceptMap, messages: Message[], discovery?: DiscoveryState): Promise<void> {
+    const pending: PendingWorkspace = { map, messages, discovery, operationId: crypto.randomUUID(), baseRevision: workspaceRevisions.get(projectId) ?? 0 };
+    writePending(projectId, pending);
+    const prior = workspaceQueues.get(projectId) ?? Promise.resolve();
+    const next = prior.catch(() => undefined).then(async () => {
+      const latest = readPending(projectId);
+      if (!latest) return;
+      const saved = await sendWorkspaceSnapshot(projectId, latest, workspaceRevisions.get(projectId) ?? 0);
+      acknowledgeOperation(projectId, latest.operationId);
+      if (readPending(projectId)?.operationId === latest.operationId) clearPending(projectId);
+      workspaceRevisions.set(projectId, saved.revision ?? 0);
     });
+    workspaceQueues.set(projectId, next);
+    return next.then(() => undefined);
   },
 };
 

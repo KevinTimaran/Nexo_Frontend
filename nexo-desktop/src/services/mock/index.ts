@@ -12,6 +12,7 @@ import {
   type ConceptRelation,
   type ConceptStatus,
   type Folder,
+  type GenerativeUIBlock,
   type Language,
   type Message,
   type NodeCategory,
@@ -20,8 +21,10 @@ import {
   type ProjectIcon,
   type ResearchPhase,
   type Workspace,
+  type DiscoveryState,
 } from "../../domain/types";
 import { aiCopy, nodeTemplates, pick, seedProjects, type SeedProject } from "../../mocks/seed";
+import { sanitizeAssistantText } from "../ai/prompts";
 import type {
   AIService,
   AuthService,
@@ -87,10 +90,25 @@ async function latency(ms: number) {
 interface Session {
   map: ConceptMap;
   messages: Message[];
+  discovery?: DiscoveryState;
+  revision: number;
   updatedAt: string;
 }
 
 const sessions = new Map<string, Session>();
+const sessionKey = (projectId: string) => `nexo.mock.workspace.v2.${projectId}`;
+function readSession(projectId: string): Session | undefined {
+  const cached = sessions.get(projectId);
+  if (cached) return cached;
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(sessionKey(projectId)) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Session;
+      if (parsed.map && Array.isArray(parsed.messages)) { sessions.set(projectId, parsed); return parsed; }
+    }
+  } catch { /* Storage may be unavailable in tests. */ }
+  return undefined;
+}
 
 let memoryCreated: Project[] = [];
 const DELETED_PROJECTS_KEY = "nexo.mock.projects.deleted.v1";
@@ -219,7 +237,7 @@ function resolveSeedMessages(seed: SeedProject, lang: Language): Message[] {
 
 /** Apply session edits (node count, last update) on top of a project. */
 function withSession(project: Project): Project {
-  const session = sessions.get(project.id);
+  const session = readSession(project.id);
   if (!session) return project;
   return { ...project, nodeCount: session.map.nodes.length, updatedAt: session.updatedAt };
 }
@@ -315,6 +333,8 @@ const projects: ProjectService = {
     await latency(150);
     const created = readCreated().filter((p) => p.id !== id);
     writeCreated(created);
+    sessions.delete(id);
+    try { if (typeof localStorage !== "undefined") localStorage.removeItem(sessionKey(id)); } catch { /* Ignore storage failure. */ }
     const deleted = readDeletedProjectIds();
     deleted.add(id);
     writeDeletedProjectIds(deleted);
@@ -423,16 +443,21 @@ const workspace: WorkspaceService = {
     const base = seed ? resolveSeedProject(seed, lang) : created;
     if (!base) return null;
 
-    const session = sessions.get(projectId);
+    const session = readSession(projectId);
     const result: Workspace = {
       project: withSession(base),
       map: session?.map ?? (seed ? resolveSeedMap(seed, lang) : { nodes: [], relations: [] }),
       messages: session?.messages ?? (seed ? resolveSeedMessages(seed, lang) : []),
+      discovery: session?.discovery,
+      revision: session?.revision ?? 0,
     };
     return result;
   },
-  save(projectId, map, messages) {
-    sessions.set(projectId, { map, messages, updatedAt: new Date().toISOString() });
+  async save(projectId, map, messages, discovery) {
+    const previous = readSession(projectId);
+    const session: Session = { map, messages, discovery: discovery ?? previous?.discovery, revision: (previous?.revision ?? 0) + 1, updatedAt: new Date().toISOString() };
+    sessions.set(projectId, session);
+    try { if (typeof localStorage !== "undefined") localStorage.setItem(sessionKey(projectId), JSON.stringify(session)); } catch { /* Memory fallback. */ }
   },
 };
 
@@ -784,6 +809,157 @@ function buildMultidimensionalNodes(text: string, lang: Language, history?: Mess
   return { core, economicNode, socialNode, legalNode, newNodes, newRelations };
 }
 
+function dateWithOffset(offset: number): string {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function createMockGenerativeUI(text: string, lang: Language): GenerativeUIBlock | null {
+  const isEs = lang === "es";
+  const isHardwareStore = /ferreter/i.test(text);
+
+  if (/(l[ií]nea\s+de\s+tiempo|hoja\s+de\s+ruta|roadmap|primeros?\s+\d+\s+d[ií]as|planificar.{0,30}\d+\s+d[ií]as)/i.test(text)) {
+    return {
+      type: "timeline",
+      title: isEs ? "Ruta de apertura · 90 días" : "90-day launch roadmap",
+      description: isEs
+        ? "Puedes cambiar fechas, reorganizar las fases y marcar el avance sin salir de la conversación."
+        : "Change dates, reorder phases, and track progress without leaving the conversation.",
+      items: [
+        {
+          id: "phase-1",
+          title: isEs ? "Validar ubicación y presupuesto" : "Validate location and budget",
+          description: isEs ? "Confirmar demanda, arriendo, inversión inicial y punto de equilibrio." : "Confirm demand, rent, initial investment, and break-even point.",
+          startDate: dateWithOffset(0),
+          endDate: dateWithOffset(14),
+          dependencies: [],
+          milestone: true,
+          status: "planned",
+        },
+        {
+          id: "phase-2",
+          title: isEs ? "Permisos y proveedores" : "Permits and suppliers",
+          description: isEs ? "Formalizar el negocio y negociar el inventario inicial." : "Formalize the business and negotiate initial inventory.",
+          startDate: dateWithOffset(15),
+          endDate: dateWithOffset(34),
+          dependencies: ["phase-1"],
+          milestone: false,
+          status: "planned",
+        },
+        {
+          id: "phase-3",
+          title: isEs ? "Adecuación e inventario" : "Fit-out and inventory",
+          description: isEs ? "Preparar el local, el sistema de ventas y el surtido prioritario." : "Prepare the store, sales system, and priority assortment.",
+          startDate: dateWithOffset(35),
+          endDate: dateWithOffset(59),
+          dependencies: ["phase-2"],
+          milestone: false,
+          status: "planned",
+        },
+        {
+          id: "phase-4",
+          title: isEs ? "Preapertura y lanzamiento" : "Pre-launch and opening",
+          description: isEs ? "Contratar, probar la operación y ejecutar la campaña de apertura." : "Hire, test operations, and run the opening campaign.",
+          startDate: dateWithOffset(60),
+          endDate: dateWithOffset(89),
+          dependencies: ["phase-3"],
+          milestone: true,
+          status: "planned",
+        },
+      ],
+    };
+  }
+
+  if (/(compar(?:ar|a|e|aci[oó]n)|cu[aá]l.{0,30}conviene|alternativas?.{0,30}criterios?|ubicaciones?)/i.test(text)) {
+    return {
+      type: "decision_comparator",
+      title: isEs ? "Comparación de ubicaciones" : "Location comparison",
+      description: isEs
+        ? "Ajusta el peso de cada criterio; la recomendación se recalcula al instante."
+        : "Adjust each criterion weight; the recommendation updates instantly.",
+      criteria: [
+        { id: "investment", label: isEs ? "Inversión" : "Investment", weight: 8 },
+        { id: "demand", label: isEs ? "Demanda potencial" : "Potential demand", weight: 10 },
+        { id: "access", label: isEs ? "Accesibilidad" : "Accessibility", weight: 7 },
+        { id: "risk", label: isEs ? "Riesgo controlado" : "Risk control", weight: 6 },
+      ],
+      options: [
+        {
+          id: "downtown",
+          title: isEs ? "Centro comercial" : "Commercial center",
+          description: isEs ? "Alto flujo y arriendo elevado." : "High foot traffic and high rent.",
+          scores: { investment: 4, demand: 9, access: 9, risk: 6 },
+        },
+        {
+          id: "residential",
+          title: isEs ? "Zona residencial" : "Residential area",
+          description: isEs ? "Costos moderados y clientela recurrente." : "Moderate costs and recurring customers.",
+          scores: { investment: 8, demand: 7, access: 7, risk: 8 },
+        },
+        {
+          id: "industrial",
+          title: isEs ? "Corredor industrial" : "Industrial corridor",
+          description: isEs ? "Demanda especializada y menor tráfico peatonal." : "Specialized demand and lower foot traffic.",
+          scores: { investment: 7, demand: 8, access: 6, risk: 7 },
+        },
+      ],
+    };
+  }
+
+  if (/(tarjetas?.{0,30}(ideas?|accionables?|conceptos?)|ideas?.{0,20}accionables?|propon(?:er|me).{0,20}ideas?)/i.test(text)) {
+    const subject = isHardwareStore ? "ferretería" : "proyecto";
+    return {
+      type: "idea_cards",
+      title: isEs ? `Ideas accionables para tu ${subject}` : "Actionable ideas for your project",
+      description: isEs
+        ? "Aprueba, edita o descarta cada propuesta. Solo las que envíes pasarán al Tablero de Conceptos."
+        : "Approve, edit, or discard each proposal. Only mapped ideas move to the Concept Board.",
+      items: [
+        {
+          id: "idea-advice",
+          title: isEs ? "Asesoría personalizada" : "Personalized advice",
+          description: isEs ? "Recomendar materiales y cantidades según el trabajo que realizará cada cliente." : "Recommend materials and quantities for each customer's job.",
+          benefits: isEs ? ["Mayor confianza", "Ticket promedio más alto"] : ["More trust", "Higher average order"],
+          resources: isEs ? ["Capacitación técnica", "Catálogo estructurado"] : ["Technical training", "Structured catalog"],
+          relations: isEs ? ["Experiencia del cliente", "Ventas"] : ["Customer experience", "Sales"],
+          status: "pending",
+          category: "technical",
+          priority: "high",
+          phase: "planning",
+        },
+        {
+          id: "idea-delivery",
+          title: isEs ? "Entrega local rápida" : "Fast local delivery",
+          description: isEs ? "Despachar pedidos urgentes en una zona cercana con tiempos y tarifas claras." : "Dispatch urgent nearby orders with clear times and fees.",
+          benefits: isEs ? ["Conveniencia", "Diferenciación local"] : ["Convenience", "Local differentiation"],
+          resources: isEs ? ["Vehículo o aliado", "Canal de pedidos"] : ["Vehicle or partner", "Ordering channel"],
+          relations: isEs ? ["Logística", "Modelo económico"] : ["Logistics", "Business model"],
+          status: "pending",
+          category: "economic",
+          priority: "medium",
+          phase: "execution",
+        },
+        {
+          id: "idea-kits",
+          title: isEs ? "Kits por proyecto" : "Project kits",
+          description: isEs ? "Agrupar herramientas y consumibles para reparaciones frecuentes en paquetes listos." : "Bundle tools and supplies for common repairs into ready-made packages.",
+          benefits: isEs ? ["Compra más simple", "Inventario con propósito"] : ["Simpler purchase", "Purposeful inventory"],
+          resources: isEs ? ["Análisis de demanda", "Empaque y señalización"] : ["Demand analysis", "Packaging and signage"],
+          relations: isEs ? ["Inventario", "Marketing"] : ["Inventory", "Marketing"],
+          status: "pending",
+          category: "economic",
+          priority: "medium",
+          phase: "planning",
+        },
+      ],
+    };
+  }
+
+  return null;
+}
+
 const ai: AIService = {
   async reply({ text, map, lang, replyTo, chatPhase, messageHistory }) {
     await latency(1200);
@@ -793,18 +969,52 @@ const ai: AIService = {
     const activePhase: ChatPhase =
       chatPhase || (map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY");
 
+    const trimmedText = text.trim();
+    const userHistoryText = (messageHistory ?? [])
+      .filter((m) => m.role === "user")
+      .map((m) => ("text" in m ? String((m as any).text ?? "") : String((m as any).content ?? "")))
+      .join(" ");
+    const fullConversation = `${text} ${userHistoryText}`;
+
+    const generativeUI = createMockGenerativeUI(text, lang);
+    if (generativeUI) {
+      const responseText =
+        generativeUI.type === "timeline"
+          ? lang === "es"
+            ? "Organicé el objetivo como una hoja de ruta editable. Puedes ajustar las fechas o el orden y seguir conversando cuando quieras."
+            : "I organized the goal as an editable roadmap. Adjust dates or order and keep chatting whenever you want."
+          : generativeUI.type === "decision_comparator"
+            ? lang === "es"
+              ? "Preparé una comparación ponderada. Cambia la importancia de cada criterio para ver cómo afecta la recomendación."
+              : "I prepared a weighted comparison. Change each criterion's importance to see how it affects the recommendation."
+            : lang === "es"
+              ? "Convertí las propuestas en tarjetas accionables. Puedes afinarlas y decidir cuáles deben formar parte del proyecto."
+              : "I turned the proposals into actionable cards. Refine them and decide which ones belong in the project.";
+
+      return {
+        message: {
+          id: uid("m"),
+          role: "assistant",
+          createdAt: now,
+          replyTo,
+          cardType: "recommendation",
+          chatPhase: activePhase,
+          action: "chat",
+          readyForStructuring: false,
+          text: responseText,
+          ui: generativeUI,
+          discoveryQuestions: [],
+        },
+        newNodes: [],
+        newRelations: [],
+      };
+    }
+
     if (activePhase === "PHASE_1_DISCOVERY") {
-      const trimmedText = text.trim();
       const isGreeting = /^(hola|buenas|buenos d[ií]as|buenas tardes|hey|hello|hi|que tal|saludos)[!.]*$/i.test(trimmedText);
       const isVagueShort = /^(tengo una idea|quiero hacer una app|quiero crear una aplicaci[oó]n|ayuda|no s[eé]|quiero programar algo|app|proyecto)[!.]*$/i.test(trimmedText);
 
-      const userHistoryText = (messageHistory ?? [])
-        .filter((m) => m.role === "user")
-        .map((m) => ("text" in m ? String((m as any).text ?? "") : String((m as any).content ?? "")))
-        .join(" ");
-
-      const currentTextSignals = `${text} ${userHistoryText}`;
-      const fullConversation = currentTextSignals;
+      const currentTextSignals = fullConversation;
       const currentTextHasRestaurantSignal = /restauran|meser[oa]|comanda|\bcocina\b|\bkitchen\b|gastronom|bar|cafeter[ií]a|sede|franquicia|pos|men[uú]|mesa|kds|pizzer|comida|delivery|reparto/i.test(text);
       const currentTextHasOtherDomainSignal =
         /transporte|flota|bus|buses|taxi|rutas?|pasajer|movilidad|veh[ií]cul|tr[aá]nsito|cita|dating|pareja|match|doctor|m[eé]dic|salud|cl[ií]nic|paciente|m[uú]sic|streaming|audio|creador|artista|abogado|law|legal|asesor|consultorio|cliente|paciente/i.test(text);
@@ -1098,11 +1308,11 @@ const ai: AIService = {
             createdAt: now,
             replyTo,
             cardType: "idea",
-            chatPhase: "PHASE_1_DISCOVERY",
-            action: "ready",
-            readyForStructuring: true,
-            dimensions: ["economic", "social", "technical", "legal"],
-            text: dimText,
+            chatPhase: map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY",
+            action: map.nodes.length > 0 ? "chat" : "ready",
+            readyForStructuring: map.nodes.length === 0,
+            dimensions: map.nodes.length > 0 ? undefined : ["economic", "social", "technical", "legal"],
+            text: sanitizeAssistantText(dimText, lang, contextTopic),
             simplifiedExplanation:
               lang === "es"
                 ? "Análisis detallado de la perspectiva estratégica seleccionada y reflejo en el Tablero y Vista 3D."
@@ -1612,12 +1822,14 @@ const ai: AIService = {
       };
     }
 
+    const isAddNodeCommand = /\b(agrega|añade|anade|incorpora|crea|mapear|add)\b.{0,40}\b(nodo|concepto|tablero|mapa|node)\b/i.test(trimmedText);
+    const contextTopic = map.nodes[0]?.title || extractCleanTopic(fullConversation, lang) || (lang === "es" ? "tu proyecto" : "your project");
     const kind = detectKind(text);
     const templates = nodeTemplates[kind];
     const sameKind = map.nodes.filter((n) => n.kind === kind).length;
     const template = templates[sameKind % templates.length];
     const anchor = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
-    const slot = freeSlot(map.nodes, anchor.x + GAP_X, anchor.y);
+    const slot = anchor ? freeSlot(map.nodes, anchor.x + GAP_X, anchor.y) : { x: 80, y: 160 };
 
     const phase: ResearchPhase =
       kind === "concept" ? "planning" : kind === "viability" ? "execution" : "validation";
@@ -1636,28 +1848,68 @@ const ai: AIService = {
       metadata: pick(template.metadata, lang),
       details: `${pick(template.title, lang)}\n\n${pick(template.description, lang)}\n\n### Análisis Profundo\n- Fase: ${phase.toUpperCase()}\n- Evaluación contextual: Respaldado por patrones de ideación ágil y métricas preliminares.`,
     };
-    const relation: ConceptRelation = { id: uid("r"), from: anchor.id, to: node.id };
-    const related = map.nodes.find((n) => n.kind !== kind && n.id !== anchor.id);
-    const items = [node, anchor, ...(related ? [related] : [])].map((n) => ({
+    const relation: ConceptRelation = anchor ? { id: uid("r"), from: anchor.id, to: node.id } : { id: uid("r"), from: node.id, to: node.id };
+    const related = map.nodes.find((n) => n.kind !== kind && n.id !== anchor?.id);
+    const items = [node, ...(anchor ? [anchor] : []), ...(related ? [related] : [])].map((n) => ({
       nodeId: n.id,
       kind: n.kind,
       label: n.title,
     }));
 
-    const simplifiedExplanations = {
-      risk:
-        lang === "es"
-          ? "En palabras simples: Este punto te avisa de un posible tropiezo legal o financiero. Te conviene resolver las reglas antes de lanzar para evitar reclamos."
-          : "Simply put: This warns you of a potential regulatory or financial hiccup. Establish clear terms before launch to avoid disputes.",
-      viability:
-        lang === "es"
-          ? "En palabras simples: Esta tarjeta analiza si los números y la demanda tienen sentido. Nos dice que el costo de conseguir clientes es favorable."
-          : "Simply put: This looks at whether the math and demand make sense. It shows your acquisition costs are low enough to scale.",
-      concept:
-        lang === "es"
-          ? "En palabras simples: Esta es la esencia de tu propuesta: qué valor tangible le ofreces a las personas para que elijan tu solución."
-          : "Simply put: This is the core value proposition: why users will choose your product over existing options.",
-    };
+    let postGenText = "";
+    let simplified = "";
+
+    const isEco = /precio|tarifa|cost|ingres|monetiz|comisi|suscrip|financ|cobro|dinero|revenue|pricing|margen/i.test(trimmedText);
+    const isTech = /t[eé]cnic|arquitect|base de datos|database|api|servidor|cloud|infraestruct|seguridad|cifrad|offline|sync|sincroniz|stack|backend|frontend/i.test(trimmedText);
+    const isSocial = /usuario|user|adopci[oó]n|comunidad|marketing|cliente|retenci[oó]n|experiencia|ux|interfaz|p[uú]blico/i.test(trimmedText);
+    const isLegal = /legal|normativ|regulaci|ley|contrato|privacidad|gdpr|hipaa|licencia|t[eé]rminos|patente|propiedad/i.test(trimmedText);
+
+    if (isEco) {
+      postGenText = lang === "es"
+        ? `Para optimizar la dimensión económica de ${contextTopic}, te sugiero un esquema que combine flujos recurrentes con márgenes operacionales controlados:\n\n1. **Modelo de Ingresos**: Establecer tarifas basadas en volumen o suscripción con niveles de servicio claros.\n2. **Estructura de Costos**: Identificar costos fijos versus variables (servidores, transacciones, soporte).\n3. **Métrica Clave**: Recuperación de la inversión de adquisición (CAC) en un plazo menor a 90 días.\n\n¿Te gustaría profundizar en los costos de adquisición o prefieres definir la política de precios primero?`
+        : `To optimize the economic dimension of ${contextTopic}, I recommend balancing recurring cash flows with controlled operating margins:\n\n1. **Revenue Streams**: Establish tier-based monetization or subscriptions with transparent SLA levels.\n2. **Cost Breakdown**: Distinguish fixed infrastructure costs from variable transaction fees.\n3. **Key Indicator**: Recouping customer acquisition cost (CAC) within 90 days.\n\nWould you like to analyze acquisition channels next, or set the initial pricing structure?`;
+      simplified = lang === "es"
+        ? "Estrategia de ingresos y viabilidad financiera para asegurar la rentabilidad del proyecto."
+        : "Revenue strategy and financial viability to ensure project sustainability.";
+    } else if (isTech) {
+      postGenText = lang === "es"
+        ? `Analizando la infraestructura técnica para ${contextTopic}, es prioritario construir una base modular y confiable:\n\n1. **Arquitectura Desacoplada**: Microservicios o APIs REST/GraphQL que faciliten el escalamiento independiente.\n2. **Sincronización y Resiliencia**: Mecanismos de caché y tolerancia a fallos para mantener alta disponibilidad.\n3. **Seguridad Integral**: Protocolos de autenticación robustos y cifrado de datos extremo a extremo.\n\n¿Te parece que detallemos la estrategia de base de datos o prefieres revisar las integraciones con servicios externos?`
+        : `Analyzing the technical infrastructure for ${contextTopic}, building a modular and resilient foundation is crucial:\n\n1. **Decoupled Architecture**: Independent services or APIs for scalable deployment.\n2. **Data Resilience**: Caching and fallback mechanisms ensuring high availability.\n3. **End-to-End Security**: Robust authentication and data encryption.\n\nShall we detail the database strategy first, or review external service integrations?`;
+      simplified = lang === "es"
+        ? "Arquitectura técnica escalable y segura para respaldar la operación del sistema."
+        : "Scalable and secure technical architecture to support system operations.";
+    } else if (isSocial) {
+      postGenText = lang === "es"
+        ? `En cuanto a la adopción y experiencia de usuario en ${contextTopic}, el enfoque debe centrarse en generar valor inmediato:\n\n1. **Curva de Aprendizaje**: Onboarding guiado e intuitivo que reduzca la fricción en los primeros minutos de uso.\n2. **Bucle de Retención**: Notificaciones y recordatorios contextuales que refuercen el hábito de uso.\n3. **Voz de la Comunidad**: Ciclos ágiles de feedback para adaptar la solución a las necesidades reales.\n\n¿Quieres que profundicemos en los flujos de activación inicial o en los canales de difusión orgánica?`
+        : `Regarding user adoption and community engagement for ${contextTopic}, delivering immediate value is essential:\n\n1. **Learning Curve**: Guided, intuitive onboarding minimizing initial user friction.\n2. **Retention Loops**: Contextual notifications and triggers that cultivate regular usage.\n3. **Feedback Cadence**: Continuous listening channels to refine features based on real user needs.\n\nWould you like to examine early activation flows, or explore organic acquisition channels?`;
+      simplified = lang === "es"
+        ? "Estrategias de adopción y experiencia para acelerar el crecimiento de usuarios."
+        : "Adoption and experience strategies to accelerate user growth.";
+    } else if (isLegal) {
+      postGenText = lang === "es"
+        ? `Para salvaguardar la viabilidad legal y normativa de ${contextTopic}, es indispensable mitigar contingencias desde el diseño:\n\n1. **Marco de Privacidad**: Políticas claras de tratamiento de datos personales y consentimiento explícito.\n2. **Términos y Condiciones**: Delimitación precisa de responsabilidades, garantías y propiedad intelectual.\n3. **Regulación Sectorial**: Validación de licencias, normativas aplicables y acuerdos contractuales con terceros.\n\n¿Deseas que preparemos un checklist legal preventivo o prefieres examinar la protección de propiedad intelectual?`
+        : `To safeguard the legal and regulatory compliance of ${contextTopic}, mitigating exposure from day one is essential:\n\n1. **Privacy Framework**: Clear policies on data processing and explicit user consent.\n2. **Terms of Service**: Precise liability boundaries, warranties, and IP ownership clauses.\n3. **Sectoral Rules**: Verification of required operational licenses and standard contracts.\n\nWould you like to prepare a preventive legal checklist, or review intellectual property safeguards?`;
+      simplified = lang === "es"
+        ? "Blindaje legal y cumplimiento normativo para proteger el proyecto antes del lanzamiento."
+        : "Legal safeguards and regulatory compliance to protect the project before launch.";
+    } else {
+      const topicSnippet = trimmedText.length > 50 ? `${trimmedText.slice(0, 47)}...` : trimmedText;
+      postGenText = lang === "es"
+        ? `Respecto a "${topicSnippet}" en el contexto de ${contextTopic}:\n\nEs un aspecto estratégico que complementa los pilares estructurados en el Tablero. Abordarlo oportunamente permite fortalecer la propuesta de valor y anticipar requerimientos operacionales clave.\n\n¿Te gustaría profundizar en alternativas de implementación para este punto o prefieres vincularlo con las áreas ya definidas?`
+        : `Regarding "${topicSnippet}" in the context of ${contextTopic}:\n\nThis is a relevant strategic point that complements the foundations on your board. Addressing it now strengthens the core value proposition and clarifies operational dependencies.\n\nWould you like to explore implementation alternatives for this point, or connect it with previously defined areas?`;
+      simplified = lang === "es"
+        ? "Análisis estratégico y alternativas para profundizar en el proyecto."
+        : "Strategic analysis and alternatives to expand the project.";
+    }
+
+    if (isAddNodeCommand) {
+      postGenText += lang === "es"
+        ? `\n\n✨ *He estructurado y añadido el concepto «${node.title}» a tu Tablero de Conceptos y Espacio Neuronal 3D.*`
+        : `\n\n✨ *I structured and added the concept "${node.title}" to your Board and 3D View.*`;
+    }
+
+    const newNodes = isAddNodeCommand ? [node] : [];
+    const newRelations = isAddNodeCommand && anchor ? [relation] : [];
 
     return {
       message: {
@@ -1667,11 +1919,13 @@ const ai: AIService = {
         replyTo,
         cardType,
         chatPhase: "PHASE_3_EXPANSION",
-        readyForStructuring: true,
-        text: pick(aiCopy.reply[kind], lang),
-        simplifiedExplanation: simplifiedExplanations[kind],
-        insight: { title: pick(aiCopy.replyTitle[kind], lang), items },
-        actionableNode: {
+        action: "chat",
+        readyForStructuring: false,
+        text: sanitizeAssistantText(postGenText, lang, contextTopic),
+        simplifiedExplanation: sanitizeAssistantText(simplified, lang, contextTopic),
+        discoveryQuestions: [],
+        insight: isAddNodeCommand ? { title: pick(aiCopy.replyTitle[kind], lang), items } : undefined,
+        actionableNode: isAddNodeCommand ? {
           title: node.title,
           description: node.description,
           kind: node.kind,
@@ -1680,10 +1934,10 @@ const ai: AIService = {
           phase: node.phase ?? "planning",
           metadata: node.metadata,
           details: node.details,
-        },
+        } : undefined,
       },
-      newNodes: [node],
-      newRelations: [relation],
+      newNodes,
+      newRelations,
     };
   },
 

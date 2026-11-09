@@ -17,7 +17,8 @@ import type {
   ResearchPhase,
 } from "../../domain/types";
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
-import { getSystemInstruction, buildUserPrompt, detectMessageLanguage } from "../ai/prompts";
+import { getSystemInstruction, buildUserPrompt, detectMessageLanguage, sanitizeAssistantText } from "../ai/prompts";
+import { normalizeGenerativeUIBlock } from "../ai/generativeUi";
 import { normalizeCategory } from "../../domain/constants";
 
 export type { AICardType };
@@ -365,6 +366,7 @@ interface GeminiStructuredReply {
   cardType?: AICardType;
   readyForStructuring?: boolean;
   discoveryQuestions?: DiscoveryQuestion[];
+  ui?: unknown;
   nodes?: Array<{
     title: string;
     description: string;
@@ -454,12 +456,17 @@ export const geminiAiService: AIService = {
       }
 
       const parsed: GeminiStructuredReply = JSON.parse(rawJson);
+      const generativeUI = normalizeGenerativeUIBlock(parsed.ui);
 
       const newNodes: ConceptNode[] = [];
       const newRelations: ConceptRelation[] = [];
       const isWarning = parsed.cardType === "warning";
 
-      if (activePhase !== "PHASE_1_DISCOVERY" && !isWarning) {
+      if (
+        activePhase !== "PHASE_1_DISCOVERY" &&
+        !isWarning &&
+        generativeUI?.type !== "idea_cards"
+      ) {
         let currentMapNodes = [...map.nodes];
         const anchorNode = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
 
@@ -557,8 +564,10 @@ export const geminiAiService: AIService = {
         ...newNodes.map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
       ];
 
-      const action = parsed.action;
-      const effectiveText = parsed.message || parsed.text || "";
+      const action = generativeUI ? "chat" : parsed.action;
+      const contextTopic = map.nodes[0]?.title || undefined;
+      const rawText = parsed.message || parsed.text || "";
+      const effectiveText = sanitizeAssistantText(rawText, effectiveLang, contextTopic);
       const rawQuestions = parsed.questions || parsed.discoveryQuestions || [];
       const isReadyAction = action === "ready";
       const isChatAction = action === "chat";
@@ -574,7 +583,9 @@ export const geminiAiService: AIService = {
             allowCustom: q.allowCustom ?? true,
           }));
 
-      const isReadyStructuring = isWarning
+      const isReadyStructuring = generativeUI
+        ? false
+        : isWarning
         ? false
         : isReadyAction
           ? true
@@ -590,9 +601,14 @@ export const geminiAiService: AIService = {
           replyTo,
           cardType: parsed.cardType || "idea",
           text: effectiveText,
-          simplifiedExplanation: parsed.simplifiedExplanation || (isReadyAction ? "Idea lista para estructuración." : ""),
+          simplifiedExplanation: sanitizeAssistantText(
+            parsed.simplifiedExplanation || (isReadyAction ? "Idea lista para estructuración." : ""),
+            effectiveLang,
+            contextTopic
+          ),
           chatPhase: activePhase,
           action: action,
+          ui: generativeUI,
           readyForStructuring: isReadyStructuring,
           dimensions: (parsed as any).dimensions || (isReadyAction ? ["economic", "social", "technical", "legal"] : undefined),
           discoveryQuestions: mappedQuestions,

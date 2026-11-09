@@ -126,8 +126,8 @@ assert.ok(
   "El widget questionnaire debe mostrar el header '✨ CUESTIONARIO DE DEFINICIÓN'"
 );
 assert.ok(
-  chatSource.includes("Generar Arquitectura del Proyecto"),
-  "FullScreenDiscoveryChat debe incluir el botón 'Generar Arquitectura del Proyecto'"
+  chatSource.includes("Preparando arquitectura automáticamente"),
+  "FullScreenDiscoveryChat debe mostrar el progreso de generación automática"
 );
 assert.ok(
   indexCssSource.includes("--color-surface-elevated") &&
@@ -243,7 +243,7 @@ const renderedAlreadyAnsweredHtml = renderToStaticMarkup(
   React.createElement(FullScreenDiscoveryChat, {
     messages: [
       sampleQuestionnaireMsg,
-      { id: "msg-user-ans", role: "user", content: "Mis respuestas", type: "text" },
+      { id: "msg-user-ans", role: "user", content: "Mis respuestas", type: "text", questionnaireId: sampleQuestionnaireMsg.id },
     ],
     initialSelectedOptions: { "q-test-1": "Doctores", "q-test-2": "Web" },
   })
@@ -269,12 +269,13 @@ const renderedReadyHtml = renderToStaticMarkup(
   React.createElement(FullScreenDiscoveryChat, {
     messages: [sampleReadyMsg],
     onGenerateArchitecture: () => {},
+    generationStatus: "generated",
   })
 );
 
 assert.ok(
-  renderedReadyHtml.includes("Generar Arquitectura del Proyecto"),
-  "El HTML renderizado en modo ready debe contener el botón 'Generar Arquitectura del Proyecto'"
+  renderedReadyHtml.includes("Ver Tablero de Conceptos"),
+  "Tras generar el proyecto, el botón debe navegar al tablero"
 );
 assert.ok(
   renderedReadyHtml.includes("btn-primary"),
@@ -367,11 +368,15 @@ assert.strictEqual(
 );
 
 // Simular envío de mensaje y selección de opción en Descubrimiento IA y cambio de pestaña
+store.setWorkspace({
+  project: { id: "test-chat", name: "Proyecto de prueba", description: "", status: "draft", icon: "lightbulb", updatedAt: new Date().toISOString(), nodeCount: 0 },
+  map: { nodes: [], relations: [] },
+  messages: [
+    { id: "msg-assistant-test", role: "assistant", text: INITIAL_DISCOVERY_MESSAGES[0].content, createdAt: new Date().toISOString() },
+    { id: "msg-user-test", role: "user", text: "Para médicos especialistas", createdAt: new Date().toISOString() },
+  ],
+});
 store.setDiscoverySelectedOptions({ "q-test-1": "Doctores" });
-store.setDiscoveryMessages([
-  ...INITIAL_DISCOVERY_MESSAGES,
-  { id: "msg-user-test", role: "user", content: "Para médicos especialistas", type: "text" },
-]);
 
 store.setCanvasMode("spatial");
 assert.strictEqual(
@@ -394,9 +399,7 @@ assert.strictEqual(
 
 // Reset store state cleanly
 store.setCanvasMode("notion");
-store.setDiscoveryMessages(INITIAL_DISCOVERY_MESSAGES);
-store.setDiscoverySelectedOptions({});
-store.setArchitectureUnlocked(false);
+store.resetWorkspace();
 console.log("✓ Transiciones de canvasMode y persistencia entre pestañas en Zustand verificadas.");
 
 // 7. Verificar Resiliencia Conversacional Multi-Turno en Mock AI y Reconstrucción de Mensajes
@@ -492,8 +495,8 @@ assert.strictEqual(
 );
 assert.strictEqual(
   useWorkspaceStore.getState().discoveryMessages[1].type,
-  "ready",
-  "El mensaje reconstructed debe tener type: 'ready'"
+  "text",
+  "Una respuesta ready antigua se muestra como texto si el workspace no tiene estado de generación confirmado"
 );
 
 store.resetWorkspace();
