@@ -110,7 +110,9 @@ export async function checkBackendHealth(apiUrl: string, timeoutMs = 3000): Prom
         let neo4jStatus: Neo4jStatus = "unknown";
         try {
           const body = await res.json();
-          if (body?.components?.neo4j?.status === "UP" || body?.neo4j === "UP" || body?.neo4j === "connected") {
+          if (body?.components?.neo4j?.status === "NOT_CONFIGURED" || body?.neo4j === "NOT_CONFIGURED") {
+            neo4jStatus = "not_configured";
+          } else if (body?.components?.neo4j?.status === "UP" || body?.neo4j === "UP" || body?.neo4j === "connected") {
             neo4jStatus = "connected";
           } else if (body?.neo4j === "error" || body?.components?.neo4j?.status === "DOWN") {
             neo4jStatus = "error";

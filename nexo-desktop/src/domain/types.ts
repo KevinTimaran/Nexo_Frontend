@@ -382,6 +382,7 @@ export type Neo4jStatus =
   | "synchronized"
   | "disconnected"
   | "error"
+  | "not_configured"
   | "unknown";
 export type ServiceMode = "mock" | "server";
 

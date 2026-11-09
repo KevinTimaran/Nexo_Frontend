@@ -76,11 +76,10 @@ export const STORAGE_KEY_OPENAI_MODEL = "nexo.openai.model";
 export const STORAGE_KEY_OPENAI_ENABLED = "nexo.openai.enabled";
 export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 
-// Direct literal access so Vite statically replaces environment variables during build
+// Vite environment keys are available to local development only. Production keys
+// must be supplied by the user until provider calls move behind a protected backend.
 export const DEFAULT_OPENAI_API_KEY =
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) ||
-  (typeof process !== "undefined" && process.env?.VITE_OPENAI_API_KEY) ||
-  "";
+  (typeof import.meta !== "undefined" && import.meta.env?.DEV && import.meta.env.VITE_OPENAI_API_KEY) || "";
 
 let inMemoryKey: string | null = null;
 let inMemoryModel: string | null = null;
@@ -92,8 +91,7 @@ const uid = (prefix: string) =>
  * Returns the configured OpenAI API key with strict precedence:
  * 1. Checks in-memory override (for testing and runtime config)
  * 2. Checks user override in localStorage ("nexo.openai.key")
- * 3. Checks environment variable VITE_OPENAI_API_KEY (.env / import.meta.env / process.env)
- * 4. In browser/Tauri window runtime: falls back to DEFAULT_OPENAI_API_KEY
+ * 3. Checks VITE_OPENAI_API_KEY only in a development build or headless test runner
  */
 export function getOpenAIApiKey(): string {
   if (inMemoryKey !== null) {
@@ -109,38 +107,13 @@ export function getOpenAIApiKey(): string {
     // Ignore storage issues
   }
 
-  const envMeta =
-    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) ||
-    (typeof process !== "undefined" && process.env?.VITE_OPENAI_API_KEY);
+  const envMeta = typeof import.meta !== "undefined" && import.meta.env?.DEV
+    ? import.meta.env.VITE_OPENAI_API_KEY
+    : typeof window === "undefined" && typeof process !== "undefined"
+      ? process.env?.VITE_OPENAI_API_KEY
+      : "";
 
   if (envMeta && envMeta.trim().length > 0) return envMeta.trim();
-
-  // In Node/CLI runner, read from .env if not loaded into process.env
-  if (typeof process !== "undefined" && typeof window === "undefined") {
-    try {
-      const nodeReq = (globalThis).require;
-      if (!nodeReq) return "";
-      const fsNode = nodeReq("node:fs");
-      const pathNode = nodeReq("node:path");
-      const cwd = process.cwd();
-      for (const envFile of [".env", ".env.local"]) {
-        const fullPath = pathNode.resolve(cwd, envFile);
-        if (fsNode.existsSync(fullPath)) {
-          const content = fsNode.readFileSync(fullPath, "utf-8");
-          const m = content.match(/VITE_OPENAI_API_KEY\s*=\s*([^\r\n]+)/);
-          if (m && m[1].trim()) {
-            return m[1].trim();
-          }
-        }
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  if (DEFAULT_OPENAI_API_KEY && DEFAULT_OPENAI_API_KEY.trim().length > 0) {
-    return DEFAULT_OPENAI_API_KEY.trim();
-  }
 
   return "";
 }

@@ -1,6 +1,4 @@
 import assert from "node:assert";
-import fs from "node:fs";
-import path from "node:path";
 import {
   OpenAIError,
   OpenAIKeyMissingError,
@@ -13,7 +11,6 @@ import {
   isOpenAIConfigured,
   isOpenAIEnabled,
   testOpenAIConnection,
-  DEFAULT_OPENAI_API_KEY,
 } from "../src/services/openai";
 import {
   getAiProvider,
@@ -23,22 +20,7 @@ import {
 } from "../src/services/registry";
 import type { AIReplyRequest, AITutorRequest } from "../src/services/contracts";
 
-let localApiKey = DEFAULT_OPENAI_API_KEY;
-for (const envFile of [".env", ".env.local"]) {
-  try {
-    const envPath = path.resolve(process.cwd(), envFile);
-    if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, "utf-8");
-      const m = content.match(/VITE_OPENAI_API_KEY\s*=\s*([^\r\n]+)/);
-      if (m && m[1].trim()) {
-        localApiKey = m[1].trim();
-        break;
-      }
-    }
-  } catch {
-    // Ignore
-  }
-}
+const localApiKey = "test-openai-key";
 
 console.log("=== VERIFICACIÓN DE INTEGRACIÓN OPENAI GPT EN NEXO ===");
 
@@ -126,34 +108,36 @@ assert.notStrictEqual(activeServicesGemini.ai, openaiAiService, "Registry no deb
 setAiProvider("openai");
 console.log("✓ Enrutamiento dinámico entre OpenAI y Gemini verificado.");
 
-// 5. Llamada Real a la API de OpenAI con la Clave del Usuario
-console.log("\n[5/5] Ejecutando prueba de conexión real contra https://api.openai.com...");
-const testResult = await testOpenAIConnection(localApiKey, "gpt-4o-mini");
-assert.strictEqual(testResult.ok, true, `La prueba de conexión con OpenAI debe ser exitosa. Error: ${testResult.error}`);
-assert.strictEqual(testResult.model, "gpt-4o-mini");
-assert.ok(testResult.latencyMs > 0, "Debe registrar latencia en milisegundos");
-console.log(`✓ Conexión real con OpenAI GPT exitosa (${testResult.latencyMs} ms, modelo: ${testResult.model})`);
+// Provider contracts are tested with a deterministic fetch stub; the suite must
+// not read local .env files or spend credits through a live provider request.
+console.log("\n[5/5] Verificando las solicitudes OpenAI con un proveedor HTTP simulado...");
+const originalFetch = globalThis.fetch;
+let requestCount = 0;
+globalThis.fetch = (async () => {
+  requestCount += 1;
+  return new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({ action: "chat", message: "Respuesta simulada" }) } }],
+  }), { status: 200, headers: { "Content-Type": "application/json" } });
+}) as typeof fetch;
+try {
+  const testResult = await testOpenAIConnection(localApiKey, "gpt-4o-mini");
+  assert.strictEqual(testResult.ok, true);
+  assert.strictEqual(testResult.model, "gpt-4o-mini");
+  assert.ok(testResult.latencyMs >= 0);
 
-// 5.1 Llamada real end-to-end de Ideación con gpt-4o-mini
-console.log("\n[Bonus] Ejecutando llamada real de Ideación con OpenAI gpt-4o-mini...");
-const aiResponse = await openaiAiService.reply({
-  text: "Hola, quiero crear una app de telemedicina para citas con psicólogos",
-  map: { nodes: [], relations: [] },
-  lang: "es",
-  replyTo: "msg-0",
-});
-
-assert.ok(aiResponse.message, "Debe incluir un mensaje en la respuesta");
-assert.ok(aiResponse.message.text.length > 0, "El mensaje debe tener texto generado por OpenAI");
-console.log("Respuesta de OpenAI recibida:");
-console.log(`- Acción: ${aiResponse.message.action}`);
-console.log(`- Texto: ${aiResponse.message.text.slice(0, 100)}...`);
-if (aiResponse.message.discoveryQuestions && aiResponse.message.discoveryQuestions.length > 0) {
-  console.log(`- Preguntas generadas: ${aiResponse.message.discoveryQuestions.length}`);
-  for (const q of aiResponse.message.discoveryQuestions) {
-    console.log(`  * ${q.question} (${q.options.length} opciones)`);
-  }
+  setOpenAIConfig(localApiKey, "gpt-4o-mini");
+  const aiResponse = await openaiAiService.reply({
+    text: "Quiero explorar una idea",
+    map: { nodes: [], relations: [] },
+    lang: "es",
+    replyTo: "msg-0",
+  });
+  assert.strictEqual(aiResponse.message.text, "Respuesta simulada");
+  assert.strictEqual(requestCount, 2, "Deben ejecutarse el health request y una solicitud de ideación simulada");
+} finally {
+  globalThis.fetch = originalFetch;
 }
+console.log("✓ Health check e ideación OpenAI validados sin usar red ni credenciales reales.");
 
 console.log("\n[6/6] Verificando resiliencia de normalización de categorías contra errores de renderizado...");
 const { normalizeCategory } = await import("../src/domain/constants");

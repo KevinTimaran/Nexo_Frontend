@@ -180,6 +180,12 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
           style: "bg-risk-fg/15 text-risk-fg border-risk-fg/30",
           icon: <AlertTriangle className="w-3.5 h-3.5" />,
         };
+      case "not_configured":
+        return {
+          label: "Neo4j no configurado",
+          style: "bg-muted/10 text-muted border-line/20",
+          icon: <Database className="w-3.5 h-3.5" />,
+        };
       case "unknown":
       default:
         return {

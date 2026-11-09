@@ -75,9 +75,7 @@ export const STORAGE_KEY_GEMINI_MODEL = "nexo.gemini.model";
 export const STORAGE_KEY_GEMINI_ENABLED = "nexo.gemini.enabled";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 export const DEFAULT_GEMINI_API_KEY =
-  (typeof import.meta !== "undefined" && (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } })?.env?.VITE_GEMINI_API_KEY) ||
-  (typeof process !== "undefined" && process.env?.VITE_GEMINI_API_KEY) ||
-  "";
+  (typeof import.meta !== "undefined" && import.meta.env?.DEV && import.meta.env.VITE_GEMINI_API_KEY) || "";
 
 let inMemoryKey: string | null = null;
 let inMemoryModel: string | null = null;
@@ -89,9 +87,7 @@ const uid = (prefix: string) =>
  * Returns the configured Gemini API key with strict precedence:
  * 1. Checks user override in localStorage ("nexo.gemini.key")
  * 2. Checks in-memory override (for testing and runtime config)
- * 3. Checks environment variable VITE_GEMINI_API_KEY (.env.local / import.meta.env / process.env)
- * 4. In browser/Tauri window runtime: falls back to DEFAULT_GEMINI_API_KEY so desktop app never degrades to mock.
- * 5. In headless/node test runner: returns empty string if no key is configured.
+ * 3. Checks VITE_GEMINI_API_KEY only in a development build or headless test runner
  */
 export function getGeminiApiKey(): string {
   try {
@@ -105,18 +101,12 @@ export function getGeminiApiKey(): string {
   if (inMemoryKey && inMemoryKey.trim().length > 0) {
     return inMemoryKey.trim();
   }
-  const envMeta = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } })?.env?.VITE_GEMINI_API_KEY;
-  if (envMeta && envMeta.trim().length > 0) return envMeta.trim();
-
-  if (typeof process !== "undefined" && process.env?.VITE_GEMINI_API_KEY) {
-    const processKey = process.env.VITE_GEMINI_API_KEY;
-    if (processKey && processKey.trim().length > 0) return processKey.trim();
-  }
-
-  // In browser/Tauri environment, ensure we always use the production Gemini API key
-  if (typeof window !== "undefined") {
-    return DEFAULT_GEMINI_API_KEY;
-  }
+  const envKey = typeof import.meta !== "undefined" && import.meta.env?.DEV
+    ? import.meta.env.VITE_GEMINI_API_KEY
+    : typeof window === "undefined" && typeof process !== "undefined"
+      ? process.env?.VITE_GEMINI_API_KEY
+      : "";
+  if (envKey && envKey.trim().length > 0) return envKey.trim();
 
   return "";
 }
