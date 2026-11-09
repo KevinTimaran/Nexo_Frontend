@@ -11,6 +11,7 @@ import type {
   ConceptNode,
   ConceptRelation,
   DiscoveryQuestion,
+  MemoryPatch,
   NodeCategory,
   AICardType,
   NodePriority,
@@ -19,6 +20,7 @@ import type {
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
 import { getSystemInstruction, buildUserPrompt, detectMessageLanguage, sanitizeAssistantText } from "../ai/prompts";
 import { normalizeGenerativeUIBlock } from "../ai/generativeUi";
+import { normalizeAiMemoryPatches } from "../ai/semanticMemory";
 import { normalizeCategory } from "../../domain/constants";
 
 export type { AICardType };
@@ -74,8 +76,9 @@ export const STORAGE_KEY_GEMINI_KEY = "nexo.gemini.key";
 export const STORAGE_KEY_GEMINI_MODEL = "nexo.gemini.model";
 export const STORAGE_KEY_GEMINI_ENABLED = "nexo.gemini.enabled";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-export const DEFAULT_GEMINI_API_KEY =
-  (typeof import.meta !== "undefined" && import.meta.env?.DEV && import.meta.env.VITE_GEMINI_API_KEY) || "";
+// Never reference a VITE_* key statically here: Vite embeds such values in bundles.
+// Users configure their own key in Settings; headless tests may use process env.
+export const DEFAULT_GEMINI_API_KEY = "";
 
 let inMemoryKey: string | null = null;
 let inMemoryModel: string | null = null;
@@ -87,7 +90,7 @@ const uid = (prefix: string) =>
  * Returns the configured Gemini API key with strict precedence:
  * 1. Checks user override in localStorage ("nexo.gemini.key")
  * 2. Checks in-memory override (for testing and runtime config)
- * 3. Checks VITE_GEMINI_API_KEY only in a development build or headless test runner
+ * 3. Checks a process environment key only in a headless test runner
  */
 export function getGeminiApiKey(): string {
   try {
@@ -101,11 +104,9 @@ export function getGeminiApiKey(): string {
   if (inMemoryKey && inMemoryKey.trim().length > 0) {
     return inMemoryKey.trim();
   }
-  const envKey = typeof import.meta !== "undefined" && import.meta.env?.DEV
-    ? import.meta.env.VITE_GEMINI_API_KEY
-    : typeof window === "undefined" && typeof process !== "undefined"
-      ? process.env?.VITE_GEMINI_API_KEY
-      : "";
+  const envKey = typeof window === "undefined" && typeof process !== "undefined"
+    ? process.env?.["VITE_GEMINI_API_KEY"]
+    : "";
   if (envKey && envKey.trim().length > 0) return envKey.trim();
 
   return "";
@@ -346,6 +347,7 @@ function calculateNextPosition(existingNodes: ConceptNode[]): { x: number; y: nu
 interface GeminiStructuredReply {
   action?: "chat" | "questionnaire" | "ready";
   message?: string;
+  memoryPatches?: MemoryPatch[];
   questions?: Array<{
     id?: string;
     question: string;
@@ -599,6 +601,7 @@ export const geminiAiService: AIService = {
           chatPhase: activePhase,
           action: action,
           ui: generativeUI,
+          memoryPatches: normalizeAiMemoryPatches(parsed.memoryPatches),
           readyForStructuring: isReadyStructuring,
           dimensions: (parsed as any).dimensions || (isReadyAction ? ["economic", "social", "technical", "legal"] : undefined),
           discoveryQuestions: mappedQuestions,

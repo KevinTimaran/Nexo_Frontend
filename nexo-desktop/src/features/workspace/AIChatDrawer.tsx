@@ -18,12 +18,13 @@ import {
   Loader2,
   BookOpen,
 } from "lucide-react";
-import type { AssistantMessage, Message, ResearchPhase } from "../../domain/types";
+import type { AssistantMessage, Message, ProjectFact, ResearchPhase } from "../../domain/types";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { useConnectivityStore } from "../../store/useConnectivityStore";
 import { useToast } from "../../context/ToastContext";
 import { services } from "../../services";
 import { detectMessageLanguage } from "../../services/ai/prompts";
+import { transitionMemoryFact } from "../../services/ai/semanticMemory";
 import { currentLanguage } from "../../i18n";
 import { Badge } from "../../components/ui/Badge";
 import {
@@ -226,8 +227,50 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
     kind: "concept" | "viability" | "risk";
     phase: ResearchPhase;
     metadata?: string;
-  }) => {
-    const created = addNodeFromChat(candidate);
+  }, sourceMessageId: string) => {
+    if (!sourceMessageId) return;
+    const state = useWorkspaceStore.getState();
+    const current = state.workspace;
+    const semanticKey = `actionable:${sourceMessageId}`;
+    const existingFact = current?.discovery?.facts.find((fact) => fact.key === semanticKey);
+    if (existingFact?.memoryState === "rejected") return;
+
+    let acceptedFact = existingFact;
+    if (acceptedFact && ["proposed", "modified"].includes(acceptedFact.memoryState ?? "legacy_unknown")) {
+      acceptedFact = transitionMemoryFact(acceptedFact, { type: "accept_suggestion", eventId: `${semanticKey}:accept` });
+      if (current?.discovery) {
+        state.setWorkspace({
+          ...current,
+          discovery: { ...current.discovery, facts: current.discovery.facts.map((fact) => fact.key === semanticKey ? acceptedFact! : fact) },
+        });
+      }
+    } else if (!acceptedFact && current?.discovery) {
+      const proposal: ProjectFact = {
+        key: semanticKey,
+        semanticKey,
+        value: `${candidate.title}: ${candidate.description}`,
+        status: "unconfirmed",
+        sourceMessageIds: [sourceMessageId],
+        kind: "suggestion",
+        memoryState: "proposed",
+        origin: "ai_suggestion",
+      };
+      acceptedFact = transitionMemoryFact(proposal, { type: "accept_suggestion", eventId: `${semanticKey}:accept` });
+      state.setWorkspace({
+        ...current,
+        discovery: { ...current.discovery, facts: [...current.discovery.facts, acceptedFact] },
+      });
+    }
+
+    const created = addNodeFromChat({
+      ...candidate,
+      semanticKey: acceptedFact?.semanticKey ?? semanticKey,
+      semanticKind: acceptedFact?.kind ?? "suggestion",
+      semanticState: acceptedFact?.memoryState ?? "accepted",
+      provenanceOrigin: acceptedFact?.origin ?? "accepted_suggestion",
+      sourceFactIds: acceptedFact ? [acceptedFact.key] : undefined,
+      sourceMessageIds: acceptedFact?.sourceMessageIds ?? [sourceMessageId],
+    });
     if (created) {
       showToast(`«${created.title}» mapeado en el lienzo`, "success");
       onSelectNode(created.id);
@@ -570,7 +613,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
                         {actionable && (
                           <button
                             type="button"
-                            onClick={() => handleMapNode(actionable)}
+                            onClick={() => handleMapNode(actionable, asstMsg?.id ?? "")}
                             disabled={isAlreadyMapped}
                             className={`w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all shadow-xs ${
                               isAlreadyMapped

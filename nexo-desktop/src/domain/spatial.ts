@@ -10,6 +10,10 @@ import type {
   NodeCategory,
   NodePriority,
   ResearchPhase,
+  ProjectMemoryKind,
+  ProjectMemoryState,
+  ProjectMemoryOrigin,
+  RelationSemanticType,
 } from "./types";
 
 export type SpatialGroupId =
@@ -54,6 +58,17 @@ export interface SpatialNode {
   z?: number;
   tags?: string[];
   relevanceScore?: number;
+  semanticKey?: string;
+  origin?: "ai_initial" | "ai_expansion" | "user" | "approved";
+  verification?: "confirmed" | "unconfirmed" | "unknown";
+  semanticKind?: ProjectMemoryKind;
+  semanticState?: ProjectMemoryState;
+  provenanceOrigin?: ProjectMemoryOrigin;
+  sourceFactIds?: string[];
+  sourceMessageIds?: string[];
+  definitionVersion?: string;
+  manuallyEditedFields?: string[];
+  layout?: { board2d?: { x: number; y: number }; neural3d?: { x?: number; y?: number; z?: number } };
 }
 
 export interface SpatialLink {
@@ -66,6 +81,13 @@ export interface SpatialLink {
   to?: string;
   label?: string;
   type?: string;
+  semanticType?: RelationSemanticType;
+  semanticKey?: string;
+  origin?: "ai_initial" | "ai_expansion" | "user" | "approved";
+  definitionVersion?: string;
+  sourceFactIds?: string[];
+  sourceMessageIds?: string[];
+  manuallyEditedFields?: string[];
 }
 
 export interface SpatialProjectBrief {

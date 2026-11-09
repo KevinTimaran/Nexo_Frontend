@@ -4,6 +4,7 @@ import { Maximize2, Sparkles, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { ConceptNodeData } from "../../store/useWorkspaceStore";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import type { ResearchPhase, NodePriority } from "../../domain/types";
+import { graphSemanticLabels } from "../../domain/graphSemantics";
 
 const PHASE_CONFIG: Record<
   ResearchPhase,
@@ -52,6 +53,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
     const phaseInfo = PHASE_CONFIG[phase] || PHASE_CONFIG.planning;
     const priority = data.priority || "medium";
     const priorityInfo = PRIORITY_BADGE[priority] || PRIORITY_BADGE.medium;
+    const semanticLabels = graphSemanticLabels(data);
 
     const handleOpenDetails = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -128,6 +130,11 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
               >
                 {priorityInfo.label}
               </span>
+              {semanticLabels.slice(0, 2).map((label) => (
+                <span key={label} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border border-line/60 bg-surface/50 text-muted">
+                  {label}
+                </span>
+              ))}
             </div>
 
             {/* Botón tipo ghost con ícono Maximize2 visible en hover */}

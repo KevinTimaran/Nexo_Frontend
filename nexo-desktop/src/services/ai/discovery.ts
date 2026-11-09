@@ -1,4 +1,5 @@
-import type { AssistantMessage, DiscoveryQuestion, DiscoveryState, GenerativeUIBlock, Message, ProjectArchetype, ProjectFact, UserMessage } from "../../domain/types";
+import type { AssistantMessage, DiscoveryQuestion, DiscoveryState, GenerativeUIBlock, MemoryPatch, Message, ProjectArchetype, ProjectFact, UserMessage } from "../../domain/types";
+import { applyAiMemoryPatches, memoryOriginForUserMessage, transitionMemoryFact } from "./semanticMemory";
 
 const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 export const questionKey = (text: string) => normalize(text).split(" ").filter((word) => word.length > 3).slice(0, 8).join("-");
@@ -48,8 +49,27 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
   const put = (key: string, content: string) => {
     const status = /^(no s[eé]|a[uú]n no lo s[eé]|por definir|desconocido|unknown|ninguna de las opciones)/i.test(content) ? "unknown" : "confirmed";
     const index = facts.findIndex((fact) => fact.key === key);
-    const fact: ProjectFact = { key, value: content, status, sourceMessageIds: [message.id] };
-    if (index < 0) facts.push(fact); else facts[index] = fact;
+    const sourceMessageIds = [...new Set([...(index >= 0 ? facts[index].sourceMessageIds : []), message.id])];
+    const fact: ProjectFact = {
+      key,
+      value: content,
+      status,
+      sourceMessageIds,
+      kind: status === "unknown" ? "unknown" : "user_fact",
+      memoryState: status === "unknown" ? "unknown" : "confirmed",
+      origin: memoryOriginForUserMessage(Boolean(message.answers)),
+    };
+    if (index < 0) facts.push(fact);
+    else {
+      const previous = facts[index];
+      if (previous.kind === "unknown" && previous.memoryState === "unknown" && status === "confirmed") {
+        facts[index] = transitionMemoryFact(previous, { type: "resolve_unknown", eventId: `${key}:${message.id}`, value: content, messageId: message.id });
+      } else if (previous.kind === "legacy_unknown") {
+        facts[index] = { ...fact, kind: "user_fact", memoryState: "confirmed" };
+      } else {
+        facts[index] = { ...previous, ...fact };
+      }
+    }
   };
   if (message.answers) {
     for (const [key, answer] of Object.entries(message.answers)) {
@@ -60,7 +80,7 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
   } else if (!GREETING_OR_VAGUE_INTENT.test(value) && (value.split(/\s+/).length >= 5 || (value.split(/\s+/).length >= 2 && (/^(quiero|necesito|abrir|crear|montar|vender|investigar|organizar|no s[eé]|a[uú]n no lo s[eé])/i.test(value) || archetypeFor(value) !== "general")))) {
     if (!priorIntent || correction) put("intent", value);
     else {
-      const missing = requirements[archetype].find((topic) => topic.importance === "blocking" && topic.key !== "intent" && !facts.some((fact) => fact.key === topic.key));
+      const missing = requirements[archetype].find((topic) => topic.importance === "blocking" && topic.key !== "intent" && !facts.some((fact) => fact.key === topic.key && (fact.status === "confirmed" || fact.status === "unknown")));
       if (missing) put(missing.key, value);
       else put(`detail:${questionKey(value)}`, value);
     }
@@ -78,7 +98,7 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
     if (archetype === "general" && !has("outcome") && /(?:logr\w*|consegu\w*|para|crear|desarroll\w*|organiz\w*)\s+[a-zñáéíóú]{4,}/i.test(combined)) put("outcome", value);
   }
   const requiredTopics = requirements[archetype];
-  const ready = requiredTopics.filter((topic) => topic.importance === "blocking").every((topic) => facts.some((fact) => fact.key === topic.key && (topic.key === "intent" ? fact.status === "confirmed" : fact.status !== "unconfirmed")));
+    const ready = requiredTopics.filter((topic) => topic.importance === "blocking").every((topic) => facts.some((fact) => fact.key === topic.key && (fact.status === "confirmed" || fact.status === "unknown")));
   const candidateDefinitionVersion = facts.length ? versionOf(facts) : undefined;
   const changed = candidateDefinitionVersion !== state.candidateDefinitionVersion;
 
@@ -104,16 +124,43 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
   };
 }
 
-export function syncIdeaFacts(state: DiscoveryState, ui: GenerativeUIBlock | undefined, messageId: string): DiscoveryState {
-  if (ui?.type !== "idea_cards") return state;
+export function syncIdeaFacts(state: DiscoveryState, ui: GenerativeUIBlock | undefined, messageId: string, patches?: MemoryPatch[], stableTurnId = messageId): DiscoveryState {
+  if (ui?.type !== "idea_cards") return { ...state, facts: applyAiMemoryPatches(state.facts, patches, messageId, stableTurnId) };
   const facts = [...state.facts];
   for (const idea of ui.items) {
     const key = `suggestion:${messageId}:${idea.id}`;
-    const fact: ProjectFact = { key, value: `${idea.title}: ${idea.description}`, status: idea.status === "approved" || idea.status === "mapped" ? "confirmed" : "unconfirmed", sourceMessageIds: [messageId] };
     const index = facts.findIndex((item) => item.key === key);
-    if (index < 0) facts.push(fact); else facts[index] = fact;
+    const value = `${idea.title}: ${idea.description}`;
+    const sourceMessageIds = [...new Set([...(index >= 0 ? facts[index].sourceMessageIds : []), messageId])];
+    if (index < 0) {
+      const accepted = idea.status === "approved" || idea.status === "mapped";
+      facts.push({
+        key, value, status: accepted ? "confirmed" : "unconfirmed", sourceMessageIds,
+        kind: "suggestion", memoryState: accepted ? "accepted" : idea.status === "discarded" ? "rejected" : "proposed",
+        origin: accepted ? "accepted_suggestion" : "ai_suggestion", sourceSuggestionId: idea.id,
+        ...(accepted ? { decisionEventId: `${key}:accept` } : idea.status === "discarded" ? { decisionEventId: `${key}:reject` } : {}),
+      });
+    } else {
+      const existing = facts[index];
+      const candidate = { ...existing, value, sourceMessageIds, sourceSuggestionId: idea.id };
+      if (idea.status === "approved" || idea.status === "mapped") {
+        facts[index] = existing.memoryState === "accepted" ? candidate : transitionMemoryFact(candidate, { type: "accept_suggestion", eventId: `${key}:accept` });
+      } else if (idea.status === "discarded") {
+        facts[index] = existing.memoryState === "rejected" ? candidate : transitionMemoryFact(candidate, { type: "reject_suggestion", eventId: `${key}:reject` });
+      } else if (existing.memoryState === "rejected") {
+        facts[index] = transitionMemoryFact(candidate, { type: "restore_suggestion", eventId: `${key}:restore` });
+      } else if (existing.memoryState === "accepted") {
+        facts[index] = candidate;
+      } else if (["proposed", "modified"].includes(existing.memoryState ?? "legacy_unknown") && value !== existing.value) {
+        facts[index] = transitionMemoryFact(existing, { type: "modify_suggestion", eventId: `${key}:modify:${value}`, value });
+      } else if (existing.memoryState === "modified") {
+        facts[index] = { ...existing, sourceMessageIds, sourceSuggestionId: idea.id };
+      } else {
+        facts[index] = { ...candidate, status: "unconfirmed", kind: "suggestion", memoryState: "proposed", origin: "ai_suggestion" };
+      }
+    }
   }
-  return { ...state, facts };
+  return { ...state, facts: applyAiMemoryPatches(facts, patches, messageId, stableTurnId) };
 }
 
 const topicQuestions: Record<string, string> = {
@@ -126,7 +173,7 @@ const topicQuestions: Record<string, string> = {
 };
 
 export function nextDiscoveryQuestion(state: DiscoveryState): DiscoveryQuestion[] {
-  const missing = state.requiredTopics.find((topic) => topic.importance === "blocking" && !state.facts.some((fact) => fact.key === topic.key && fact.status !== "unconfirmed"));
+  const missing = state.requiredTopics.find((topic) => topic.importance === "blocking" && !state.facts.some((fact) => fact.key === topic.key && (fact.status === "confirmed" || fact.status === "unknown")));
   if (!missing) return [];
   const id = `topic:${missing.key}`;
   if (state.answeredQuestionKeys.includes(id)) return [];
@@ -150,7 +197,7 @@ export function isDiscoveryReady(state: DiscoveryState): boolean {
   if (blockingTopics.length === 0) return false;
   return blockingTopics.every((topic) =>
     state.facts.some(
-      (fact) => fact.key === topic.key && (topic.key === "intent" ? fact.status === "confirmed" : fact.status !== "unconfirmed")
+      (fact) => fact.key === topic.key && (fact.status === "confirmed" || fact.status === "unknown")
     )
   );
 }

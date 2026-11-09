@@ -67,6 +67,12 @@ export type ResearchPhase = "planning" | "execution" | "validation";
 /** The three semantic kinds a concept can have on the map. */
 export type ConceptKind = "concept" | "viability" | "risk";
 export type ConceptStatus = "confirmed" | "exploring" | "review";
+export type RelationSemanticType = "related_to" | "supports" | "affects" | "depends_on" | "contradicts" | "validates" | "enables" | "requires" | "impacts" | "solves" | "threatens" | "regulates" | "funds";
+
+export interface ConceptNodeLayout {
+  board2d?: { x: number; y: number };
+  neural3d?: { x?: number; y?: number; z?: number };
+}
 
 export interface ConceptNode {
   id: string;
@@ -102,6 +108,15 @@ export interface ConceptNode {
   sourceFactIds?: string[];
   definitionVersion?: string;
   manuallyEditedFields?: string[];
+  /** Semantic provenance copied from canonical Phase 1 memory when available. */
+  semanticKind?: ProjectMemoryKind;
+  semanticState?: ProjectMemoryState;
+  provenanceOrigin?: ProjectMemoryOrigin;
+  sourceMessageIds?: string[];
+  /** New layout fields are separate; x/y/z remain readable legacy aliases. */
+  layout?: ConceptNodeLayout;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ConceptRelation {
@@ -116,9 +131,13 @@ export interface ConceptRelation {
   value?: number;
   label?: string;
   type?: string;
+  semanticType?: RelationSemanticType;
   semanticKey?: string;
   origin?: "ai_initial" | "ai_expansion" | "user" | "approved";
   definitionVersion?: string;
+  sourceFactIds?: string[];
+  sourceMessageIds?: string[];
+  manuallyEditedFields?: string[];
 }
 
 export interface ConceptMap {
@@ -272,6 +291,8 @@ export interface AssistantMessage extends BaseMessage {
     metadata?: string;
     details?: string;
   };
+  /** Untrusted AI proposals. The application must validate before adding them to project memory. */
+  memoryPatches?: MemoryPatch[];
 }
 
 export type Message = UserMessage | AssistantMessage;
@@ -293,6 +314,7 @@ export interface ChatMessage {
   questions?: QuestionnaireQuestion[];
   dimensions?: StrategicDimension[];
   ui?: GenerativeUIBlock;
+  memoryPatches?: MemoryPatch[];
   questionnaireId?: string;
 }
 
@@ -312,11 +334,31 @@ export interface AIResponse {
 }
 
 export type ProjectArchetype = "business" | "research" | "software" | "creative" | "operational" | "general";
-export interface ProjectFact {
+export type ProjectMemoryKind = "user_fact" | "suggestion" | "hypothesis" | "unknown" | "decision_candidate" | "decision" | "evidence_placeholder" | "legacy_unknown";
+export type ProjectMemoryState = "confirmed" | "proposed" | "accepted" | "rejected" | "unknown" | "modified" | "legacy_unknown";
+export type ProjectMemoryOrigin = "user_message" | "questionnaire_answer" | "ai_suggestion" | "accepted_suggestion" | "decision_event" | "research_evidence" | "unknown";
+export interface MemoryPatch {
+  id: string;
+  kind: "fact" | "hypothesis" | "unknown" | "suggestion" | "decision_candidate";
   key: string;
   value: string;
+}
+export interface ProjectFact {
+  /** Domain key proposed by the model; `key` remains the stable persisted record ID. */
+  semanticKey?: string;
+  key: string;
+  value: string;
+  /** Compatibility field retained for existing discovery/readiness logic. */
   status: "confirmed" | "unconfirmed" | "unknown";
   sourceMessageIds: string[];
+  /** Missing on old serialized workspaces; hydration assigns a safe legacy state. */
+  kind?: ProjectMemoryKind;
+  memoryState?: ProjectMemoryState;
+  origin?: ProjectMemoryOrigin;
+  sourceSuggestionId?: string;
+  decisionEventId?: string;
+  researchEvidenceId?: string;
+  modifiedFrom?: string;
 }
 export interface DiscoveryState {
   lifecycle: "discovering" | "ready" | "generating" | "generated" | "generation_error" | "legacy_unknown";

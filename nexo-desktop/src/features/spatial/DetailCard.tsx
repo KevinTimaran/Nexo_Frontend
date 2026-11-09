@@ -2,6 +2,7 @@ import React from "react";
 import { X, FileText, Share2, ExternalLink } from "lucide-react";
 import { GlisseCard } from "../../components/ui/GlisseCard";
 import { SPATIAL_GROUPS, type SpatialNode } from "../../domain/spatial";
+import { graphSemanticLabels } from "../../domain/graphSemantics";
 
 export interface DetailCardProps {
   node: SpatialNode;
@@ -26,6 +27,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
 }) => {
   const groupConfig = SPATIAL_GROUPS.find((g) => g.id === node.group);
   const clusterColor = groupConfig?.color ?? "#6366f1";
+  const semanticLabels = graphSemanticLabels(node);
 
   return (
     <GlisseCard
@@ -76,6 +78,15 @@ export const DetailCard: React.FC<DetailCardProps> = ({
         <p className="text-xs text-muted mt-1.5 leading-relaxed">
           {node.desc}
         </p>
+        {semanticLabels.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5" aria-label={`Estado semántico: ${semanticLabels.join(", ")}`}>
+            {semanticLabels.map((label) => (
+              <span key={label} className="px-2 py-0.5 rounded-full border border-line/60 bg-surface/5 text-[10px] font-semibold text-muted">
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Stats Pill */}

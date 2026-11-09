@@ -4,6 +4,7 @@ import { Glass, Button } from "glisse";
 import { Bot, Send, Sparkles, X, User, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { services } from "../../services";
+import { applyGraphOperations } from "../../services/ai/reconcileGraph";
 import {
   countCodePoints,
   containsImageData,
@@ -168,6 +169,7 @@ export const SpatialChatPanel: React.FC = () => {
       : trimmed;
 
     const currentMessages = workspace?.messages || localMessages;
+    const requestDefinitionVersion = workspace?.discovery?.candidateDefinitionVersion;
     const updatedMessages = [...currentMessages, userMessage];
 
     if (workspace) {
@@ -195,15 +197,15 @@ export const SpatialChatPanel: React.FC = () => {
         const latest = useWorkspaceStore.getState().workspace;
         if (!latest || latest.project.id !== workspace.project.id) return;
         const nextMessages = [...latest.messages.filter((message) => !(message.role === "assistant" && message.replyTo === userMsgId)), aiMessage];
-        const nextNodes =
-          response.newNodes && response.newNodes.length > 0
-            ? [...latest.map.nodes, ...response.newNodes.map((node) => ({ ...node, origin: "ai_expansion" as const, verification: "unconfirmed" as const }))]
-            : latest.map.nodes;
-        const nextRelations =
-          response.newRelations && response.newRelations.length > 0
-            ? [...latest.map.relations, ...response.newRelations.map((relation) => ({ ...relation, origin: "ai_expansion" as const }))]
-            : latest.map.relations;
-        const nextMap: ConceptMap = { nodes: nextNodes, relations: nextRelations };
+        const nextMap: ConceptMap = applyGraphOperations(
+          latest.map,
+          response.newNodes ?? [],
+          response.newRelations ?? [],
+          latest.discovery,
+          requestDefinitionVersion,
+          latest.discovery?.candidateDefinitionVersion,
+          [userMsgId, response.message.id],
+        );
 
         setWorkspace({
           ...latest,

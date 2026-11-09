@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Node, Edge, NodeChange, EdgeChange, Connection } from "reactflow";
-import { applyNodeChanges, applyEdgeChanges, addEdge } from "reactflow";
+import { applyNodeChanges, applyEdgeChanges } from "reactflow";
 import {
   INITIAL_DISCOVERY_MESSAGES,
   type CanvasMode,
@@ -24,12 +24,27 @@ import {
   type SpatialNode,
 } from "../domain/spatial";
 import { findDuplicateConcept } from "../services/ai/prompts";
+import { normalizeRelationType } from "../services/ai/reconcileGraph";
 import { normalizeCategory } from "../domain/constants";
 import { services } from "../services";
 import { initialDiscovery } from "../services/ai/discovery";
 
 export interface ConceptNodeData extends ConceptNode {
   onOpenDeepDive?: (id: string) => void;
+}
+
+function stableId(prefix: string, key: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < key.length; index += 1) hash = Math.imul(hash ^ key.charCodeAt(index), 16777619);
+  const safeKey = key.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "item";
+  return `${prefix}-${safeKey}-${(hash >>> 0).toString(36)}`;
+}
+
+function relationKey(relation: ConceptRelation, nodes: ConceptNode[]): string {
+  if (relation.semanticKey) return relation.semanticKey;
+  const from = nodes.find((node) => node.id === relation.from)?.semanticKey ?? relation.from;
+  const to = nodes.find((node) => node.id === relation.to)?.semanticKey ?? relation.to;
+  return `${from}->${to}:${normalizeRelationType(relation.semanticType ?? relation.type)}`;
 }
 
 type ActiveLeftPanel = "chat" | "filters" | "nodelist" | null;
@@ -100,6 +115,12 @@ interface WorkspaceState {
     metadata?: string;
     details?: string;
     relevanceScore?: number;
+    semanticKey?: string;
+    semanticKind?: ConceptNode["semanticKind"];
+    semanticState?: ConceptNode["semanticState"];
+    provenanceOrigin?: ConceptNode["provenanceOrigin"];
+    sourceFactIds?: string[];
+    sourceMessageIds?: string[];
   }) => ConceptNode | null;
 
   /** Returns the last 3 messages (most recent first) to maintain conversational context. */
@@ -153,7 +174,7 @@ const persistSession = (projectId: string, map: ConceptMap, messages: Message[])
   }
 };
 
-function convertMapToFlow(
+export function convertMapToFlow(
   map: ConceptMap | undefined,
   openDeepDive: (id: string) => void
 ): { nodes: Node<ConceptNodeData>[]; edges: Edge[] } {
@@ -163,7 +184,7 @@ function convertMapToFlow(
   const nodes: Node<ConceptNodeData>[] = nodesList.map((n) => ({
     id: n.id,
     type: "conceptNode",
-    position: { x: n.x, y: n.y },
+    position: { x: n.layout?.board2d?.x ?? n.x, y: n.layout?.board2d?.y ?? n.y },
     data: {
       ...n,
       onOpenDeepDive: openDeepDive,
@@ -175,6 +196,15 @@ function convertMapToFlow(
     source: r.from,
     target: r.to,
     type: "smoothstep",
+    label: r.label,
+    data: {
+      semanticType: r.semanticType,
+      semanticKey: r.semanticKey,
+      origin: r.origin,
+      sourceFactIds: r.sourceFactIds,
+      sourceMessageIds: r.sourceMessageIds,
+      manuallyEditedFields: r.manuallyEditedFields,
+    },
     animated: true,
     style: {
       stroke: "#3b82f6",
@@ -195,6 +225,13 @@ export function resolveInitialLandingMode(map?: ConceptMap | null): CanvasMode {
   return map?.nodes && map.nodes.length > 0 ? "notion" : "discovery";
 }
 
+function stableSpatialDepth(node: ConceptNode): number {
+  const key = node.semanticKey ?? node.id;
+  let hash = 2166136261;
+  for (let index = 0; index < key.length; index += 1) hash = Math.imul(hash ^ key.charCodeAt(index), 16777619);
+  return ((hash >>> 0) % 4000) / 100 - 20;
+}
+
 /**
  * Projects 2D ConceptNode entities into 3D SpatialNode representations.
  * Preserves existing physics simulation coordinates (x, y, z) if available.
@@ -212,6 +249,8 @@ export function projectSpatialNodes(
 
   return nodes.map((node) => {
     const existingCoords = coordMap.get(node.id);
+    const boardLayout = node.layout?.board2d;
+    const spatialLayout = node.layout?.neural3d;
     const category = node.category || "technical";
     const group = (node.group || category) as SpatialGroupId;
     const title = node.title || node.name || "Sin título";
@@ -242,11 +281,22 @@ export function projectSpatialNodes(
       phase: node.phase,
       status: node.status,
       metadata: node.metadata,
-      x: existingCoords?.x ?? node.x,
-      y: existingCoords?.y ?? node.y,
-      z: existingCoords?.z ?? (node.z ?? (Math.random() * 40 - 20)),
+      x: spatialLayout?.x ?? boardLayout?.x ?? existingCoords?.x ?? node.x,
+      y: spatialLayout?.y ?? boardLayout?.y ?? existingCoords?.y ?? node.y,
+      z: spatialLayout?.z ?? existingCoords?.z ?? node.z ?? stableSpatialDepth(node),
       tags: node.tags,
       relevanceScore: score,
+      semanticKey: node.semanticKey,
+      origin: node.origin,
+      verification: node.verification,
+      semanticKind: node.semanticKind,
+      semanticState: node.semanticState,
+      provenanceOrigin: node.provenanceOrigin,
+      sourceFactIds: node.sourceFactIds,
+      sourceMessageIds: node.sourceMessageIds,
+      definitionVersion: node.definitionVersion,
+      manuallyEditedFields: node.manuallyEditedFields,
+      layout: node.layout,
     };
   });
 }
@@ -267,6 +317,13 @@ export function projectSpatialLinks(relations: ConceptRelation[] = []): SpatialL
       value: Math.max(1, Math.min(5, Math.round(rel.value ?? 2))),
       label: rel.label,
       type: rel.type,
+      semanticType: rel.semanticType,
+      semanticKey: rel.semanticKey,
+      origin: rel.origin,
+      definitionVersion: rel.definitionVersion,
+      sourceFactIds: rel.sourceFactIds,
+      sourceMessageIds: rel.sourceMessageIds,
+      manuallyEditedFields: rel.manuallyEditedFields,
     };
   });
 }
@@ -431,7 +488,23 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       });
       return;
     }
-    workspace = { ...workspace, discovery: workspace.discovery ?? initialDiscovery(Boolean(workspace.map?.nodes && workspace.map.nodes.length > 0)) };
+    const migratedNodes = (workspace.map?.nodes ?? []).map((node) => ({
+      ...node,
+      layout: {
+        ...node.layout,
+        board2d: node.layout?.board2d ?? { x: node.x, y: node.y },
+        neural3d: {
+          x: node.layout?.neural3d?.x ?? node.x,
+          y: node.layout?.neural3d?.y ?? node.y,
+          z: node.layout?.neural3d?.z ?? node.z ?? stableSpatialDepth(node),
+        },
+      },
+    }));
+    workspace = {
+      ...workspace,
+      map: { ...workspace.map, nodes: migratedNodes },
+      discovery: workspace.discovery ?? initialDiscovery(Boolean(workspace.map?.nodes && workspace.map.nodes.length > 0)),
+    };
     const prevProjectId = get().workspace?.project?.id;
     const isNewProject = prevProjectId !== workspace.project?.id;
     const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
@@ -483,6 +556,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
                   allowCustom: dq.allowCustom,
                 })),
                 ui: asst.ui,
+                memoryPatches: asst.memoryPatches,
               };
             }
             return {
@@ -491,6 +565,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               content: asst.text,
               type: "text" as const,
               ui: asst.ui,
+              memoryPatches: asst.memoryPatches,
             };
           })
         : INITIAL_DISCOVERY_MESSAGES;
@@ -650,10 +725,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       if (change.type === "position" && change.position) {
         const idx = currentNodes.findIndex((n) => n.id === change.id);
         if (idx !== -1) {
+          const x = Math.round(change.position.x);
+          const y = Math.round(change.position.y);
           currentNodes[idx] = {
             ...currentNodes[idx],
-            x: Math.round(change.position.x),
-            y: Math.round(change.position.y),
+            x,
+            y,
+            layout: { ...currentNodes[idx].layout, board2d: { x, y } },
           };
           moved = true;
         }
@@ -662,7 +740,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     if (moved) {
       const nextMap = { ...workspace.map, nodes: currentNodes };
-      set({ workspace: { ...workspace, map: nextMap } });
+      const spatialNodes = projectSpatialNodes(currentNodes, get().spatialNodes);
+      set({ workspace: { ...workspace, map: nextMap }, spatialNodes });
       persistSession(workspace.project.id, nextMap, workspace.messages);
     }
   },
@@ -675,33 +754,47 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const removed = workspace.map.relations.filter((relation) => removedIds.has(relation.id));
     if (removed.length === 0) return;
     const nextMap = { ...workspace.map, relations: workspace.map.relations.filter((relation) => !removedIds.has(relation.id)) };
-    const discovery = workspace.discovery ? { ...workspace.discovery, tombstones: [...new Set([...workspace.discovery.tombstones, ...removed.map((relation) => relation.semanticKey ?? relation.id)])] } : undefined;
+    const discovery = workspace.discovery ? {
+      ...workspace.discovery,
+      tombstones: [...new Set([...workspace.discovery.tombstones, ...removed.flatMap((relation) => [relation.id, relationKey(relation, workspace.map.nodes)])])],
+    } : undefined;
     set({ workspace: { ...workspace, map: nextMap, discovery }, spatialLinks: projectSpatialLinks(nextMap.relations), links: projectSpatialLinks(nextMap.relations) });
     persistSession(workspace.project.id, nextMap, workspace.messages);
   },
 
   onConnect: (connection: Connection) => {
-    if (!connection.source || !connection.target) return;
+    if (!connection.source || !connection.target || connection.source === connection.target) return;
+    const { workspace } = get();
+    if (!workspace) return;
+    const sourceNode = workspace.map.nodes.find((node) => node.id === connection.source);
+    const targetNode = workspace.map.nodes.find((node) => node.id === connection.target);
+    if (!sourceNode || !targetNode) return;
+    const semanticKey = `${sourceNode.semanticKey ?? connection.source}->${targetNode.semanticKey ?? connection.target}:related_to`;
     const newEdge: Edge = {
-      id: `r-${Date.now()}`,
+      id: stableId("rel", semanticKey),
       source: connection.source,
       target: connection.target,
       type: "smoothstep",
+      data: { semanticType: "related_to", semanticKey, origin: "user" },
       animated: true,
       style: { stroke: "#3b82f6", strokeWidth: 2 },
     };
-    set({ edges: addEdge(newEdge, get().edges) });
-
-    const { workspace } = get();
-    if (workspace) {
-      const nextRelations = [
-        ...workspace.map.relations,
-        { id: newEdge.id, from: connection.source, to: connection.target, origin: "user" as const },
-      ];
-      const nextMap = { ...workspace.map, relations: nextRelations };
-      set({ workspace: { ...workspace, map: nextMap } });
-      persistSession(workspace.project.id, nextMap, workspace.messages);
+    if (workspace.map.relations.some((relation) => relationKey(relation, workspace.map.nodes) === semanticKey)) {
+      const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
+      const spatialLinks = projectSpatialLinks(workspace.map.relations);
+      set({ nodes, edges, spatialLinks, links: spatialLinks });
+      return;
     }
+
+    const nextRelations = [
+      ...workspace.map.relations,
+      { id: newEdge.id, from: connection.source, to: connection.target, type: "related_to", semanticType: "related_to" as const, semanticKey, origin: "user" as const },
+    ];
+    const nextMap = { ...workspace.map, relations: nextRelations };
+    const { nodes, edges } = convertMapToFlow(nextMap, (id) => get().openDeepDive(id));
+    const spatialLinks = projectSpatialLinks(nextRelations);
+    set({ workspace: { ...workspace, map: nextMap }, nodes, edges, spatialLinks, links: spatialLinks });
+    persistSession(workspace.project.id, nextMap, workspace.messages);
   },
 
   syncFlowElements: () => {
@@ -807,10 +900,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!workspace) return;
 
     const nextNodes = workspace.map.nodes.map((node) =>
-      node.id === nodeId ? { ...node, x, y } : node
+      node.id === nodeId ? { ...node, x, y, layout: { ...node.layout, board2d: { x, y } } } : node
     );
     const nextMap = { ...workspace.map, nodes: nextNodes };
-    set({ workspace: { ...workspace, map: nextMap } });
+    const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
+    set({ workspace: { ...workspace, map: nextMap }, spatialNodes });
     persistSession(workspace.project.id, nextMap, workspace.messages);
   },
 
@@ -893,6 +987,24 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     // Check if node already exists by normalized & token-similarity deduplication
     const existing = findDuplicateConcept(nodeDraft.title, workspace.map.nodes);
     if (existing) {
+      if (nodeDraft.sourceFactIds?.length || nodeDraft.sourceMessageIds?.length) {
+        const nextNodes = workspace.map.nodes.map((node) => node.id === existing.id ? {
+          ...node,
+          semanticKey: node.semanticKey ?? nodeDraft.semanticKey,
+          sourceFactIds: [...new Set([...(node.sourceFactIds ?? []), ...(nodeDraft.sourceFactIds ?? [])])],
+          sourceMessageIds: [...new Set([...(node.sourceMessageIds ?? []), ...(nodeDraft.sourceMessageIds ?? [])])],
+          semanticKind: node.semanticKind ?? nodeDraft.semanticKind,
+          semanticState: node.semanticState ?? nodeDraft.semanticState,
+          provenanceOrigin: node.provenanceOrigin ?? nodeDraft.provenanceOrigin,
+        } : node);
+        const nextMap = { ...workspace.map, nodes: nextNodes };
+        const nextWorkspace = { ...workspace, map: nextMap };
+        const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
+        const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
+        set({ workspace: nextWorkspace, nodes, edges, spatialNodes, selectedNodeId: existing.id });
+        persistSession(workspace.project.id, nextMap, workspace.messages);
+        return nextNodes.find((node) => node.id === existing.id) ?? existing;
+      }
       set({ selectedNodeId: existing.id });
       return existing;
     }
@@ -903,7 +1015,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       ? Math.round(workspace.map.nodes.reduce((acc, n) => acc + n.y, 0) / workspace.map.nodes.length)
       : 200;
 
-    const id = "n-ai-" + Math.random().toString(36).substring(2, 8);
+    const id = nodeDraft.semanticKey ? stableId("memory", nodeDraft.semanticKey) : "n-ai-" + Math.random().toString(36).substring(2, 8);
     const category =
       nodeDraft.category ??
       (nodeDraft.kind === "viability" ? "economic" : nodeDraft.kind === "risk" ? "legal" : "technical");
@@ -915,6 +1027,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id,
       origin: "approved",
       verification: "confirmed",
+      semanticKey: nodeDraft.semanticKey,
+      semanticKind: nodeDraft.semanticKind,
+      semanticState: nodeDraft.semanticState,
+      provenanceOrigin: nodeDraft.provenanceOrigin,
+      sourceFactIds: nodeDraft.sourceFactIds,
+      sourceMessageIds: nodeDraft.sourceMessageIds,
       kind: nodeDraft.kind,
       category,
       priority,
@@ -929,6 +1047,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       details: nodeDraft.details || `### Resumen Ejecutivo\n${nodeDraft.description}\n\n### Análisis de Viabilidad e Impacto\nRelevancia: ${score}/10\n\n### Plan de Acción y Próximos Pasos\n1. Validar propuesta.`,
       x: maxX + 320,
       y: avgY + (Math.random() > 0.5 ? 40 : -40),
+      layout: { board2d: { x: maxX + 320, y: avgY } },
       val: Math.max(4, Math.min(25, Math.round(score * 2.2))),
       importance: Math.max(0.1, Math.min(1.0, score / 10)),
     };
@@ -940,13 +1059,19 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (workspace.map.nodes.length > 0) {
       const rootNode = workspace.map.nodes[0];
       relations.push({
-        id: `rel-${rootNode.id}->${newNode.id}`,
+        id: stableId("rel", `${rootNode.semanticKey ?? rootNode.id}->${newNode.semanticKey ?? newNode.id}:related_to`),
         from: rootNode.id,
         to: newNode.id,
         source: rootNode.id,
         target: newNode.id,
         value: 2,
         label: "Ramificación",
+        type: "related_to",
+        semanticType: "related_to",
+        semanticKey: `${rootNode.semanticKey ?? rootNode.id}->${newNode.semanticKey ?? newNode.id}:related_to`,
+        origin: "approved",
+        sourceFactIds: [...new Set([...(rootNode.sourceFactIds ?? []), ...(newNode.sourceFactIds ?? [])])],
+        sourceMessageIds: [...new Set([...(rootNode.sourceMessageIds ?? []), ...(newNode.sourceMessageIds ?? [])])],
       });
     }
 

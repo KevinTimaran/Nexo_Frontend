@@ -17,7 +17,8 @@ import {
 import { services } from "../../services";
 import { detectMessageLanguage, isPlaceholderResponse, sanitizeAssistantText } from "../../services/ai/prompts";
 import { filterRepeatedQuestions, nextDiscoveryQuestion, questionKey, recordUserInput, syncIdeaFacts } from "../../services/ai/discovery";
-import { buildGroundedGraph, reconcileGraph } from "../../services/ai/reconcileGraph";
+import { hydrateWorkspaceMemory, transitionMemoryFact, type MemoryAction } from "../../services/ai/semanticMemory";
+import { applyGraphOperations, buildGroundedGraph, reconcileGraph } from "../../services/ai/reconcileGraph";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
@@ -39,6 +40,7 @@ import type {
   Message,
   ChatPhase,
   ProjectIcon,
+  UserMessage,
 } from "../../domain/types";
 
 const PROJECT_HEADER_ICONS: Record<ProjectIcon, React.ReactNode> = {
@@ -105,7 +107,7 @@ export const WorkspaceView: React.FC = () => {
     services.workspace
       .load(projectId, lang)
       .then((data) => {
-        setWorkspace(data);
+        setWorkspace(data ? hydrateWorkspaceMemory(data) : null);
       })
       .catch(() => {
         showToast(t("workspace.notFound.title"), "error");
@@ -127,6 +129,7 @@ export const WorkspaceView: React.FC = () => {
 
     let activePhase = overridePhase || ((activeWorkspace.discovery?.lifecycle === "generated" || activeWorkspace.map.nodes.length > 0) ? "PHASE_3_EXPANSION" : current.chatPhase);
     const prior = retryMessageId && activeWorkspace.messages.find((m) => m.role === "user" && m.id === retryMessageId);
+    let requestDefinitionVersion = activeWorkspace.discovery?.candidateDefinitionVersion;
     const userMessage: Message = prior && prior.role === "user" ? prior : {
       id: crypto.randomUUID(),
       eventId: crypto.randomUUID(),
@@ -142,6 +145,7 @@ export const WorkspaceView: React.FC = () => {
     if (!prior) {
       const updatedMessages = [...history, userMessage];
       const nextDiscovery = recordUserInput(activeWorkspace.discovery!, userMessage);
+      requestDefinitionVersion = nextDiscovery.candidateDefinitionVersion;
       if (nextDiscovery.lifecycle === "discovering") activePhase = "PHASE_1_DISCOVERY";
       current.setWorkspace({ ...activeWorkspace, messages: updatedMessages, discovery: nextDiscovery });
       saveSession(activeWorkspace.map, updatedMessages);
@@ -198,12 +202,18 @@ export const WorkspaceView: React.FC = () => {
       const discoveryWithQuestions = latest.discovery && askedKeys.length
         ? { ...latest.discovery, askedQuestionKeys: [...new Set([...latest.discovery.askedQuestionKeys, ...askedKeys])] }
         : latest.discovery;
-      const discovery = discoveryWithQuestions ? syncIdeaFacts(discoveryWithQuestions, response.message.ui, response.message.id) : undefined;
+      const discovery = discoveryWithQuestions ? syncIdeaFacts(discoveryWithQuestions, response.message.ui, response.message.id, response.message.memoryPatches, userMessage.id) : undefined;
       const requestedGraphChange = activePhase === "PHASE_2_STRUCTURING" || (activePhase === "PHASE_3_EXPANSION" && /^explorar punto de vista/i.test(text)) || /\b(agrega|añade|anade|incorpora|crea|mapear|add)\b.{0,40}\b(nodo|concepto|tablero|mapa|node)\b/i.test(text);
       const proposedNodes = requestedGraphChange ? response.newNodes || [] : [];
-      const nextNodes = [...latest.map.nodes, ...proposedNodes.filter((n) => !latest.map.nodes.some((existing) => existing.id === n.id)).map((n) => ({ ...n, origin: "ai_expansion" as const, verification: "unconfirmed" as const }))];
-      const nextRelations = [...latest.map.relations, ...(requestedGraphChange ? response.newRelations || [] : []).filter((r) => !latest.map.relations.some((existing) => existing.id === r.id) && nextNodes.some((node) => node.id === r.from) && nextNodes.some((node) => node.id === r.to)).map((r) => ({ ...r, origin: "ai_expansion" as const }))];
-      const nextMap: ConceptMap = { nodes: nextNodes, relations: nextRelations };
+      const nextMap: ConceptMap = applyGraphOperations(
+        latest.map,
+        proposedNodes,
+        requestedGraphChange ? response.newRelations || [] : [],
+        latest.discovery,
+        requestDefinitionVersion,
+        latest.discovery?.candidateDefinitionVersion,
+        [userMessage.id, response.message.id],
+      );
       const nextMessages = [...latest.messages.filter((m) => !(m.role === "assistant" && m.replyTo === userMessage.id)), { ...response.message, replyTo: userMessage.id, requestId: userMessage.id }];
       useWorkspaceStore.getState().setWorkspace({
         ...latest,
@@ -213,8 +223,9 @@ export const WorkspaceView: React.FC = () => {
       });
       saveSession(nextMap, nextMessages);
 
-      if (proposedNodes.length > 0) {
-        showToast(`Se mapearon ${proposedNodes.length} nuevos conceptos.`, "success");
+      const addedNodeCount = nextMap.nodes.length - latest.map.nodes.length;
+      if (addedNodeCount > 0) {
+        showToast(`Se mapearon ${addedNodeCount} nuevos conceptos como propuestas.`, "success");
         setArchitectureUnlocked(true);
         if (activePhase === "PHASE_2_STRUCTURING" || activePhase === "PHASE_1_DISCOVERY") {
           setChatPhase("PHASE_3_EXPANSION");
@@ -305,7 +316,73 @@ export const WorkspaceView: React.FC = () => {
     void services.workspace.save(activeWorkspace.project.id, activeWorkspace.map, nextMessages, nextWorkspace.discovery).catch(console.error);
   };
 
-  const handleAddIdeaToBoard = (_messageId: string, idea: ActionableIdea) => {
+  const handleMemoryAction = (memoryKey: string, action: MemoryAction, value?: string) => {
+    const state = useWorkspaceStore.getState();
+    const current = state.workspace;
+    const discovery = current?.discovery;
+    const fact = discovery?.facts.find((item) => item.key === memoryKey);
+    if (!current || !discovery || !fact || action === "explore") return;
+
+    let event;
+    let sourceMessage: UserMessage | undefined;
+    if (action === "accept" && fact.kind === "suggestion") {
+      event = { type: "accept_suggestion" as const, eventId: `${memoryKey}:accept` };
+    } else if (action === "accept" && fact.kind === "hypothesis") {
+      event = { type: "confirm_hypothesis" as const, eventId: `${memoryKey}:confirm` };
+    } else if (action === "accept" && fact.kind === "decision_candidate") {
+      event = { type: "accept_decision_candidate" as const, eventId: `${memoryKey}:accept` };
+    } else if (action === "reject" && fact.kind === "suggestion") {
+      event = { type: "reject_suggestion" as const, eventId: `${memoryKey}:reject` };
+    } else if (action === "reject" && fact.kind === "hypothesis") {
+      event = { type: "reject_hypothesis" as const, eventId: `${memoryKey}:reject` };
+    } else if (action === "reject" && fact.kind === "decision_candidate") {
+      event = { type: "reject_decision_candidate" as const, eventId: `${memoryKey}:reject` };
+    } else if (action === "modify" && fact.kind === "suggestion" && value?.trim()) {
+      event = { type: "modify_suggestion" as const, eventId: `${memoryKey}:modify:${value.trim()}`, value: value.trim() };
+    } else if (action === "resolve" && fact.kind === "unknown" && value?.trim()) {
+      const messageId = crypto.randomUUID();
+      sourceMessage = { id: messageId, role: "user", text: value.trim(), createdAt: new Date().toISOString() };
+      event = { type: "resolve_unknown" as const, eventId: `${memoryKey}:resolve:${messageId}`, value: value.trim(), messageId };
+    } else {
+      return;
+    }
+
+    try {
+      const nextFact = transitionMemoryFact(fact, event);
+      if (nextFact === fact) return;
+      const messages = sourceMessage ? [...current.messages, sourceMessage] : current.messages;
+      const nextDiscovery = { ...discovery, facts: discovery.facts.map((item) => item.key === memoryKey ? nextFact : item) };
+      const nextWorkspace = { ...current, messages, discovery: nextDiscovery };
+      state.setWorkspace(nextWorkspace);
+      void services.workspace.save(current.project.id, current.map, messages, nextDiscovery).catch((error) => {
+        console.error("Could not save semantic memory action", error);
+      });
+    } catch (error) {
+      console.error("Rejected invalid semantic memory action", error);
+    }
+  };
+
+  const handleAddIdeaToBoard = (messageId: string, idea: ActionableIdea) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    const memoryKey = `suggestion:${messageId}:${idea.id}`;
+    const existingFact = latest?.discovery?.facts.find((fact) => fact.key === memoryKey);
+    if (existingFact?.memoryState === "rejected") return;
+
+    const sourceMessage = latest?.messages.find((message) => message.id === messageId && message.role === "assistant");
+    const sourceUi = sourceMessage?.role === "assistant" && sourceMessage.ui?.type === "idea_cards"
+      ? sourceMessage.ui
+      : { type: "idea_cards" as const, title: "Sugerencias", items: [idea] };
+    const nextDiscovery = latest?.discovery
+      ? syncIdeaFacts(latest.discovery, {
+          ...sourceUi,
+          items: sourceUi.items.map((item) => item.id === idea.id ? { ...item, ...idea, status: "approved" as const } : item),
+        }, messageId)
+      : undefined;
+    const acceptedFact = nextDiscovery?.facts.find((fact) => fact.key === memoryKey);
+    if (latest && nextDiscovery && nextDiscovery !== latest.discovery) {
+      useWorkspaceStore.getState().setWorkspace({ ...latest, discovery: nextDiscovery });
+    }
+
     const details = [
       "### Resumen Ejecutivo",
       idea.description,
@@ -330,6 +407,12 @@ export const WorkspaceView: React.FC = () => {
       metadata: "Creado desde una tarjeta accionable del chat",
       details,
       relevanceScore: idea.priority === "high" ? 9 : idea.priority === "low" ? 4 : 7,
+      semanticKey: acceptedFact?.semanticKey ?? acceptedFact?.key,
+      semanticKind: acceptedFact?.kind,
+      semanticState: acceptedFact?.memoryState,
+      provenanceOrigin: acceptedFact?.origin,
+      sourceFactIds: acceptedFact ? [acceptedFact.key] : undefined,
+      sourceMessageIds: acceptedFact?.sourceMessageIds ?? (sourceMessage ? [messageId] : undefined),
     });
 
     if (node) {
@@ -549,6 +632,8 @@ export const WorkspaceView: React.FC = () => {
               }}
               onGenerativeUIChange={handleGenerativeUIChange}
               onAddIdeaToBoard={handleAddIdeaToBoard}
+              memoryFacts={workspace.discovery?.facts}
+              onMemoryAction={handleMemoryAction}
             />
           ) : (
             <ConceptCanvas

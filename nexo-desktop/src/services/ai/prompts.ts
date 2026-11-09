@@ -152,8 +152,11 @@ Tu objetivo es entender la idea del usuario con lenguaje cotidiano. Responde con
   "action": "chat" | "questionnaire" | "ready",
   "message": "Texto que le dirás al usuario",
   "questions": [array de preguntas solo si action es questionnaire],
-  "ui": {componente interactivo opcional}
+  "ui": {componente interactivo opcional},
+  "memoryPatches": [{"id":"estable-en-este-turno","kind":"fact|hypothesis|unknown|suggestion|decision_candidate","key":"clave-semantica","value":"contenido propuesto"}]
 }
+
+memoryPatches son solo propuestas: nunca declares que fueron aceptadas ni marques una sugerencia como hecho confirmado. Usa kind "fact" únicamente para una afirmación candidata que el usuario todavía debe validar; la aplicación la guardará como hipótesis. No incluyas hechos ya confirmados como parches nuevos. Omite memoryPatches si no hay un elemento importante que estructurar.
 
 REGLAS DE DECISIÓN:
 0. Si el usuario pide planificación temporal, comparación de alternativas o ideas accionables, usa action: "chat" y genera el campo ui adecuado. No lo obligues a completar el componente y no envíes un cuestionario adicional en ese turno.
@@ -404,8 +407,11 @@ Ayuda al usuario a definir cualquier tipo de proyecto con lenguaje cotidiano. Re
   "action": "chat" | "questionnaire" | "ready",
   "message": "Texto que le dirás al usuario",
   "questions": [array de preguntas solo si action es questionnaire],
-  "ui": {componente interactivo opcional}
+  "ui": {componente interactivo opcional},
+  "memoryPatches": [{"id":"stable-this-turn","kind":"fact|hypothesis|unknown|suggestion|decision_candidate","key":"semantic-key","value":"proposed content"}]
 }
+
+memoryPatches are proposals only: never claim they were accepted or mark a suggestion as confirmed fact. Use kind "fact" only for a candidate claim the user has not validated; the application will store it as a hypothesis. Do not repeat already-confirmed facts as new patches. Omit memoryPatches when there is no important item to structure.
 
 REGLAS DE DECISIÓN:
 0. Si pide una línea de tiempo, comparación o ideas accionables, responde con action: "chat" y el campo ui correspondiente. Nunca obligues a completar el componente.

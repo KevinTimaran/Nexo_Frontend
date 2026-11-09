@@ -21,7 +21,8 @@ import {
   Network,
   Trophy,
 } from "lucide-react";
-import type { ActionableIdea, GenerativeUIBlock } from "../../domain/types";
+import type { ActionableIdea, GenerativeUIBlock, MemoryPatch, ProjectFact } from "../../domain/types";
+import { memoryPresentationForFact, type MemoryAction } from "../../services/ai/semanticMemory";
 
 export type QuestionnaireSelectionType = "single" | "multiple";
 export type StrategicDimension = "economic" | "social" | "technical" | "legal";
@@ -43,6 +44,7 @@ export interface ChatMessage {
   questions?: QuestionnaireQuestion[];
   dimensions?: StrategicDimension[];
   ui?: GenerativeUIBlock;
+  memoryPatches?: MemoryPatch[];
   questionnaireId?: string;
 }
 
@@ -61,6 +63,8 @@ export interface FullScreenDiscoveryChatProps {
   onRetry?: () => void;
   onGenerativeUIChange?: (messageId: string, ui: GenerativeUIBlock) => void;
   onAddIdeaToBoard?: (messageId: string, idea: ActionableIdea) => void;
+  memoryFacts?: ProjectFact[];
+  onMemoryAction?: (memoryKey: string, action: MemoryAction, value?: string) => void;
 }
 
 export const STRATEGIC_DIMENSIONS: Array<{
@@ -344,6 +348,8 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
   onRetry,
   onGenerativeUIChange,
   onAddIdeaToBoard,
+  memoryFacts = [],
+  onMemoryAction,
 }) => {
   const [internalMessages, setInternalMessages] = useState<ChatMessage[]>(initialMessages);
   const messages = controlledMessages ?? internalMessages;
@@ -355,6 +361,10 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
   const [customInputsOpen, setCustomInputsOpen] = useState<Record<string, boolean>>({});
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   const [imageError, setImageError] = useState<string | null>(null);
+  const [editingMemoryKey, setEditingMemoryKey] = useState<string | null>(null);
+  const [memoryDraft, setMemoryDraft] = useState("");
+  const [resolvingMemoryKey, setResolvingMemoryKey] = useState<string | null>(null);
+  const [resolutionDraft, setResolutionDraft] = useState("");
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -437,6 +447,54 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
       triggerImageRejection();
       return;
     }
+  };
+
+  const renderMemoryItem = (fact: ProjectFact) => {
+    const presentation = memoryPresentationForFact(fact);
+    const isEditing = editingMemoryKey === fact.key;
+    const isResolving = resolvingMemoryKey === fact.key;
+    const actionLabel: Record<Exclude<MemoryAction, "explore">, string> = {
+      accept: fact.kind === "hypothesis" ? "Confirmar" : fact.kind === "decision_candidate" ? "Registrar decisión" : "Aceptar",
+      reject: "Rechazar",
+      modify: "Modificar",
+      resolve: "Completar",
+    };
+
+    return (
+      <div key={fact.key} className="mt-2 rounded-xl border border-line bg-surface/70 p-3" data-memory-key={fact.key} data-memory-state={fact.memoryState}>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <span className="rounded-full border border-line px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted">{presentation.label}</span>
+          <p className="min-w-0 flex-1 basis-full text-[11px] leading-relaxed text-fg">{fact.value}</p>
+        </div>
+        {isEditing && (
+          <div className="mt-2 flex gap-2">
+            <input aria-label="Modificar propuesta" value={memoryDraft} maxLength={1000} onChange={(event) => setMemoryDraft(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-line bg-app px-2.5 py-1.5 text-xs text-fg outline-none focus:border-primary" />
+            <button type="button" disabled={!memoryDraft.trim()} onClick={() => { onMemoryAction?.(fact.key, "modify", memoryDraft); setEditingMemoryKey(null); }} className="rounded-lg bg-primary px-2.5 py-1.5 text-[10px] font-bold text-[var(--on-primary)] disabled:opacity-40">Guardar cambio</button>
+          </div>
+        )}
+        {isResolving && (
+          <div className="mt-2 flex gap-2">
+            <input aria-label="Dato que quieres confirmar" value={resolutionDraft} maxLength={1000} onChange={(event) => setResolutionDraft(event.target.value)} placeholder="Escribe el dato que conoces" className="min-w-0 flex-1 rounded-lg border border-line bg-app px-2.5 py-1.5 text-xs text-fg outline-none focus:border-primary" />
+            <button type="button" disabled={!resolutionDraft.trim()} onClick={() => { onMemoryAction?.(fact.key, "resolve", resolutionDraft); setResolvingMemoryKey(null); setResolutionDraft(""); }} className="rounded-lg bg-primary px-2.5 py-1.5 text-[10px] font-bold text-[var(--on-primary)] disabled:opacity-40">Guardar dato</button>
+          </div>
+        )}
+        {presentation.actions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {presentation.actions.map((action) => action === "explore" ? (
+              <button key={action} type="button" onClick={() => setInputValue((current) => current.trim() || `Quiero explorar: ${fact.value}`)} className="rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-semibold text-fg hover:bg-[var(--hover)]">Explorar</button>
+            ) : action === "modify" ? (
+              <button key={action} type="button" onClick={() => { setEditingMemoryKey(fact.key); setMemoryDraft(fact.value); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-semibold text-fg hover:bg-[var(--hover)]"><Pencil className="h-3 w-3" />{actionLabel[action]}</button>
+            ) : action === "resolve" ? (
+              <button key={action} type="button" onClick={() => { setResolvingMemoryKey(fact.key); setResolutionDraft(""); }} className="rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-semibold text-fg hover:bg-[var(--hover)]">{actionLabel[action]}</button>
+            ) : (
+              <button key={action} type="button" onClick={() => onMemoryAction?.(fact.key, action)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold ${action === "accept" ? "bg-primary text-[var(--on-primary)]" : "border border-line text-muted hover:bg-[var(--hover)] hover:text-fg"}`}>
+                {action === "accept" ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}{actionLabel[action]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const isOptionSelected = (questionId: string, option: string): boolean => {
@@ -949,6 +1007,15 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
                     }`}
                   >
                     <p className="whitespace-pre-wrap text-fg">{msg.content}</p>
+                    {msg.memoryPatches && msg.memoryPatches.length > 0 && (
+                      <div className="mt-3 space-y-1.5" aria-label="Propuestas para la memoria del proyecto">
+                        {msg.memoryPatches.map((patch) => {
+                          const fact = memoryFacts.find((item) => item.sourceMessageIds.includes(msg.id) && item.key.endsWith(`:${patch.id}`));
+                          return fact ? renderMemoryItem(fact) : <div key={patch.id} className="flex items-center gap-2 text-[10px] text-muted"><span className="rounded-full border border-line px-2 py-0.5 font-semibold">{patch.kind === "unknown" ? "Por definir" : patch.kind === "hypothesis" || patch.kind === "fact" ? "Hipótesis" : patch.kind === "decision_candidate" ? "Decisión propuesta" : "Sugerencia"}</span><span>Propuesta de Nexo · requiere validación</span></div>;
+                        })}
+                      </div>
+                    )}
+                    {isUser && memoryFacts.filter((fact) => fact.sourceMessageIds.includes(msg.id) && ((fact.kind === "unknown" && fact.memoryState === "unknown") || (fact.kind === "user_fact" && fact.memoryState === "confirmed" && Boolean(fact.decisionEventId)))).map(renderMemoryItem)}
                     {msg.ui && !isUser && (
                       <GenerativeChatBlock
                         block={msg.ui}

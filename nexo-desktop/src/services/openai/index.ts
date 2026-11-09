@@ -12,6 +12,7 @@ import type {
   ConceptNode,
   ConceptRelation,
   DiscoveryQuestion,
+  MemoryPatch,
   NodeCategory,
   AICardType,
   NodePriority,
@@ -20,6 +21,7 @@ import type {
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
 import { getSystemInstruction, buildUserPrompt, detectMessageLanguage, sanitizeAssistantText } from "../ai/prompts";
 import { normalizeGenerativeUIBlock } from "../ai/generativeUi";
+import { normalizeAiMemoryPatches } from "../ai/semanticMemory";
 import { normalizeCategory } from "../../domain/constants";
 
 export type { AICardType };
@@ -76,10 +78,9 @@ export const STORAGE_KEY_OPENAI_MODEL = "nexo.openai.model";
 export const STORAGE_KEY_OPENAI_ENABLED = "nexo.openai.enabled";
 export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 
-// Vite environment keys are available to local development only. Production keys
-// must be supplied by the user until provider calls move behind a protected backend.
-export const DEFAULT_OPENAI_API_KEY =
-  (typeof import.meta !== "undefined" && import.meta.env?.DEV && import.meta.env.VITE_OPENAI_API_KEY) || "";
+// Never reference a VITE_* key statically here: Vite embeds such values in bundles.
+// Users configure their own key in Settings; headless tests may use process env.
+export const DEFAULT_OPENAI_API_KEY = "";
 
 let inMemoryKey: string | null = null;
 let inMemoryModel: string | null = null;
@@ -91,7 +92,7 @@ const uid = (prefix: string) =>
  * Returns the configured OpenAI API key with strict precedence:
  * 1. Checks in-memory override (for testing and runtime config)
  * 2. Checks user override in localStorage ("nexo.openai.key")
- * 3. Checks VITE_OPENAI_API_KEY only in a development build or headless test runner
+ * 3. Checks a process environment key only in a headless test runner
  */
 export function getOpenAIApiKey(): string {
   if (inMemoryKey !== null) {
@@ -107,11 +108,9 @@ export function getOpenAIApiKey(): string {
     // Ignore storage issues
   }
 
-  const envMeta = typeof import.meta !== "undefined" && import.meta.env?.DEV
-    ? import.meta.env.VITE_OPENAI_API_KEY
-    : typeof window === "undefined" && typeof process !== "undefined"
-      ? process.env?.VITE_OPENAI_API_KEY
-      : "";
+  const envMeta = typeof window === "undefined" && typeof process !== "undefined"
+    ? process.env?.["VITE_OPENAI_API_KEY"]
+    : "";
 
   if (envMeta && envMeta.trim().length > 0) return envMeta.trim();
 
@@ -359,6 +358,7 @@ function calculateNextPosition(existingNodes: ConceptNode[]): { x: number; y: nu
 interface OpenAIStructuredReply {
   action?: "chat" | "questionnaire" | "ready";
   message?: string;
+  memoryPatches?: MemoryPatch[];
   questions?: Array<{
     id?: string;
     question: string;
@@ -652,6 +652,7 @@ export const openaiAiService: AIService = {
           chatPhase: activePhase,
           action: action,
           ui: generativeUI,
+          memoryPatches: normalizeAiMemoryPatches(parsed.memoryPatches),
           readyForStructuring: isReadyStructuring,
           dimensions: (parsed as any).dimensions || (isReadyAction ? ["economic", "social", "technical", "legal"] : undefined),
           discoveryQuestions: mappedQuestions,

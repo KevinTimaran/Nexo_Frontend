@@ -219,9 +219,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>(getAiProvider);
 
   // OpenAI state
-  const envOpenAIKey =
-    (import.meta as unknown as { env?: { VITE_OPENAI_API_KEY?: string } }).env
-      ?.VITE_OPENAI_API_KEY || "";
   const [openaiApiKey, setOpenaiApiKey] = useState(getOpenAIApiKey);
   const [openaiModel, setOpenaiModel] = useState(getOpenAIModel);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
@@ -229,8 +226,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [testingOpenAI, setTestingOpenAI] = useState(false);
   const [testOpenAIResult, setTestOpenAIResult] = useState<OpenAITestResult | null>(null);
   const [savedOpenAISuccess, setSavedOpenAISuccess] = useState(false);
-
-  const isOpenAIFromEnv = Boolean(envOpenAIKey && openaiApiKey === envOpenAIKey);
 
   const handleTestOpenAIConnection = async () => {
     setTestingOpenAI(true);
@@ -266,9 +261,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   /* ─── Gemini state ─── */
-  const envKey =
-    (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env
-      ?.VITE_GEMINI_API_KEY || "";
   const [apiKey, setApiKey] = useState(getGeminiApiKey);
   const [model, setModel] = useState(getGeminiModel);
   const [showKey, setShowKey] = useState(false);
@@ -276,8 +268,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<GeminiTestResult | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
-
-  const isFromEnv = Boolean(envKey && apiKey === envKey);
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -536,11 +526,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <Key className="w-3 h-3 text-muted dark:text-muted" />
                 Clave API (OpenAI)
               </label>
-              {isOpenAIFromEnv && (
-                <span className="text-[9px] font-medium text-positive dark:text-positive bg-positive/10 px-1.5 py-0.5 rounded-full border border-positive/20">
-                  .env.local
-                </span>
-              )}
             </div>
             <div className="relative">
               <input
@@ -683,11 +668,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <Key className="w-3 h-3 text-muted dark:text-muted" />
                 Clave API
               </label>
-              {isFromEnv && (
-                <span className="text-[9px] font-medium text-positive dark:text-positive bg-positive/10 px-1.5 py-0.5 rounded-full border border-positive/20">
-                  .env.local
-                </span>
-              )}
             </div>
             <div className="relative">
               <input

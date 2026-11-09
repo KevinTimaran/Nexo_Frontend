@@ -29,6 +29,17 @@ function loadTsxComponent<T = Record<string, unknown>>(filePath: string): T {
 
 console.log("=== PRUEBAS DE VERIFICACIÓN: FULL SCREEN DISCOVERY CHAT & ARQUITECTURA WORKSPACE ===");
 
+if (!Module._extensions[".ts"]) {
+  Module._extensions[".ts"] = (module, filename) => {
+    const source = fs.readFileSync(filename, "utf8");
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
+      fileName: filename,
+    });
+    module._compile(transpiled.outputText, filename);
+  };
+}
+
 const chatFilePath = path.resolve(
   process.cwd(),
   "src/features/workspace/FullScreenDiscoveryChat.tsx"
