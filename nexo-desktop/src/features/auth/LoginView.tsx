@@ -4,11 +4,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, Eye, EyeOff, Lock, Mail, User as UserIcon, ShieldCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, User as UserIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { NexoLogo } from "../../components/brand/NexoLogo";
 import {
   loginSchema,
   registerSchema,
@@ -143,14 +144,14 @@ export const LoginView: React.FC = () => {
               <div
                 className="
                   relative w-15 h-15 rounded-2xl
-                  bg-gradient-to-br from-blue-600 to-indigo-600
+                  bg-surface/80 dark:bg-surface-primary
                   flex items-center justify-center text-fg
-                  shadow-lg shadow-blue-500/25 ring-1 ring-line/40
+                  shadow-lg ring-1 ring-line/40
                   transition-transform duration-300 hover:scale-[1.03]
                   mb-3
                 "
               >
-                <Sparkles className="w-7 h-7 drop-shadow-sm" />
+                <NexoLogo size={36} />
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-x-2 top-1 h-6 rounded-full bg-surface/25 blur-md"
@@ -446,30 +447,6 @@ export const LoginView: React.FC = () => {
               )}
             </p>
 
-            {/* Adapter transparency note (Sub-tarjeta de cristal) */}
-            <div
-              className="
-                mt-6 p-3.5 rounded-2xl
-                bg-surface/40 dark:bg-surface/5
-                border border-line/50 dark:border-line/10
-                backdrop-blur-md
-                text-xs text-muted dark:text-muted
-                flex items-start gap-2.5 leading-normal shadow-xs
-              "
-            >
-              <ShieldCheck className="w-4 h-4 text-primary dark:text-primary shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-fg dark:text-fg">
-                  {t("auth.adapterTitle", { defaultValue: "Adaptador de Autenticación:" })}{" "}
-                </span>
-                <span>
-                  {t("auth.adapterDescription", {
-                    defaultValue:
-                      "Modo activo gestionado por el registro de servicios. En entorno local utiliza validación estricta y simulación determinista para desarrollo y pruebas de interfaz.",
-                  })}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </motion.div>

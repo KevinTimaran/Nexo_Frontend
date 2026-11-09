@@ -16,6 +16,14 @@ export interface User {
 export type ProjectStatus = "active" | "draft" | "archived";
 export type ProjectIcon = "lightbulb" | "leaf" | "scale" | "rocket" | "book" | "compass";
 
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt?: string;
+  color?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -25,14 +33,17 @@ export interface Project {
   /** ISO 8601 timestamp */
   updatedAt: string;
   nodeCount: number;
+  folderId?: string | null;
 }
 
 export interface NewProjectInput {
   name: string;
   description: string;
+  icon?: ProjectIcon;
+  folderId?: string | null;
 }
 
-export type CanvasMode = "notion" | "obsidian" | "spatial";
+export type CanvasMode = "notion" | "discovery" | "obsidian" | "spatial";
 
 /**
  * Domain-specific thematic category for research and concept analysis.
@@ -63,23 +74,42 @@ export interface ConceptNode {
   category?: NodeCategory;
   priority?: NodePriority;
   title: string;
+  /** 3D spatial label alias for title */
+  name?: string;
   description: string;
+  /** 3D spatial summary alias for description */
+  desc?: string;
   /** Short supporting fact, e.g. "3 sources" or "Score 72/100". */
   metadata: string;
   status: ConceptStatus;
   x: number;
   y: number;
+  z?: number;
   /** Research phase to organize and color-code the node */
   phase?: ResearchPhase;
-  /** Long-form markdown or structured text for deep-dive document view */
+  /** Long-form markdown or structured text for deep-dive document view (single source of truth) */
   details?: string;
   tags?: string[];
+  relevanceScore?: number;
+
+  // 3D Spatial Physical & Particle Attributes
+  group?: string;
+  val?: number;        // Relative orb radius (1..25)
+  importance?: number; // 0..1; >0.6 emits PointLight in 3D
 }
 
 export interface ConceptRelation {
   id: string;
   from: string;
   to: string;
+  /** 3D spatial alias for from */
+  source?: string;
+  /** 3D spatial alias for to */
+  target?: string;
+  /** Relationship strength (1..5, drives directional particle count in 3D) */
+  value?: number;
+  label?: string;
+  type?: string;
 }
 
 export interface ConceptMap {
@@ -111,10 +141,15 @@ export interface UserMessage extends BaseMessage {
 
 export type ChatPhase = "PHASE_1_DISCOVERY" | "PHASE_2_STRUCTURING" | "PHASE_3_EXPANSION";
 
+export type QuestionnaireSelectionType = "single" | "multiple";
+export type StrategicDimension = "economic" | "social" | "technical" | "legal";
+
 export interface DiscoveryQuestion {
   id: string;
   question: string;
   options: string[];
+  type?: QuestionnaireSelectionType;
+  allowCustom?: boolean;
 }
 
 export type AICardType = "idea" | "explanation" | "recommendation" | "warning";
@@ -138,8 +173,12 @@ export interface AssistantMessage extends BaseMessage {
   chatPhase?: ChatPhase;
   /** Socratic multiple-choice questions for Phase 1 Discovery */
   discoveryQuestions?: DiscoveryQuestion[];
+  /** Strategic dimensions suggested by AI */
+  dimensions?: StrategicDimension[];
   /** Whether the AI believes the idea core is solid enough to generate the base map */
   readyForStructuring?: boolean;
+  /** Strict router action returned by AI in discovery phase */
+  action?: "chat" | "questionnaire" | "ready" | "dimensions";
   /** Actionable node candidate that can be mapped directly to canvas */
   actionableNode?: {
     title: string;
@@ -154,6 +193,33 @@ export interface AssistantMessage extends BaseMessage {
 }
 
 export type Message = UserMessage | AssistantMessage;
+
+export interface QuestionnaireQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  type?: QuestionnaireSelectionType;
+  allowCustom?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "ai" | "assistant";
+  content: string;
+  type: "text" | "questionnaire" | "ready" | "dimensions";
+  options?: string[];
+  questions?: QuestionnaireQuestion[];
+  dimensions?: StrategicDimension[];
+}
+
+export const INITIAL_DISCOVERY_MESSAGES: ChatMessage[] = [
+  {
+    id: "1",
+    role: "assistant",
+    type: "text",
+    content: "¡Hola! Cuéntame, ¿qué tipo de proyecto o aplicación tienes en mente?",
+  },
+];
 
 export interface AIResponse {
   message: AssistantMessage;

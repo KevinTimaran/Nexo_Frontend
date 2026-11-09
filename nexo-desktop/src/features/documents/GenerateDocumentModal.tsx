@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, Sparkles } from "lucide-react";
+import { Copy, Check, Sparkles, FileDown, Loader2 } from "lucide-react";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../context/ToastContext";
 import type { ConceptMap, Project } from "../../domain/types";
+import { exportProjectToDocx } from "../spatial/exportToDocx";
 
 interface GenerateDocumentModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const concepts = map?.nodes ? map.nodes.filter((n) => n.kind === "concept") : [];
   const viability = map?.nodes ? map.nodes.filter((n) => n.kind === "viability") : [];
@@ -54,12 +56,35 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleExportDocx = async () => {
+    try {
+      setIsExporting(true);
+      const links = (map?.relations || []).map((r) => ({
+        source: String(r.source || r.from || ""),
+        target: String(r.target || r.to || ""),
+        label: r.label,
+        relationship: r.type,
+      }));
+      await exportProjectToDocx(
+        project,
+        map?.nodes || [],
+        links
+      );
+      showToast(t("common.docxExportSuccess", { defaultValue: "Documento Word (.docx) generado y descargado exitosamente" }), "success");
+    } catch (error) {
+      console.error("Error al exportar documento a Word:", error);
+      showToast(t("common.docxExportError", { defaultValue: "No se pudo generar el documento Word. Inténtalo de nuevo." }), "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={`${t("canvas.generate")} — ${project.name}`}
-      description="Executive report summary automatically generated from your concept map."
+      description="Informe ejecutivo generado automáticamente a partir del mapa de conceptos y la red neuronal."
       maxWidth="lg"
     >
       <div className="space-y-4">
@@ -69,24 +94,34 @@ ${risks.map((r) => `- ⚠️ **${r.title}**: ${r.description} [${r.metadata}]`).
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-3 border-t border-line/80 dark:border-line/10">
-          <span className="bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 px-2.5 py-1 rounded-full text-[11px] font-mono text-muted dark:text-muted flex items-center gap-1.5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-line/80 dark:border-line/10">
+          <span className="bg-surface/60 dark:bg-surface/10 border border-line/80 dark:border-line/10 px-2.5 py-1 rounded-full text-[11px] font-mono text-muted dark:text-muted flex items-center gap-1.5 shadow-xs w-fit">
             <Sparkles className="w-3.5 h-3.5 text-primary dark:text-primary" />
-            {map.nodes.length} {t("dashboard.concepts", { defaultValue: "conceptos incluidos" })}
+            {map?.nodes?.length || 0} {t("dashboard.concepts", { defaultValue: "conceptos incluidos" })}
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <Button type="button" variant="ghost" onClick={onClose}>
               {t("common.close")}
             </Button>
             <Button
               type="button"
-              variant="primary"
+              variant="secondary"
               onClick={handleCopy}
-              className="!rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-sm"
+              className="!rounded-xl"
               icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             >
-              {copied ? t("common.copied") : t("common.copy", { defaultValue: "Copiar Markdown" })}
+              {copied ? t("common.copied") : t("common.copy", { defaultValue: "Copiar MD" })}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleExportDocx}
+              disabled={isExporting}
+              className="!rounded-xl !bg-primary hover:!bg-primary !text-fg shadow-sm cursor-pointer"
+              icon={isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+            >
+              {isExporting ? t("common.exporting", { defaultValue: "Exportando..." }) : t("common.exportDocx", { defaultValue: "Exportar Word (.docx)" })}
             </Button>
           </div>
         </div>

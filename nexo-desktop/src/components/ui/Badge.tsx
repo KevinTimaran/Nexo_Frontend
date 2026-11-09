@@ -97,7 +97,7 @@ export const Badge: React.FC<BadgeProps> = ({
       },
     };
 
-    const config = categoryConfig[category];
+    const config = (category && categoryConfig[category]) ? categoryConfig[category] : categoryConfig.technical;
     return (
       <span
         className={`inline-flex items-center shrink-0 ${sizeStyles[size]} ${config.style} ${className}`}

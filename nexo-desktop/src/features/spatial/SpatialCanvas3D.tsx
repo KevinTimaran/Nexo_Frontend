@@ -4,12 +4,14 @@ import type { ForceGraphMethods, LinkObject, NodeObject } from "react-force-grap
 import * as THREE from "three";
 import SpriteText from "three-spritetext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { warmLuxuryDark, warmEditorialLight } from "../../theme/tokens";
 import {
   getSpatialGroup,
   type SpatialGroupId,
   type SpatialLink,
   type SpatialNode,
 } from "../../domain/spatial";
+import { playNodeSelectSound } from "../../services/audio/soundEffects";
 
 /* ───────────────────────────── Types ───────────────────────────── */
 
@@ -20,10 +22,23 @@ type FGMethods = ForceGraphMethods<FGNode, FGLink>;
 
 type Emphasis = "neutral" | "focus" | "dim";
 
-const getCssVariable = (name: string, fallback: string) =>
-  typeof window !== "undefined"
-    ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
-    : fallback;
+const resolveCssColor = (name: string, fallback: string): string => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    let val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (!val) return fallback;
+    while (val.startsWith("var(") && val.endsWith(")")) {
+      const inner = val.slice(4, -1).trim().split(",")[0].trim();
+      const resolved = getComputedStyle(document.documentElement).getPropertyValue(inner).trim();
+      if (!resolved || resolved === val) break;
+      val = resolved;
+    }
+    new THREE.Color(val);
+    return val;
+  } catch {
+    return fallback;
+  }
+};
 
 interface NodeVisual {
   wrapper: THREE.Group;
@@ -112,21 +127,38 @@ function createHaloTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-function applyEmphasis(visual: NodeVisual, emphasis: Emphasis, isSelected: boolean): void {
+function applyEmphasis(
+  visual: NodeVisual,
+  emphasis: Emphasis,
+  isSelected: boolean,
+  isDark: boolean = true
+): void {
   const dim = emphasis === "dim";
   const focus = emphasis === "focus";
+  const baseEmissive = isDark ? BASE.emissiveIntensity : 0.25;
+  const baseHaloOpacity = isDark ? BASE.haloOpacity : BASE.haloOpacity * 0.6;
 
   visual.targetOrbOpacity = dim ? DIM_OPACITY : BASE.orbOpacity;
-  visual.targetEmissive = dim ? 0.1 : focus ? 0.9 : BASE.emissiveIntensity;
+  visual.targetEmissive = dim ? 0.08 : focus ? (isDark ? 0.9 : 0.6) : baseEmissive;
   visual.targetCoreOpacity = dim ? DIM_OPACITY : BASE.coreOpacity;
-  visual.targetHaloOpacity = dim ? DIM_OPACITY * 0.4 : focus ? 0.8 : BASE.haloOpacity;
+  visual.targetHaloOpacity = dim ? DIM_OPACITY * 0.3 : focus ? (isDark ? 0.8 : 0.5) : baseHaloOpacity;
   visual.targetLabelOpacity = dim ? DIM_OPACITY : BASE.labelOpacity;
   visual.targetLightIntensity = dim ? 0 : visual.lightIntensity;
 
   visual.targetScale = (dim ? 0.85 : focus ? 1.15 : 1) * (isSelected ? 1.35 : 1);
 }
 
-function createEnvironment(rimColorHex = 0x6366f1): { root: THREE.Group; stars: THREE.Points; rimLight: THREE.DirectionalLight; dispose: () => void } {
+function createEnvironment(
+  rimColorHex = 0xe5c158,
+  isDark = true
+): {
+  root: THREE.Group;
+  stars: THREE.Points;
+  ambient: THREE.AmbientLight;
+  keyLight: THREE.DirectionalLight;
+  rimLight: THREE.DirectionalLight;
+  dispose: () => void;
+} {
   const root = new THREE.Group();
   root.name = "nexo-spatial-environment";
 
@@ -142,18 +174,18 @@ function createEnvironment(rimColorHex = 0x6366f1): { root: THREE.Group; stars: 
   const starGeometry = new THREE.BufferGeometry();
   starGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   const starMaterial = new THREE.PointsMaterial({
-    color: 0xffffff,
+    color: isDark ? 0xffffff : 0x9e2a2b,
     size: 1.6,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.8,
+    opacity: isDark ? 0.8 : 0.08,
     depthWrite: false,
   });
   const stars = new THREE.Points(starGeometry, starMaterial);
   root.add(stars);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+  const ambient = new THREE.AmbientLight(isDark ? 0xffffff : 0xfaf6f0, isDark ? 0.6 : 1.2);
+  const keyLight = new THREE.DirectionalLight(isDark ? 0xffffff : 0xfff8f0, isDark ? 1.4 : 1.0);
   keyLight.position.set(200, 300, 400);
   const rimLight = new THREE.DirectionalLight(rimColorHex, 1.8);
   rimLight.position.set(-300, -150, -400);
@@ -162,6 +194,8 @@ function createEnvironment(rimColorHex = 0x6366f1): { root: THREE.Group; stars: 
   return {
     root,
     stars,
+    ambient,
+    keyLight,
     rimLight,
     dispose: () => {
       starGeometry.dispose();
@@ -205,15 +239,42 @@ export const SpatialCanvas3D: React.FC = () => {
   const setSelectedNode = useWorkspaceStore((s) => s.setSelectedNode);
   const cameraFlightCount = useWorkspaceStore((s) => s.cameraFlightCount);
 
-  const appBgColor = getCssVariable("--app", "#080c15");
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    if (typeof document !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const updateTheme = () => {
+      setIsDarkTheme(document.documentElement.classList.contains("dark"));
+    };
+    updateTheme();
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const appBgColor = isDarkTheme
+    ? resolveCssColor("--bg-main", warmLuxuryDark.bgMain)
+    : resolveCssColor("--bg-main", warmEditorialLight.bgMain);
+  const fgColor = isDarkTheme
+    ? resolveCssColor("--text-primary", warmLuxuryDark.textPrimary)
+    : resolveCssColor("--text-primary", warmEditorialLight.textPrimary);
   const accentColorHex = useMemo(() => {
-    const raw = getCssVariable("--accent", "#e5b84b");
+    const fallback = isDarkTheme ? warmLuxuryDark.accentPrimary : warmEditorialLight.accentPrimary;
+    const raw = resolveCssColor("--accent-primary", fallback);
     try {
       return new THREE.Color(raw).getHex();
     } catch {
-      return 0xe5b84b;
+      return new THREE.Color(fallback).getHex();
     }
-  }, []);
+  }, [isDarkTheme]);
 
   const resolveGroupColor = useCallback(
     (groupId: string) => {
@@ -432,9 +493,9 @@ export const SpatialCanvas3D: React.FC = () => {
       const orb = new THREE.MeshPhysicalMaterial({
         color,
         emissive: color,
-        emissiveIntensity: BASE.emissiveIntensity,
+        emissiveIntensity: isDarkTheme ? BASE.emissiveIntensity : 0.25,
         transmission: 0.9,
-        roughness: 0.1,
+        roughness: isDarkTheme ? 0.1 : 0.25,
         metalness: 0,
         ior: 1.5,
         thickness: radius * 0.6,
@@ -455,16 +516,16 @@ export const SpatialCanvas3D: React.FC = () => {
         map: getHaloTexture(),
         color,
         transparent: true,
-        opacity: BASE.haloOpacity,
+        opacity: isDarkTheme ? BASE.haloOpacity : BASE.haloOpacity * 0.6,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: isDarkTheme ? THREE.AdditiveBlending : THREE.NormalBlending,
       });
       const haloSprite = new THREE.Sprite(halo);
       haloSprite.scale.setScalar(radius * 5);
       haloSprite.raycast = () => {};
       floatGroup.add(haloSprite);
 
-      const label = new SpriteText(node.name, 3.4, getCssVariable("--fg", "#f8fafc"));
+      const label = new SpriteText(node.name, 3.4, fgColor);
       label.fontFace = LABEL_FONT;
       label.fontWeight = "600";
       label.material.transparent = true;
@@ -498,19 +559,24 @@ export const SpatialCanvas3D: React.FC = () => {
         targetScale: 1,
         targetOrbOpacity: BASE.orbOpacity,
         targetCoreOpacity: BASE.coreOpacity,
-        targetHaloOpacity: BASE.haloOpacity,
+        targetHaloOpacity: isDarkTheme ? BASE.haloOpacity : BASE.haloOpacity * 0.6,
         targetLabelOpacity: BASE.labelOpacity,
-        targetEmissive: BASE.emissiveIntensity,
+        targetEmissive: isDarkTheme ? BASE.emissiveIntensity : 0.25,
         targetLightIntensity: lightIntensity,
       };
 
       const id = String(node.id);
       visualsRef.current.set(id, visual);
-      applyEmphasis(visual, emphasisFor(node.group, activeFilterRef.current), selectedIdRef.current === id);
+      applyEmphasis(
+        visual,
+        emphasisFor(node.group, activeFilterRef.current),
+        selectedIdRef.current === id,
+        isDarkTheme
+      );
 
       return wrapper;
     },
-    [getHaloTexture, resolveGroupColor]
+    [getHaloTexture, resolveGroupColor, fgColor, isDarkTheme]
   );
 
   useEffect(() => {
@@ -528,13 +594,37 @@ export const SpatialCanvas3D: React.FC = () => {
     fgRef.current?.refresh?.();
   }, [resolveGroupColor]);
 
+  // Synchronize SpriteText labels in real time upon node rename
+  useEffect(() => {
+    const activeIds = new Set(spatialNodes.map((n) => String(n.id)));
+    for (const [id] of visualsRef.current.entries()) {
+      if (!activeIds.has(id)) {
+        visualsRef.current.delete(id);
+      }
+    }
+
+    spatialNodes.forEach((node) => {
+      const visual = visualsRef.current.get(String(node.id));
+      if (visual && visual.label && visual.label.text !== node.name) {
+        visual.label.text = node.name;
+      }
+    });
+
+    fgRef.current?.refresh?.();
+  }, [spatialNodes]);
+
   useEffect(() => {
     activeFilterRef.current = activeFilter;
     selectedIdRef.current = selectedNodeId;
     visualsRef.current.forEach((visual, id) => {
-      applyEmphasis(visual, emphasisFor(visual.group, activeFilter), id === selectedNodeId);
+      applyEmphasis(
+        visual,
+        emphasisFor(visual.group, activeFilter),
+        id === selectedNodeId,
+        isDarkTheme
+      );
     });
-  }, [activeFilter, selectedNodeId]);
+  }, [activeFilter, selectedNodeId, isDarkTheme]);
 
   const linkEmphasis = useCallback(
     (link: FGLink): { emphasis: Emphasis; color: string } => {
@@ -542,23 +632,25 @@ export const SpatialCanvas3D: React.FC = () => {
       const tgtEnd = link.target;
       const source = (typeof srcEnd === "object" && srcEnd !== null ? srcEnd : nodeById.get(String(srcEnd))) as FGNode | undefined;
       const target = (typeof tgtEnd === "object" && tgtEnd !== null ? tgtEnd : nodeById.get(String(tgtEnd))) as FGNode | undefined;
-      const sourceColor = source ? resolveGroupColor(source.group) : getCssVariable("--fg", "#f8fafc");
+      const sourceColor = source ? resolveGroupColor(source.group) : fgColor;
       if (!activeFilter) return { emphasis: "neutral", color: sourceColor };
       const touchesFilter = source?.group === activeFilter || target?.group === activeFilter;
       return touchesFilter
         ? { emphasis: "focus", color: resolveGroupColor(activeFilter) }
         : { emphasis: "dim", color: sourceColor };
     },
-    [nodeById, activeFilter, resolveGroupColor]
+    [nodeById, activeFilter, resolveGroupColor, fgColor]
   );
 
   const linkColor = useCallback(
     (link: FGLink): string => {
       const { emphasis, color } = linkEmphasis(link);
-      if (emphasis === "dim") return "rgba(255,255,255,0.04)";
+      if (emphasis === "dim") {
+        return isDarkTheme ? "rgba(255,255,255,0.04)" : "rgba(45,21,18,0.06)";
+      }
       return hexToRgba(color, emphasis === "focus" ? 0.85 : 0.35);
     },
-    [linkEmphasis]
+    [linkEmphasis, isDarkTheme]
   );
 
   const linkWidth = useCallback(
@@ -630,6 +722,7 @@ export const SpatialCanvas3D: React.FC = () => {
 
   const handleNodeClick = useCallback(
     (node: FGNode) => {
+      playNodeSelectSound();
       const id = String(node.id);
       if (selectedIdRef.current === id) {
         flyToNode(node);
@@ -650,11 +743,13 @@ export const SpatialCanvas3D: React.FC = () => {
     flyToNode(node);
   }, [selectedNodeId, cameraFlightCount, flyToNode]);
 
-  const envRef = useRef<{ root: THREE.Group; stars: THREE.Points; rimLight: THREE.DirectionalLight; dispose: () => void } | null>(null);
+  const envRef = useRef<ReturnType<typeof createEnvironment> | null>(null);
 
   useEffect(() => {
     let disposed = false;
     let scene: THREE.Scene | null = null;
+    let frameAttempts = 0;
+    let rafId: number;
 
     const setupScene = () => {
       const fg = fgRef.current;
@@ -663,31 +758,29 @@ export const SpatialCanvas3D: React.FC = () => {
       if (!sc) return false;
       scene = sc;
       if (!envRef.current) {
-        envRef.current = createEnvironment(accentColorHex);
+        envRef.current = createEnvironment(accentColorHex, isDarkTheme);
         starsRef.current = envRef.current.stars;
         scene.add(envRef.current.root);
+        scene.background = new THREE.Color(appBgColor);
       }
       return true;
     };
 
-    if (!setupScene()) {
-      const raf = requestAnimationFrame(() => {
-        if (!disposed) setupScene();
-      });
-      return () => {
-        disposed = true;
-        cancelAnimationFrame(raf);
-        starsRef.current = null;
-        if (scene && envRef.current) {
-          scene.remove(envRef.current.root);
-          envRef.current.dispose();
-          envRef.current = null;
+    const attemptSetup = () => {
+      if (disposed) return;
+      if (!setupScene()) {
+        frameAttempts++;
+        if (frameAttempts < 60) {
+          rafId = requestAnimationFrame(attemptSetup);
         }
-      };
-    }
+      }
+    };
+
+    attemptSetup();
 
     return () => {
       disposed = true;
+      cancelAnimationFrame(rafId);
       starsRef.current = null;
       if (scene && envRef.current) {
         scene.remove(envRef.current.root);
@@ -697,12 +790,47 @@ export const SpatialCanvas3D: React.FC = () => {
     };
   }, []);
 
-  // Update rimLight color whenever accent changes
+  // Synchronize 3D WebGL scene background, lighting, and materials whenever theme changes
   useEffect(() => {
-    if (envRef.current?.rimLight) {
-      envRef.current.rimLight.color.setHex(accentColorHex);
+    const fg = fgRef.current;
+    if (!fg) return;
+    const scene = fg.scene?.();
+    if (scene) {
+      scene.background = new THREE.Color(appBgColor);
     }
-  }, [accentColorHex]);
+    if (!envRef.current && scene) {
+      envRef.current = createEnvironment(accentColorHex, isDarkTheme);
+      starsRef.current = envRef.current.stars;
+      scene.add(envRef.current.root);
+    }
+    if (envRef.current) {
+      envRef.current.rimLight.color.setHex(accentColorHex);
+      envRef.current.ambient.color.setHex(isDarkTheme ? 0xffffff : 0xfaf6f0);
+      envRef.current.ambient.intensity = isDarkTheme ? 0.6 : 1.2;
+      envRef.current.keyLight.color.setHex(isDarkTheme ? 0xffffff : 0xfff8f0);
+      envRef.current.keyLight.intensity = isDarkTheme ? 1.4 : 1.0;
+
+      if (envRef.current.stars.material instanceof THREE.PointsMaterial) {
+        envRef.current.stars.material.color.setHex(isDarkTheme ? 0xffffff : 0x9e2a2b);
+        envRef.current.stars.material.opacity = isDarkTheme ? 0.8 : 0.08;
+        envRef.current.stars.material.needsUpdate = true;
+      }
+    }
+
+    visualsRef.current.forEach((vis) => {
+      vis.label.color = fgColor;
+      vis.orb.emissiveIntensity = isDarkTheme ? BASE.emissiveIntensity : 0.25;
+      vis.targetEmissive = isDarkTheme ? BASE.emissiveIntensity : 0.25;
+      vis.orb.needsUpdate = true;
+
+      vis.halo.blending = isDarkTheme ? THREE.AdditiveBlending : THREE.NormalBlending;
+      vis.halo.opacity = isDarkTheme ? BASE.haloOpacity : BASE.haloOpacity * 0.6;
+      vis.targetHaloOpacity = isDarkTheme ? BASE.haloOpacity : BASE.haloOpacity * 0.6;
+      vis.halo.needsUpdate = true;
+    });
+
+    fg.refresh?.();
+  }, [isDarkTheme, appBgColor, fgColor, accentColorHex]);
 
   useEffect(
     () => () => {

@@ -94,156 +94,275 @@
   --aqua-400: #22d3ee; --aqua-500: #06b6d4;
 
   /* ════════════════════════════════════════════════════════════════════
-   * 2. SURFACES — Black Metal & Cinder
+   * LIGHT THEME — Warm Editorial / Crimson Terracotta (60-30-10)
    * ════════════════════════════════════════════════════════════════════ */
-  --bg-app: var(--metal-950);
-  --bg-surface: var(--cinder-800);
-  --bg-surface-elevated: var(--chimney-600);
-  --bg-surface-raised: var(--chimney-500);
-  --bg-sunken: var(--metal-900);
+  /* Background Palette (60% Base Surface) */
+  --bg-main: #F7F3ED; /* Warm architectural linen */
+  --bg-light: #FAF6F0; /* Soft bright page tone */
+  --bg-deep: #FAF6F0;
+  --bg-soft: #F7F3ED;
 
-  --app: var(--bg-app);
-  --surface: var(--bg-surface);
-  --elevated: var(--bg-surface-elevated);
-  --raised: var(--bg-surface-raised);
-  --sunken: var(--bg-sunken);
+  /* Surfaces & Elevation (30% Content Containers) */
+  --surface-primary: #FFFFFF; /* Pure white card surfaces */
+  --surface-secondary: #F5E8E7; /* Tinted card highlights and selected rows */
+  --surface-deep: #FAF6F0;
 
-  /* ════════════════════════════════════════════════════════════════════
-   * 3. TEXT · LINES · STATES
-   * ════════════════════════════════════════════════════════════════════ */
-  --text-main: var(--dolphin-300);
-  --text-muted: var(--sealion-500);
+  /* Borders & Dividers */
+  --border-primary: #E8DFD5; /* Warm parchment line */
+  --border-secondary: #E6DFD6; /* Subtle separator lines */
+  --border-base: #E8DFD5;
 
-  --fg: var(--text-main);
+  /* Accents & Illuminations (10% Focal Accents) */
+  --accent-primary: #9E2A2B; /* Crimson Terracotta */
+  --accent-secondary: #9E2A2B;
+  --accent-tint: rgba(158, 42, 43, 0.12);
+  --accent-amber: #F59E0B;
+
+  /* Typography & Foreground */
+  --text-primary: #2D1512; /* Deep warm espresso ink */
+  --text-secondary: #7A6E65; /* Warm editorial stone */
+  --text-muted: #8F7568; /* Warm taupe caption text */
+
+  /* Legacy & Semantic Mappings */
+  --bg-app: var(--bg-main);
+  --bg-surface: var(--surface-primary);
+  --bg-surface-elevated: var(--surface-secondary);
+  --bg-surface-raised: var(--surface-primary);
+  --bg-sunken: var(--bg-light);
+
+  --app: var(--bg-main);
+  --surface: var(--surface-primary);
+  --elevated: var(--surface-secondary);
+  --surface-elevated: var(--surface-secondary);
+  --raised: var(--surface-primary);
+  --sunken: var(--bg-light);
+
+  --text-main: var(--text-primary);
+  --fg: var(--text-primary);
   --muted: var(--text-muted);
-  --line: rgba(189, 199, 206, 0.1); /* Dolphin sutil */
-  --line-soft: rgba(189, 199, 206, 0.05);
+  --line: var(--border-primary);
+  --line-soft: var(--border-secondary);
 
-  /* Hover / selected usan CUERPO (Sea Lion / Dolphin) */
-  --hover:    color-mix(in oklab, var(--dolphin-300) 10%,  transparent);
-  --selected: color-mix(in oklab, var(--dolphin-300) 18%, transparent);
+  /* Hover / selected states */
+  --hover: rgba(158, 42, 43, 0.08);
+  --selected: rgba(158, 42, 43, 0.14);
 
-  /* Acento reservado */
-  --accent: var(--dolphin-300);
-  --ring:   var(--dolphin-300);
-  --focus:  var(--dolphin-300);
+  --accent: var(--accent-primary);
+  --primary: var(--accent-primary);
+  --ring: var(--accent-primary);
+  --focus: var(--accent-primary);
 
-  --inverse: var(--metal-950);
-  --on-inverse: var(--dolphin-50);
+  --inverse: #170704;
+  --on-inverse: #F3EBE1;
 
-  --dot: color-mix(in oklab, var(--sealion-500) 25%, transparent);
+  --dot: rgba(122, 110, 101, 0.25);
 
   /* ════════════════════════════════════════════════════════════════════
    * 4. CREATIVE GLASS SURFACES
    * ════════════════════════════════════════════════════════════════════ */
-  --glass-bg: var(--bg-surface);
-  --glass-border: var(--line);
-  --glass-edge: rgba(189, 199, 206, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: var(--border-primary);
+  --glass-edge: rgba(255, 255, 255, 0.7);
   --glass-shadow:
-    0 16px 40px -10px rgba(0, 0, 0, 0.8),
-    0 4px 16px -4px rgba(0, 0, 0, 0.6);
+    0 16px 40px -10px rgba(45, 21, 18, 0.08),
+    0 4px 16px -4px rgba(45, 21, 18, 0.05);
 
-  --glass-card-bg: var(--bg-surface);
-  --glass-card-border: var(--line);
+  --glass-card-bg: rgba(255, 255, 255, 0.9);
+  --glass-card-border: var(--border-primary);
   --glass-card-shadow:
-    0 12px 32px -8px rgba(0, 0, 0, 0.7),
-    0 2px 10px -2px rgba(0, 0, 0, 0.5);
+    0 12px 32px -8px rgba(45, 21, 18, 0.08),
+    0 2px 10px -2px rgba(45, 21, 18, 0.04);
 
-  --glass-modal-bg: var(--bg-surface-elevated);
-  --glass-modal-border: var(--line);
+  --glass-modal-bg: rgba(255, 255, 255, 0.98);
+  --glass-modal-border: var(--border-primary);
   --glass-modal-shadow:
-    0 32px 80px -16px rgba(0, 0, 0, 0.9),
-    0 0 0 1px rgba(189, 199, 206, 0.1);
+    0 32px 80px -16px rgba(45, 21, 18, 0.15),
+    0 0 0 1px var(--border-primary);
 
-  --sidebar-bg: var(--bg-surface);
+  --sidebar-bg: rgba(247, 243, 237, 0.92);
 
   /* ════════════════════════════════════════════════════════════════════
    * 5. SEMANTIC PALETTE
    * ════════════════════════════════════════════════════════════════════ */
-  --concept-fg: var(--dolphin-300);
+  --concept-fg: var(--accent-primary);
+  --positive-fg: var(--jade-500);
+  --risk-fg:     var(--citrine-500);
+  --danger-fg:   var(--ruby-500);
+  --info-fg:     var(--azure-500);
+  
+  --category-legal:     #6B21A8;
+  --category-economic:  #065F46;
+  --category-political: #1E3A8A;
+  --category-technical: #0F766E;
+
+  /* ════════════════════════════════════════════════════════════════════
+   * 6. GRADIENTS
+   * ════════════════════════════════════════════════════════════════════ */
+  --gradient-brand:   linear-gradient(135deg, #F5E8E7 0%, #F7F3ED 100%);
+  --gradient-warm:    linear-gradient(135deg, #9E2A2B 0%, #D4AF37 100%);
+  --gradient-success: linear-gradient(135deg, var(--jade-400) 0%, var(--aqua-500) 100%);
+  --gradient-danger:  linear-gradient(135deg, var(--ruby-400) 0%, var(--ruby-700) 100%);
+
+  --gradient-sheen: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+
+  --gradient-mesh:
+    radial-gradient(at 15%  0%,   rgba(158, 42, 43, 0.04) 0%, transparent 55%),
+    radial-gradient(at 85% 100%,  rgba(245, 232, 231, 0.5) 0%, transparent 50%);
+
+  /* ════════════════════════════════════════════════════════════════════
+   * 7. GLOBAL APPEARANCE
+   * ════════════════════════════════════════════════════════════════════ */
+  --card-bg: var(--surface-primary);
+  --card-border: var(--border-primary);
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --shadow-card: var(--glass-card-shadow);
+  --shadow-button: 0 1px 2px rgba(45, 21, 18, 0.1);
+  
+  --button-primary:   var(--accent-primary);
+  --on-primary:       #FFFFFF;
+  --button-secondary: var(--surface-secondary);
+  --on-secondary:     var(--text-primary);
+  
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --font-size-base: 16px;
+  --font-weight-title: 600;
+  --font-weight-button: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * DARK THEME — Warm Luxury / Champagne Gold (60-30-10)
+ * ═══════════════════════════════════════════════════════════════════════ */
+.dark {
+  /* Background Palette (60% Base Surface) */
+  --bg-main: #170704; /* Deep warm roasted umber */
+  --bg-deep: #120503; /* Sunken viewport background */
+  --bg-soft: #1A0906; /* Sidebar and secondary layout containers */
+
+  /* Surfaces & Elevation (30% Content Containers) */
+  --surface-primary: #2A1412; /* Card and modal frosted glass base */
+  --surface-secondary: #301413; /* Hovered surfaces, popovers, drawers */
+  --surface-deep: #200F0A; /* Recessed input containers and code blocks */
+
+  /* Borders & Dividers */
+  --border-base: #594836;
+  --border-primary: rgba(89, 72, 54, 0.5); /* Opacity 0.4–0.6 strictly */
+  --border-secondary: rgba(89, 72, 54, 0.4);
+
+  /* Accents & Illuminations (10% Focal Accents) */
+  --accent-primary: #E5C158; /* Champagne Gold — buttons, active tab indicators, primary badges */
+  --accent-secondary: #D4AF37; /* Metallic Gold — focus rings, icons, glow halos */
+  --accent-amber: #F59E0B; /* Warning states, AI thinking pulses */
+  --accent-tint: rgba(229, 193, 88, 0.15);
+
+  /* Typography & Foreground */
+  --text-primary: #F3EBE1; /* Soft warm cream, 100% contrast */
+  --text-secondary: #A1937E; /* Muted parchment gold, 75% contrast */
+  --text-muted: #8C7D6D; /* Subtle metadata, disabled indicators */
+
+  /* Surface Mappings */
+  --app: var(--bg-main);
+  --bg-app: var(--bg-main);
+  --surface: var(--surface-primary);
+  --bg-surface: var(--surface-primary);
+  --elevated: var(--surface-secondary);
+  --surface-elevated: var(--surface-secondary);
+  --bg-surface-elevated: var(--surface-secondary);
+  --raised: var(--surface-secondary);
+  --bg-surface-raised: var(--surface-secondary);
+  --sunken: var(--bg-deep);
+  --bg-sunken: var(--bg-deep);
+
+  --fg: var(--text-primary);
+  --text-main: var(--text-primary);
+  --muted: var(--text-muted);
+  --text-muted: var(--text-muted);
+  --line: var(--border-primary);
+  --line-soft: var(--border-secondary);
+
+  --hover: rgba(229, 193, 88, 0.1);
+  --selected: rgba(229, 193, 88, 0.18);
+
+  --accent: var(--accent-primary);
+  --primary: var(--accent-primary);
+  --ring: var(--accent-secondary);
+  --focus: var(--accent-secondary);
+
+  --inverse: #F7F3ED;
+  --on-inverse: #2D1512;
+
+  --dot: rgba(140, 125, 109, 0.25);
+
+  --glass-bg: rgba(42, 20, 18, 0.75);
+  --glass-border: var(--border-primary);
+  --glass-edge: rgba(229, 193, 88, 0.15);
+  --glass-shadow:
+    0 16px 40px -10px rgba(0, 0, 0, 0.8),
+    0 4px 16px -4px rgba(0, 0, 0, 0.6);
+
+  --glass-card-bg: rgba(42, 20, 18, 0.75);
+  --glass-card-border: var(--border-primary);
+  --glass-card-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.7),
+    0 2px 10px -2px rgba(0, 0, 0, 0.5);
+
+  --glass-modal-bg: rgba(32, 15, 10, 0.95);
+  --glass-modal-border: var(--border-primary);
+  --glass-modal-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.9),
+    0 0 0 1px var(--border-primary);
+
+  --sidebar-bg: rgba(23, 7, 4, 0.85);
+
+  --concept-fg: var(--accent-primary);
   --positive-fg: var(--jade-400);
   --risk-fg:     var(--citrine-400);
   --danger-fg:   var(--ruby-400);
   --info-fg:     var(--azure-400);
 
-  --primary: var(--dolphin-300);
-  
-  --category-legal:     var(--sealion-400);
-  --category-economic:  var(--jade-400);
-  --category-political: var(--azure-400);
-  --category-technical: var(--aqua-400);
+  --category-legal:     #A855F7;
+  --category-economic:  #10B981;
+  --category-political: #3B82F6;
+  --category-technical: #14B8A6;
 
-  /* ════════════════════════════════════════════════════════════════════
-   * 6. GRADIENTS
-   * ════════════════════════════════════════════════════════════════════ */
-  --gradient-brand:   linear-gradient(135deg, var(--cinder-800) 0%, var(--metal-950) 100%);
-  --gradient-warm:    linear-gradient(135deg, var(--dolphin-300) 0%, var(--sealion-500) 100%);
-  --gradient-success: linear-gradient(135deg, var(--jade-400) 0%, var(--aqua-500) 100%);
-  --gradient-danger:  linear-gradient(135deg, var(--ruby-400) 0%, var(--ruby-700) 100%);
-
-  --gradient-sheen: linear-gradient(90deg, transparent 0%, rgba(189, 199, 206, 0.15) 50%, transparent 100%);
-
-  --gradient-mesh:
-    radial-gradient(at 15%  0%,   color-mix(in oklab, var(--chimney-600) 40%, transparent) 0%, transparent 55%),
-    radial-gradient(at 85% 100%,  color-mix(in oklab, var(--metal-900) 30%, transparent) 0%, transparent 50%);
-
-  /* ════════════════════════════════════════════════════════════════════
-   * 7. GLOBAL APPEARANCE
-   * ════════════════════════════════════════════════════════════════════ */
-  --card-bg: var(--glass-card-bg);
-  --card-border: var(--glass-card-border);
-  --radius-card: 16px;
-  --radius-button: 12px;
-  --shadow-card: var(--glass-card-shadow);
-  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.3);
-  
-  --button-primary:   var(--dolphin-300);
-  --on-primary:       var(--metal-950);
-  --button-secondary: var(--cinder-800);
-  --on-secondary:     var(--dolphin-300);
-  
-  --font-family: var(--font-sans);
-  --font-size-base: 16px;
-  --font-weight-title: 700;
-  --font-weight-button: 600;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
- * DARK — "Deep Obsidian"
- * ═══════════════════════════════════════════════════════════════════════ */
-.dark {
-  --app: #000000;
-  --surface: rgba(36, 41, 46, 0.8);
-  --elevated: rgba(74, 81, 86, 0.85);
-  --raised: rgba(78, 85, 90, 0.9);
-  --sunken: #050505;
-
-  --fg: var(--dolphin-200);
-  --muted: var(--sealion-600);
-  --line: rgba(189, 199, 206, 0.12);
-
-  --hover:    color-mix(in oklab, var(--dolphin-300) 12%, transparent);
-  --selected: color-mix(in oklab, var(--dolphin-300) 20%, transparent);
-
-  --accent: var(--dolphin-100);
-  --ring:   var(--dolphin-100);
-  --focus:  var(--dolphin-100);
-
-  --glass-bg: rgba(36, 41, 46, 0.8);
-  --glass-card-bg: rgba(36, 41, 46, 0.75);
-  --glass-modal-bg: rgba(15, 17, 20, 0.95);
-  --sidebar-bg: rgba(0, 0, 0, 0.8);
+  --card-bg: var(--surface-primary);
+  --card-border: var(--border-primary);
+  --button-primary: var(--accent-primary);
+  --on-primary: #170704;
+  --button-secondary: var(--surface-secondary);
+  --on-secondary: var(--text-primary);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
  * TAILWIND V4 THEME MAPPING
  * ═══════════════════════════════════════════════════════════════════════ */
 @theme inline {
+  --color-bg-main: var(--bg-main);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-soft: var(--bg-soft);
+  --color-bg-light: var(--bg-light);
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-deep: var(--surface-deep);
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-base: var(--border-base);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-tint: var(--accent-tint);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
   --color-app: var(--app);
   --color-surface: var(--surface);
+  --color-surface-elevated: var(--elevated);
+  --color-surface-raised: var(--raised);
   --color-elevated: var(--elevated);
   --color-raised: var(--raised);
   --color-sunken: var(--sunken);
+  --color-accent: var(--accent);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-line: var(--line);
@@ -273,8 +392,6 @@
   --color-category-political: var(--category-political);
   --color-category-technical: var(--category-technical);
 
-  --color-surface-primary: var(--surface);
-  --color-surface-secondary: var(--sunken);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
   --color-glass-edge: var(--glass-edge);
@@ -334,15 +451,31 @@
 }
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --text-caption: 0.75rem;
-  --text-caption--line-height: 1.125rem;
-  --text-body: 0.8125rem;
-  --text-body--line-height: 1.25rem;
+  /* 4-Tier Native Typographic Scale */
+  --text-title-xl: 2rem; /* 32px */
+  --text-title-xl--line-height: 1.2;
+  --text-title-xl--letter-spacing: -0.02em;
+  --text-title-xl--font-weight: 600;
+
+  --text-title-md: 1rem; /* 16px */
+  --text-title-md--line-height: 1.3;
+  --text-title-md--letter-spacing: -0.01em;
+  --text-title-md--font-weight: 600;
+
   --text-title: 1.25rem;
   --text-title--line-height: 1.75rem;
+
+  --text-body: 0.875rem; /* 14px */
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: 0;
+
+  --text-caption: 0.75rem; /* 12px */
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.01em;
+  --text-caption--font-weight: 500;
 
   --ease-nexo: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -363,6 +496,35 @@
   @keyframes node-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-concept) 40%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
 }
 
+/* ─── 4-Tier Native Typographic Scale Utilities ─── */
+@utility text-title-xl {
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+@utility text-title-md {
+  font-size: 1rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+@utility text-body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+@utility text-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+
 /* ─── Creative Glass Utilities ─── */
 
 @utility glass {
@@ -375,12 +537,24 @@
 
 @utility glass-card {
   background-color: var(--card-bg);
-  border: 1px solid var(--card-border);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--card-border);
   border-radius: var(--radius-card);
-  box-shadow: inset 0 1px 0 0 var(--glass-edge), var(--glass-card-shadow);
+  --tw-shadow: inset 0 1px 0 0 var(--glass-edge), var(--glass-card-shadow);
+  box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   -webkit-backdrop-filter: var(--glass-card-backdrop, blur(24px) saturate(175%));
   backdrop-filter: var(--glass-card-backdrop, blur(24px) saturate(175%));
-  transition: transform 220ms var(--ease-nexo), box-shadow 220ms var(--ease-nexo), border-color 220ms var(--ease-nexo);
+  transition: transform 220ms var(--ease-nexo), box-shadow 220ms var(--ease-nexo), border-color 220ms var(--ease-nexo), background-color 220ms var(--ease-nexo);
+}
+
+.glass-card.border-\[var\(--accent\)\] {
+  border-color: var(--accent);
+}
+
+.glass-card.bg-\[var\(--surface-elevated\)\],
+.glass-card.bg-surface-elevated {
+  background-color: var(--surface-elevated);
 }
 
 @utility glass-modal {
@@ -452,7 +626,7 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25),
               inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: background-color 180ms var(--ease-nexo), transform 120ms var(--ease-nexo);
-  &:hover  { background-color: var(--dolphin-100); }
+  &:hover  { background-color: var(--citrine-400); }
   &:active { transform: translateY(1px); }
 }
 
@@ -514,7 +688,7 @@
   }
   ::selection {
     background-color: color-mix(in oklab, var(--color-focus) 30%, transparent);
-    color: var(--metal-950);
+    color: inherit;
   }
   * {
     scrollbar-width: thin;
@@ -538,7 +712,8 @@
   }
 }
 
-.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after,
+[data-reduce-motion="true"] *, [data-reduce-motion="true"] *::before, [data-reduce-motion="true"] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;

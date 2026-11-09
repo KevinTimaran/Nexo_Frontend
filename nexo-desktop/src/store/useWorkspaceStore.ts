@@ -1,18 +1,21 @@
 import { create } from "zustand";
 import type { Node, Edge, NodeChange, EdgeChange, Connection } from "reactflow";
 import { applyNodeChanges, applyEdgeChanges, addEdge } from "reactflow";
-import type {
-  CanvasMode,
-  ChatPhase,
-  ConceptKind,
-  ConceptMap,
-  ConceptNode,
-  Message,
-  AssistantMessage,
-  NodeCategory,
-  NodePriority,
-  ResearchPhase,
-  Workspace,
+import {
+  INITIAL_DISCOVERY_MESSAGES,
+  type CanvasMode,
+  type ChatMessage,
+  type ChatPhase,
+  type ConceptKind,
+  type ConceptMap,
+  type ConceptNode,
+  type ConceptRelation,
+  type Message,
+  type AssistantMessage,
+  type NodeCategory,
+  type NodePriority,
+  type ResearchPhase,
+  type Workspace,
 } from "../domain/types";
 import {
   DEFAULT_SPATIAL_GROUP_COLORS,
@@ -20,7 +23,8 @@ import {
   type SpatialLink,
   type SpatialNode,
 } from "../domain/spatial";
-import { SPATIAL_SEED_LINKS, SPATIAL_SEED_NODES } from "../mocks/spatialSeed";
+import { findDuplicateConcept } from "../services/ai/prompts";
+import { normalizeCategory } from "../domain/constants";
 import { services } from "../services";
 
 export interface ConceptNodeData extends ConceptNode {
@@ -39,6 +43,9 @@ interface WorkspaceState {
   expandedDocNodeId: string | null;
   isThinking: boolean;
   isChatOpen: boolean;
+  isArchitectureUnlocked: boolean;
+  discoveryMessages: ChatMessage[];
+  discoverySelectedOptions: Record<string, string | string[]>;
 
   // React Flow State
   nodes: Node<ConceptNodeData>[];
@@ -49,11 +56,15 @@ interface WorkspaceState {
   setWorkspace: (workspace: Workspace | null) => void;
   setCanvasMode: (mode: CanvasMode) => void;
   setChatPhase: (phase: ChatPhase) => void;
+  setArchitectureUnlocked: (unlocked: boolean) => void;
   selectNode: (nodeId: string | null) => void;
   setExpandedDocNodeId: (nodeId: string | null) => void;
   setThinking: (thinking: boolean) => void;
   setChatOpen: (isOpen: boolean) => void;
   toggleChat: () => void;
+  setDiscoveryMessages: (messages: ChatMessage[]) => void;
+  setDiscoverySelectedOptions: (selected: Record<string, string | string[]>) => void;
+  resetWorkspace: () => void;
 
   // Deep-Dive Modal Actions
   openDeepDive: (nodeId: string) => void;
@@ -85,9 +96,10 @@ interface WorkspaceState {
     kind: ConceptKind;
     category?: NodeCategory;
     priority?: NodePriority;
-    phase: ResearchPhase;
+    phase?: ResearchPhase;
     metadata?: string;
     details?: string;
+    relevanceScore?: number;
   }) => ConceptNode | null;
 
   /** Returns the last 3 messages (most recent first) to maintain conversational context. */
@@ -174,6 +186,91 @@ function convertMapToFlow(
 }
 
 
+/**
+ * Resolves the initial landing tab based on whether the project has generated nodes:
+ * - Empty projects (0 nodes) -> "discovery" (1. Ideación IA)
+ * - Populated projects (has nodes) -> "notion" (2. Tablero de Conceptos)
+ */
+export function resolveInitialLandingMode(map?: ConceptMap | null): CanvasMode {
+  return map?.nodes && map.nodes.length > 0 ? "notion" : "discovery";
+}
+
+/**
+ * Projects 2D ConceptNode entities into 3D SpatialNode representations.
+ * Preserves existing physics simulation coordinates (x, y, z) if available.
+ */
+export function projectSpatialNodes(
+  nodes: ConceptNode[] = [],
+  existingSpatialNodes: SpatialNode[] = []
+): SpatialNode[] {
+  const coordMap = new Map<string, { x?: number; y?: number; z?: number }>();
+  for (const sn of existingSpatialNodes) {
+    if (sn.x !== undefined || sn.y !== undefined || sn.z !== undefined) {
+      coordMap.set(sn.id, { x: sn.x, y: sn.y, z: sn.z });
+    }
+  }
+
+  return nodes.map((node) => {
+    const existingCoords = coordMap.get(node.id);
+    const category = node.category || "technical";
+    const group = (node.group || category) as SpatialGroupId;
+    const title = node.title || node.name || "Sin título";
+    const desc = node.details || node.description || node.desc || "";
+    const priority = node.priority || (node.kind === "risk" ? "high" : "medium");
+    const score = node.relevanceScore ?? (priority === "high" ? 9 : priority === "low" ? 4 : 7);
+
+    const val =
+      node.val ??
+      Math.max(4, Math.min(25, Math.round(score * 2.2)));
+    const importance =
+      node.importance ??
+      Math.max(0.1, Math.min(1.0, score / 10));
+
+    return {
+      id: node.id,
+      name: title,
+      title,
+      group,
+      category,
+      val,
+      importance,
+      desc,
+      description: node.description || desc,
+      details: node.details,
+      priority,
+      kind: node.kind,
+      phase: node.phase,
+      status: node.status,
+      metadata: node.metadata,
+      x: existingCoords?.x ?? node.x,
+      y: existingCoords?.y ?? node.y,
+      z: existingCoords?.z ?? (node.z ?? (Math.random() * 40 - 20)),
+      tags: node.tags,
+      relevanceScore: score,
+    };
+  });
+}
+
+/**
+ * Projects 2D ConceptRelation entities into 3D SpatialLinks with directional particles.
+ */
+export function projectSpatialLinks(relations: ConceptRelation[] = []): SpatialLink[] {
+  return relations.map((rel) => {
+    const source = rel.from || (rel.source as string);
+    const target = rel.to || (rel.target as string);
+    return {
+      id: rel.id,
+      source,
+      target,
+      from: source,
+      to: target,
+      value: Math.max(1, Math.min(5, Math.round(rel.value ?? 2))),
+      label: rel.label,
+      type: rel.type,
+    };
+  });
+}
+
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspace: null,
   canvasMode: "notion",
@@ -181,7 +278,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   selectedNodeId: null,
   expandedDocNodeId: null,
   isThinking: false,
-  isChatOpen: true,
+  isChatOpen: false,
+  isArchitectureUnlocked: false,
+  discoveryMessages: INITIAL_DISCOVERY_MESSAGES,
+  discoverySelectedOptions: {},
 
   nodes: [],
   edges: [],
@@ -189,9 +289,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   activeFilter: null,
   isDocModalOpen: false,
-  spatialNodes: SPATIAL_SEED_NODES,
-  spatialLinks: SPATIAL_SEED_LINKS,
-  links: SPATIAL_SEED_LINKS,
+  spatialNodes: [],
+  spatialLinks: [],
+  links: [],
   spatialDocs: {},
   spatialGroupColors: { ...DEFAULT_SPATIAL_GROUP_COLORS },
   isZenMode: false,
@@ -222,8 +322,46 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   setDocModalOpen: (isDocModalOpen) => set({ isDocModalOpen }),
 
-  setSpatialDoc: (nodeId, content) =>
-    set((state) => ({ spatialDocs: { ...state.spatialDocs, [nodeId]: content } })),
+  setSpatialDoc: (nodeId, content) => {
+    const { workspace } = get();
+    if (!workspace) {
+      set((state) => ({ spatialDocs: { ...state.spatialDocs, [nodeId]: content } }));
+      return;
+    }
+
+    const nextNodes = workspace.map.nodes.map((node) =>
+      node.id === nodeId ? { ...node, details: content } : node
+    );
+    const nextMap = { ...workspace.map, nodes: nextNodes };
+    const nextWorkspace = { ...workspace, map: nextMap };
+
+    const nextFlowNodes = get().nodes.map((fn) =>
+      fn.id === nodeId
+        ? {
+            ...fn,
+            data: {
+              ...fn.data,
+              details: content,
+            },
+          }
+        : fn
+    );
+
+    const nextSpatialNodes = get().spatialNodes.map((sn) =>
+      sn.id === nodeId ? { ...sn, details: content, desc: content } : sn
+    );
+
+    set({
+      workspace: nextWorkspace,
+      nodes: nextFlowNodes,
+      spatialNodes: nextSpatialNodes,
+      spatialDocs: { ...get().spatialDocs, [nodeId]: content },
+    });
+
+    if (workspace.project?.id) {
+      persistSession(workspace.project.id, nextMap, workspace.messages || []);
+    }
+  },
 
   setSpatialGroupColor: (group, color) =>
     set((state) => ({
@@ -241,39 +379,143 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   setDocViewMode: (docViewMode) => set({ docViewMode }),
 
-  removeSpatialNode: (nodeId) =>
-    set((state) => ({
-      spatialNodes: state.spatialNodes.filter((n) => n.id !== nodeId),
-      spatialLinks: state.spatialLinks.filter((l) => {
-        const srcId = typeof l.source === "object" && l.source !== null ? (l.source as { id: string }).id : l.source;
-        const tgtId = typeof l.target === "object" && l.target !== null ? (l.target as { id: string }).id : l.target;
-        return srcId !== nodeId && tgtId !== nodeId;
-      }),
-      links: state.links.filter((l) => {
-        const srcId = typeof l.source === "object" && l.source !== null ? (l.source as { id: string }).id : l.source;
-        const tgtId = typeof l.target === "object" && l.target !== null ? (l.target as { id: string }).id : l.target;
-        return srcId !== nodeId && tgtId !== nodeId;
-      }),
-      selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
-    })),
+  removeSpatialNode: (nodeId) => {
+    get().removeNode(nodeId);
+  },
 
-  updateSpatialNode: (nodeId, patch) =>
-    set((state) => ({
-      spatialNodes: state.spatialNodes.map((n) => (n.id === nodeId ? { ...n, ...patch } : n)),
-    })),
+  updateSpatialNode: (nodeId, patch) => {
+    const safeTitle =
+      patch.name !== undefined && patch.name.trim().length > 0
+        ? patch.name.trim()
+        : undefined;
+    const updates: Partial<ConceptNode> = {
+      ...(safeTitle !== undefined ? { title: safeTitle, name: safeTitle } : {}),
+      ...(patch.desc !== undefined ? { description: patch.desc, desc: patch.desc } : {}),
+      ...(patch.group !== undefined ? { category: normalizeCategory(patch.group), group: patch.group } : {}),
+      ...(patch.val !== undefined ? { val: patch.val } : {}),
+      ...(patch.importance !== undefined ? { importance: patch.importance } : {}),
+      ...(patch.details !== undefined ? { details: patch.details } : {}),
+    };
+    get().updateNodeContent(nodeId, updates);
+  },
+
+  resetWorkspace: () =>
+    set({
+      workspace: null,
+      nodes: [],
+      edges: [],
+      spatialNodes: [],
+      spatialLinks: [],
+      links: [],
+      spatialDocs: {},
+      selectedNodeId: null,
+      expandedDocNodeId: null,
+      chatPhase: "PHASE_1_DISCOVERY",
+      isArchitectureUnlocked: false,
+    }),
 
   setWorkspace: (workspace) => {
     if (!workspace) {
-      set({ workspace: null, nodes: [], edges: [], chatPhase: "PHASE_1_DISCOVERY" });
+      set({
+        workspace: null,
+        nodes: [],
+        edges: [],
+        spatialNodes: [],
+        spatialLinks: [],
+        links: [],
+        spatialDocs: {},
+        chatPhase: "PHASE_1_DISCOVERY",
+        isArchitectureUnlocked: false,
+      });
       return;
     }
+    const prevProjectId = get().workspace?.project?.id;
+    const isNewProject = prevProjectId !== workspace.project?.id;
     const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
-    const inferredPhase: ChatPhase =
-      workspace.map?.nodes && workspace.map.nodes.length > 0
-        ? "PHASE_3_EXPANSION"
-        : "PHASE_1_DISCOVERY";
-    set({ workspace, nodes, edges, chatPhase: inferredPhase, canvasMode: "notion" });
+    const hasGeneratedNodes = Boolean(workspace.map?.nodes && workspace.map.nodes.length > 0);
+    const inferredPhase: ChatPhase = hasGeneratedNodes
+      ? "PHASE_3_EXPANSION"
+      : "PHASE_1_DISCOVERY";
+    const landingMode = resolveInitialLandingMode(workspace.map);
+
+    const spatialNodes = projectSpatialNodes(
+      workspace.map?.nodes || [],
+      isNewProject ? [] : get().spatialNodes
+    );
+    const spatialLinks = projectSpatialLinks(workspace.map?.relations || []);
+    const spatialDocs: Record<string, string> = {};
+    for (const n of workspace.map?.nodes || []) {
+      if (n.details) {
+        spatialDocs[n.id] = n.details;
+      }
+    }
+
+    const reconstructedDiscovery: ChatMessage[] =
+      workspace.messages && workspace.messages.length > 0
+        ? workspace.messages.map((m) => {
+            if (m.role === "user") {
+              return {
+                id: m.id,
+                role: "user" as const,
+                content: m.text,
+                type: "text" as const,
+              };
+            }
+            const asst = m as AssistantMessage;
+            if (asst.discoveryQuestions && asst.discoveryQuestions.length > 0 && asst.action !== "ready") {
+              return {
+                id: asst.id,
+                role: "assistant" as const,
+                content: asst.text,
+                type: "questionnaire" as const,
+                questions: asst.discoveryQuestions.map((dq) => ({
+                  id: dq.id,
+                  question: dq.question,
+                  options: dq.options,
+                  type: dq.type,
+                  allowCustom: dq.allowCustom,
+                })),
+              };
+            }
+            if (asst.action === "ready" || asst.readyForStructuring) {
+              return {
+                id: asst.id,
+                role: "assistant" as const,
+                content: asst.text,
+                type: "ready" as const,
+                dimensions: asst.dimensions,
+              };
+            }
+            return {
+              id: asst.id,
+              role: "assistant" as const,
+              content: asst.text,
+              type: "text" as const,
+            };
+          })
+        : INITIAL_DISCOVERY_MESSAGES;
+
+    set({
+      workspace,
+      nodes,
+      edges,
+      spatialNodes,
+      spatialLinks,
+      links: spatialLinks,
+      spatialDocs,
+      chatPhase: inferredPhase,
+      isArchitectureUnlocked: hasGeneratedNodes,
+      ...(isNewProject
+        ? {
+            canvasMode: landingMode,
+            discoveryMessages: reconstructedDiscovery,
+            discoverySelectedOptions: {},
+          }
+        : {}),
+    });
   },
+
+  setArchitectureUnlocked: (isArchitectureUnlocked) => set({ isArchitectureUnlocked }),
 
   setCanvasMode: (canvasMode) => set({ canvasMode }),
 
@@ -289,7 +531,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
 
-  openDeepDive: (nodeId) => set({ selectedNodeId: nodeId, isDeepDiveModalOpen: true }),
+  setDiscoveryMessages: (discoveryMessages) => set({ discoveryMessages }),
+
+  setDiscoverySelectedOptions: (discoverySelectedOptions) => set({ discoverySelectedOptions }),
+
+  openDeepDive: (nodeId) =>
+    set({
+      selectedNodeId: nodeId,
+      canvasMode: "spatial",
+      docViewMode: "fullscreen",
+      isDeepDiveModalOpen: false,
+    }),
 
   closeDeepDive: () => set({ isDeepDiveModalOpen: false }),
 
@@ -297,9 +549,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { workspace, nodes } = get();
     if (!workspace) return;
 
-    const nextNodes = workspace.map.nodes.map((node) =>
-      node.id === id ? { ...node, ...updates } : node
-    );
+    const nextNodes = workspace.map.nodes.map((node) => {
+      if (node.id !== id) return node;
+      const patched = { ...node, ...updates };
+      if (updates.title !== undefined) {
+        const trimmed = updates.title.trim();
+        if (trimmed.length > 0) {
+          patched.title = trimmed;
+          patched.name = trimmed;
+        } else {
+          patched.title = node.title;
+          patched.name = node.name || node.title;
+        }
+      }
+      if (updates.description !== undefined) patched.desc = updates.description;
+      return patched;
+    });
     const nextMap = { ...workspace.map, nodes: nextNodes };
     const nextWorkspace = { ...workspace, map: nextMap };
 
@@ -315,9 +580,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         : fn
     );
 
+    const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
+    const nextSpatialDocs =
+      updates.details !== undefined
+        ? { ...get().spatialDocs, [id]: updates.details }
+        : get().spatialDocs;
+
     set({
       workspace: nextWorkspace,
       nodes: nextFlowNodes,
+      spatialNodes,
+      spatialDocs: nextSpatialDocs,
     });
 
     persistSession(workspace.project.id, nextMap, workspace.messages);
@@ -403,9 +676,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   addNode: (nodeData) => {
     const { workspace } = get();
     const id = "n-" + Math.random().toString(36).substring(2, 9);
+    const category = nodeData.category ?? "technical";
+    const priority = nodeData.priority ?? (nodeData.kind === "risk" ? "high" : "medium");
+    const score = nodeData.relevanceScore ?? (priority === "high" ? 9 : priority === "low" ? 4 : 7);
+
     const newNode: ConceptNode = {
       id,
       ...nodeData,
+      category,
+      priority,
+      name: nodeData.title,
+      desc: nodeData.description,
+      val: nodeData.val ?? Math.max(4, Math.min(25, Math.round(score * 2.2))),
+      importance: nodeData.importance ?? Math.max(0.1, Math.min(1.0, score / 10)),
+      relevanceScore: score,
     };
 
     if (workspace) {
@@ -413,9 +697,25 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const nextMap = { ...workspace.map, nodes: nextNodes };
       const nextWorkspace = { ...workspace, map: nextMap };
       const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
+      const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
+      const spatialLinks = projectSpatialLinks(nextMap.relations);
+      const nextSpatialDocs = newNode.details
+        ? { ...get().spatialDocs, [id]: newNode.details }
+        : get().spatialDocs;
       const nextPhase: ChatPhase =
         get().chatPhase === "PHASE_2_STRUCTURING" ? "PHASE_3_EXPANSION" : get().chatPhase;
-      set({ workspace: nextWorkspace, selectedNodeId: id, nodes, edges, chatPhase: nextPhase });
+
+      set({
+        workspace: nextWorkspace,
+        selectedNodeId: id,
+        nodes,
+        edges,
+        spatialNodes,
+        spatialLinks,
+        links: spatialLinks,
+        spatialDocs: nextSpatialDocs,
+        chatPhase: nextPhase,
+      });
       persistSession(workspace.project.id, nextMap, workspace.messages);
     }
 
@@ -432,11 +732,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const nextNodes = workspace.map.nodes.filter((node) => node.id !== nodeId);
     const nextRelations = workspace.map.relations.filter(
-      (rel) => rel.from !== nodeId && rel.to !== nodeId
+      (rel) => rel.from !== nodeId && rel.to !== nodeId && rel.source !== nodeId && rel.target !== nodeId
     );
     const nextMap = { nodes: nextNodes, relations: nextRelations };
     const nextWorkspace = { ...workspace, map: nextMap };
     const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
+
+    const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
+    const spatialLinks = projectSpatialLinks(nextRelations);
+    const nextSpatialDocs = { ...get().spatialDocs };
+    delete nextSpatialDocs[nodeId];
 
     set({
       workspace: nextWorkspace,
@@ -444,6 +749,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       expandedDocNodeId: expandedDocNodeId === nodeId ? null : expandedDocNodeId,
       nodes,
       edges,
+      spatialNodes,
+      spatialLinks,
+      links: spatialLinks,
+      spatialDocs: nextSpatialDocs,
+      docViewMode: selectedNodeId === nodeId ? "hidden" : get().docViewMode,
     });
 
     persistSession(workspace.project.id, nextMap, workspace.messages);
@@ -537,10 +847,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { workspace } = get();
     if (!workspace) return null;
 
-    // Check if node already exists by title to prevent accidental duplicates
-    const existing = workspace.map.nodes.find(
-      (n) => n.title.toLowerCase().trim() === nodeDraft.title.toLowerCase().trim()
-    );
+    // Check if node already exists by normalized & token-similarity deduplication
+    const existing = findDuplicateConcept(nodeDraft.title, workspace.map.nodes);
     if (existing) {
       set({ selectedNodeId: existing.id });
       return existing;
@@ -553,37 +861,59 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       : 200;
 
     const id = "n-ai-" + Math.random().toString(36).substring(2, 8);
+    const category =
+      nodeDraft.category ??
+      (nodeDraft.kind === "viability" ? "economic" : nodeDraft.kind === "risk" ? "legal" : "technical");
+    const score = nodeDraft.relevanceScore ?? 8;
+    const priority =
+      nodeDraft.priority ?? (score >= 8 ? "high" : score >= 5 ? "medium" : "low");
+
     const newNode: ConceptNode = {
       id,
       kind: nodeDraft.kind,
-      category: nodeDraft.category ?? (nodeDraft.kind === "viability" ? "economic" : nodeDraft.kind === "risk" ? "legal" : "technical"),
-      priority: nodeDraft.priority ?? (nodeDraft.kind === "risk" ? "high" : "medium"),
+      category,
+      priority,
       title: nodeDraft.title,
+      name: nodeDraft.title,
       description: nodeDraft.description,
+      desc: nodeDraft.description,
       status: "confirmed",
-      phase: nodeDraft.phase,
-      metadata: nodeDraft.metadata || "Generado por IA",
-      details: nodeDraft.details,
+      phase: nodeDraft.phase ?? "planning",
+      relevanceScore: score,
+      metadata: nodeDraft.metadata || `Relevancia ${score}/10 • ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+      details: nodeDraft.details || `### Resumen Ejecutivo\n${nodeDraft.description}\n\n### Análisis de Viabilidad e Impacto\nRelevancia: ${score}/10\n\n### Plan de Acción y Próximos Pasos\n1. Validar propuesta.`,
       x: maxX + 320,
       y: avgY + (Math.random() > 0.5 ? 40 : -40),
+      val: Math.max(4, Math.min(25, Math.round(score * 2.2))),
+      importance: Math.max(0.1, Math.min(1.0, score / 10)),
     };
 
     const nextNodes = [...workspace.map.nodes, newNode];
 
     // Connect to the first node if available to form a graph relationship
-    const relations = [...workspace.map.relations];
+    const relations = [...(workspace.map.relations || [])];
     if (workspace.map.nodes.length > 0) {
       const rootNode = workspace.map.nodes[0];
       relations.push({
         id: `rel-${rootNode.id}->${newNode.id}`,
         from: rootNode.id,
         to: newNode.id,
+        source: rootNode.id,
+        target: newNode.id,
+        value: 2,
+        label: "Ramificación",
       });
     }
 
     const nextMap: ConceptMap = { nodes: nextNodes, relations };
     const nextWorkspace = { ...workspace, map: nextMap };
     const { nodes, edges } = convertMapToFlow(nextMap, (nid) => get().openDeepDive(nid));
+
+    const spatialNodes = projectSpatialNodes(nextNodes, get().spatialNodes);
+    const spatialLinks = projectSpatialLinks(relations);
+    const nextSpatialDocs = newNode.details
+      ? { ...get().spatialDocs, [id]: newNode.details }
+      : get().spatialDocs;
 
     const nextPhase: ChatPhase =
       get().chatPhase === "PHASE_2_STRUCTURING" ? "PHASE_3_EXPANSION" : get().chatPhase;
@@ -593,6 +923,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       selectedNodeId: id,
       nodes,
       edges,
+      spatialNodes,
+      spatialLinks,
+      links: spatialLinks,
+      spatialDocs: nextSpatialDocs,
       chatPhase: nextPhase,
     });
 

@@ -1,76 +1,88 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Plus,
-  Sparkles,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  FileText,
-} from "lucide-react";
+import { Sparkles, FileText } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
-import { NodeCanvasLayout } from "./NodeCanvasLayout";
-import { DeepDiveModal } from "./DeepDiveModal";
 import type {
   ConceptMap,
   ConceptNode,
   NodeCategory,
   NodePriority,
-  ResearchPhase,
 } from "../../domain/types";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { playNodeSelectSound } from "../../services/audio/soundEffects";
+import { normalizeCategory } from "../../domain/constants";
 
 interface ConceptCanvasProps {
   map: ConceptMap;
   selectedNodeId: string | null;
   onSelectNode: (nodeId: string | null) => void;
   onNodeMove?: (nodeId: string, x: number, y: number) => void;
-  onOpenAddNode: () => void;
   onOpenDocDetail?: (node: ConceptNode) => void;
   isChatOpen?: boolean;
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * Categorías canónicas (orden fijo de columnas)
+ * ──────────────────────────────────────────────────────────────────────────── */
+const CATEGORIES: Array<{
+  key: NodeCategory;
+  labelKey: string;
+  fallback: string;
+  dotClass: string;
+}> = [
+  {
+    key: "legal",
+    labelKey: "categories.legal",
+    fallback: "Legal",
+    dotClass: "bg-category-legal shadow-[0_0_8px_rgba(168,85,247,0.5)]",
+  },
+  {
+    key: "economic",
+    labelKey: "categories.economic",
+    fallback: "Económico",
+    dotClass: "bg-category-economic shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+  },
+  {
+    key: "political",
+    labelKey: "categories.political",
+    fallback: "Político",
+    dotClass: "bg-category-political shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+  },
+  {
+    key: "technical",
+    labelKey: "categories.technical",
+    fallback: "Técnico",
+    dotClass: "bg-category-technical shadow-[0_0_8px_rgba(100,116,139,0.5)]",
+  },
+];
+
 export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   map,
-  onOpenAddNode,
   isChatOpen = false,
 }) => {
   const { t } = useTranslation();
-  const { canvasMode, openDeepDive } = useWorkspaceStore();
-
-  const openDocumentDeepDive = (node: ConceptNode) => {
-    openDeepDive(node.id);
-  };
-
-  // Filter nodes by research phase for Notion board view
-  const resolvePhase = (node: ConceptNode): ResearchPhase => {
-    if (node.phase) return node.phase;
-    if (node.kind === "concept") return "planning";
-    if (node.kind === "viability") return "execution";
-    return "validation";
-  };
+  const { canvasMode, setCanvasMode, setSelectedNode, setDocViewMode, isThinking } = useWorkspaceStore();
 
   const safeNodes = map?.nodes || [];
 
-  const planningNodes = useMemo(
-    () => safeNodes.filter((n) => resolvePhase(n) === "planning"),
-    [safeNodes]
-  );
-  const executionNodes = useMemo(
-    () => safeNodes.filter((n) => resolvePhase(n) === "execution"),
-    [safeNodes]
-  );
-  const validationNodes = useMemo(
-    () => safeNodes.filter((n) => resolvePhase(n) === "validation"),
-    [safeNodes]
-  );
-
-
-  const kindIcons = {
-    concept: <Sparkles className="w-3.5 h-3.5 text-concept-fg" />,
-    viability: <CheckCircle2 className="w-3.5 h-3.5 text-positive-fg" />,
-    risk: <AlertTriangle className="w-3.5 h-3.5 text-risk-fg" />,
-  };
+  /* Agrupación por categoría (fallback seguro: technical) */
+  const nodesByCategory = useMemo(() => {
+    const grouped: Record<NodeCategory, ConceptNode[]> = {
+      legal: [],
+      economic: [],
+      political: [],
+      technical: [],
+    };
+    for (const n of safeNodes) {
+      const cat = normalizeCategory(n.category);
+      if (grouped[cat]) {
+        grouped[cat].push(n);
+      } else {
+        grouped.technical.push(n);
+      }
+    }
+    return grouped;
+  }, [safeNodes]);
 
   const getCategoryBorderClass = (category?: NodeCategory) => {
     switch (category) {
@@ -96,7 +108,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   return (
     <div className="relative w-full h-full bg-transparent overflow-hidden select-none">
       {/* ============================================================== */}
-      {/* MODE 1: KNOWLEDGE VIEW ('notion') - Structured Editorial Board */}
+      {/* MODE 1: KNOWLEDGE VIEW - Board por categoría                   */}
       {/* ============================================================== */}
       {canvasMode === "notion" && (
         <div
@@ -104,7 +116,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
             isChatOpen ? "xl:pr-[460px] lg:pr-[420px]" : ""
           }`}
         >
-          <div className="max-w-6xl mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto space-y-6">
             {/* Editorial Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line/80 dark:border-line/10">
               <div>
@@ -113,270 +125,114 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                   Tablero de Conocimiento
                 </h2>
                 <p className="text-caption text-muted mt-1">
-                  Organización editorial de conceptos clasificados por fase, categoría semántica y prioridad de investigación.
+                  Conceptos organizados por categoría semántica.
                 </p>
               </div>
 
               <button
-                onClick={onOpenAddNode}
+                onClick={() => setCanvasMode("discovery")}
                 className="
-                  inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl
-                  bg-gradient-to-b from-concept-fg to-concept-fg/90 text-fg text-caption font-semibold
-                  shadow-[0_4px_14px_-3px_rgba(37,99,235,0.45),inset_0_1px_0_0_rgba(255,255,255,0.3)]
-                  hover:brightness-105 active:scale-95 transition-all self-start sm:self-auto cursor-pointer focus-ring
+                  inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl
+                  bg-surface/80 hover:bg-elevated text-fg border border-line/80 dark:border-line/10
+                  shadow-sm hover:border-concept-fg/50 transition-all cursor-pointer text-caption font-semibold focus-ring
                 "
               >
-                <Plus className="w-4 h-4" />
-                <span>Añadir concepto</span>
+                <Sparkles className="w-4 h-4 text-concept-fg" />
+                <span>Idear con IA</span>
               </button>
             </div>
 
-            {/* 3 Research Phase Columns (Creative Glass Lanes) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              {/* Column 1: Planning */}
-              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-line/10">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-positive shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                    <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
-                      {t("phases.planning")}
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-line/10 shadow-2xs">
-                    {planningNodes.length}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {planningNodes.length === 0 ? (
-                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-line/15 text-center text-caption text-muted bg-surface/30">
-                      Sin conceptos en planificación
-                    </div>
-                  ) : (
-                    planningNodes.map((node) => (
-                      <div
-                        key={node.id}
-                        onClick={() => openDocumentDeepDive(node)}
-                        className={`
-                          p-4 rounded-2xl border border-line/80 dark:border-line/10
-                          bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
-                          shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_0_rgba(255,255,255,0.7)]
-                          dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.06)]
-                          hover:shadow-[0_12px_28px_-6px_rgba(15,23,42,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]
-                          dark:hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.12)]
-                          hover:border-concept-fg/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer group space-y-2.5
-                          ${getCategoryBorderClass(node.category)} ${getPriorityGlowClass(node.priority)}
-                        `}
-                      >
-                        <div className="flex items-center justify-between gap-1 flex-wrap text-[10px]">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <Badge kind={node.kind} status={node.status}>
-                              <span className="flex items-center gap-1">
-                                {kindIcons[node.kind]}
-                                {t(`kinds.${node.kind}`)}
-                              </span>
-                            </Badge>
-                            {node.category && <Badge category={node.category} size="sm" />}
-                            {node.priority && <Badge priority={node.priority} size="sm" />}
-                          </div>
-
-                          {node.metadata && (
-                            <span className="text-muted font-mono bg-sunken px-1.5 py-0.5 rounded border border-line-soft truncate max-w-[110px]">
-                              {node.metadata}
-                            </span>
-                          )}
-                        </div>
-
-                        <h4 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors line-clamp-2 leading-snug">
-                          {node.title}
-                        </h4>
-
-                        {node.description && (
-                          <p className="text-caption text-muted line-clamp-2 leading-relaxed font-normal">
-                            {node.description}
-                          </p>
-                        )}
-
-                        <div className="pt-2 border-t border-line-soft dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
-                          <span>Ref: {node.id.slice(0, 8)}</span>
-                          <span className="inline-flex items-center gap-1 text-concept-fg font-medium group-hover:translate-x-0.5 transition-transform">
-                            <span>Ver documento</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
+            {/* Structuring Loading Banner */}
+            {isThinking && (
+              <div className="flex items-center gap-3 p-4 rounded-2xl glass-card border border-primary/30 bg-surface/50 text-fg animate-pulse">
+                <Sparkles className="w-5 h-5 animate-spin text-primary shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-fg">Estructurando conceptos y arquitectura con IA...</p>
+                  <p className="text-[11px] text-muted">Mapeando dimensiones estratégicas y relaciones causales en tiempo real.</p>
                 </div>
               </div>
+            )}
 
-              {/* Column 2: Execution */}
-              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-line/10">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                    <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
-                      {t("phases.execution")}
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-line/10 shadow-2xs">
-                    {executionNodes.length}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {executionNodes.length === 0 ? (
-                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-line/15 text-center text-caption text-muted bg-surface/30">
-                      Sin conceptos en ejecución
-                    </div>
-                  ) : (
-                    executionNodes.map((node) => (
-                      <div
-                        key={node.id}
-                        onClick={() => openDocumentDeepDive(node)}
-                        className={`
-                          p-4 rounded-2xl border border-line/80 dark:border-line/10
-                          bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
-                          shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_0_rgba(255,255,255,0.7)]
-                          dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.06)]
-                          hover:shadow-[0_12px_28px_-6px_rgba(15,23,42,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]
-                          dark:hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.12)]
-                          hover:border-concept-fg/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer group space-y-2.5
-                          ${getCategoryBorderClass(node.category)} ${getPriorityGlowClass(node.priority)}
-                        `}
-                      >
-                        <div className="flex items-center justify-between gap-1 flex-wrap text-[10px]">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <Badge kind={node.kind} status={node.status}>
-                              <span className="flex items-center gap-1">
-                                {kindIcons[node.kind]}
-                                {t(`kinds.${node.kind}`)}
-                              </span>
-                            </Badge>
-                            {node.category && <Badge category={node.category} size="sm" />}
-                            {node.priority && <Badge priority={node.priority} size="sm" />}
-                          </div>
-
-                          {node.metadata && (
-                            <span className="text-muted font-mono bg-sunken px-1.5 py-0.5 rounded border border-line-soft truncate max-w-[110px]">
-                              {node.metadata}
-                            </span>
-                          )}
-                        </div>
-
-                        <h4 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors line-clamp-2 leading-snug">
-                          {node.title}
-                        </h4>
-
-                        {node.description && (
-                          <p className="text-caption text-muted line-clamp-2 leading-relaxed font-normal">
-                            {node.description}
-                          </p>
-                        )}
-
-                        <div className="pt-2 border-t border-line-soft dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
-                          <span>Ref: {node.id.slice(0, 8)}</span>
-                          <span className="inline-flex items-center gap-1 text-concept-fg font-medium group-hover:translate-x-0.5 transition-transform">
-                            <span>Ver documento</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </span>
-                        </div>
+            {/* Category Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+              {CATEGORIES.map((cat) => {
+                const nodes = nodesByCategory[cat.key] || [];
+                return (
+                  <div
+                    key={cat.key}
+                    className="space-y-3 rounded-[24px] p-3.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs"
+                  >
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between pb-2 border-b border-line/60 dark:border-line/10">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${cat.dotClass}`} />
+                        <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
+                          {t(cat.labelKey, { defaultValue: cat.fallback })}
+                        </h3>
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Column 3: Validation */}
-              <div className="space-y-4 rounded-[28px] p-4.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line/60 dark:border-line/10">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                    <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
-                      {t("phases.validation")}
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2.5 py-0.5 rounded-full border border-line-soft dark:border-line/10 shadow-2xs">
-                    {validationNodes.length}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {validationNodes.length === 0 ? (
-                    <div className="p-5 rounded-2xl border border-dashed border-line/80 dark:border-line/15 text-center text-caption text-muted bg-surface/30">
-                      Sin conceptos en validación
+                      <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2 py-0.5 rounded-full border border-line-soft dark:border-line/10">
+                        {nodes.length}
+                      </span>
                     </div>
-                  ) : (
-                    validationNodes.map((node) => (
-                      <div
-                        key={node.id}
-                        onClick={() => openDocumentDeepDive(node)}
-                        className={`
-                          p-4 rounded-2xl border border-line/80 dark:border-line/10
-                          bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
-                          shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_0_rgba(255,255,255,0.7)]
-                          dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.06)]
-                          hover:shadow-[0_12px_28px_-6px_rgba(15,23,42,0.1),inset_0_1px_0_0_rgba(255,255,255,0.9)]
-                          dark:hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.12)]
-                          hover:border-concept-fg/40 hover:-translate-y-1 transition-all duration-200 cursor-pointer group space-y-2.5
-                          ${getCategoryBorderClass(node.category)} ${getPriorityGlowClass(node.priority)}
-                        `}
-                      >
-                        <div className="flex items-center justify-between gap-1 flex-wrap text-[10px]">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <Badge kind={node.kind} status={node.status}>
-                              <span className="flex items-center gap-1">
-                                {kindIcons[node.kind]}
-                                {t(`kinds.${node.kind}`)}
-                              </span>
-                            </Badge>
-                            {node.category && <Badge category={node.category} size="sm" />}
-                            {node.priority && <Badge priority={node.priority} size="sm" />}
-                          </div>
 
-                          {node.metadata && (
-                            <span className="text-muted font-mono bg-sunken px-1.5 py-0.5 rounded border border-line-soft truncate max-w-[110px]">
-                              {node.metadata}
-                            </span>
-                          )}
-                        </div>
-
-                        <h4 className="text-body font-bold text-fg group-hover:text-concept-fg transition-colors line-clamp-2 leading-snug">
-                          {node.title}
-                        </h4>
-
-                        {node.description && (
-                          <p className="text-caption text-muted line-clamp-2 leading-relaxed font-normal">
-                            {node.description}
+                    {/* Minimal Cards */}
+                    <div className="space-y-2">
+                      {nodes.length === 0 ? (
+                        <div
+                          onClick={() => setCanvasMode("discovery")}
+                          className="
+                            p-4 rounded-xl border border-dashed border-line/80 dark:border-line/15
+                            text-center text-[11px] text-muted bg-surface/30 space-y-1.5
+                            cursor-pointer hover:border-concept-fg/40 hover:bg-surface/50 transition-all group
+                          "
+                          role="button"
+                          tabIndex={0}
+                          title="Ir a Ideación IA"
+                        >
+                          <p className="font-semibold text-fg/80 group-hover:text-concept-fg transition-colors">
+                            Sin conceptos en esta categoría
                           </p>
-                        )}
-
-                        <div className="pt-2 border-t border-line-soft dark:border-line/5 flex items-center justify-between text-[11px] text-muted">
-                          <span>Ref: {node.id.slice(0, 8)}</span>
-                          <span className="inline-flex items-center gap-1 text-concept-fg font-medium group-hover:translate-x-0.5 transition-transform">
-                            <span>Ver documento</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </span>
+                          <p className="text-[10px] text-muted leading-relaxed">
+                            Genera conceptos explorando tu idea con la IA
+                          </p>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                      ) : (
+                        nodes.map((node) => (
+                          <div
+                            key={node.id}
+                            onClick={() => {
+                              playNodeSelectSound();
+                              setSelectedNode(node.id);
+                              setCanvasMode("spatial");
+                              setDocViewMode("fullscreen");
+                            }}
+                            className={`
+                              p-3 rounded-xl border border-line/80 dark:border-line/10
+                              bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
+                              hover:border-concept-fg/40 hover:-translate-y-0.5
+                              transition-all duration-200 cursor-pointer group
+                              flex items-start justify-between gap-2
+                              ${getCategoryBorderClass(node.category)}
+                              ${getPriorityGlowClass(node.priority)}
+                            `}
+                          >
+                            <h4 className="text-[12px] font-semibold text-fg group-hover:text-concept-fg transition-colors line-clamp-2 leading-snug flex-1 min-w-0">
+                              {node.title}
+                            </h4>
+                            {node.priority && (
+                              <Badge priority={node.priority} size="sm" />
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
-
-      {/* ============================================================== */}
-      {/* MODE 2: SPATIAL VIEW ('obsidian') - Interactive React Flow */}
-      {/* ============================================================== */}
-      {canvasMode === "obsidian" && (
-        <NodeCanvasLayout onOpenAddNode={onOpenAddNode} />
-      )}
-
-      {/* Floating Deep-Dive Notion Modal Overlay */}
-      <DeepDiveModal />
     </div>
   );
 };

@@ -26,6 +26,13 @@ import { services } from "../../services";
 import { detectMessageLanguage } from "../../services/ai/prompts";
 import { currentLanguage } from "../../i18n";
 import { Badge } from "../../components/ui/Badge";
+import {
+  MAX_AI_PROMPT_CHARS,
+  AI_PROMPT_WARNING_THRESHOLD,
+  IMAGE_REJECTION_MESSAGE,
+  countCodePoints,
+  containsImageData,
+} from "../../domain/constants";
 
 interface AIChatDrawerProps {
   isOpen: boolean;
@@ -36,6 +43,7 @@ interface AIChatDrawerProps {
   onGenerateBaseMap?: () => void;
   onSelectNode: (nodeId: string) => void;
   onRetry: () => void;
+  error?: string | null;
 }
 
 export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
@@ -47,11 +55,13 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
   onGenerateBaseMap,
   onSelectNode,
   onRetry,
+  error = null,
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const lang = currentLanguage();
   const [inputText, setInputText] = useState("");
+  const [imageError, setImageError] = useState<string | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +77,77 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
   const { mode: serviceMode, aiProvider } = useConnectivityStore();
 
+  const triggerImageRejection = () => {
+    setImageError(IMAGE_REJECTION_MESSAGE);
+    showToast(IMAGE_REJECTION_MESSAGE, "error");
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+      const hasImage = Array.from(e.clipboardData.files).some((f) =>
+        f.type.startsWith("image/")
+      );
+      if (hasImage) {
+        e.preventDefault();
+        triggerImageRejection();
+        return;
+      }
+    }
+    if (e.clipboardData.items && e.clipboardData.items.length > 0) {
+      const hasImage = Array.from(e.clipboardData.items).some((item) =>
+        item.type.startsWith("image/")
+      );
+      if (hasImage) {
+        e.preventDefault();
+        triggerImageRejection();
+        return;
+      }
+    }
+    const pastedText = e.clipboardData.getData("text");
+    if (pastedText && containsImageData(pastedText)) {
+      e.preventDefault();
+      triggerImageRejection();
+      return;
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const hasImage = Array.from(e.dataTransfer.files).some(
+        (f) =>
+          f.type.startsWith("image/") ||
+          /\.(png|jpe?g|gif|webp|svg|bmp|ico|tiff?)$/i.test(f.name)
+      );
+      if (hasImage) {
+        triggerImageRejection();
+        return;
+      }
+    }
+    const text = e.dataTransfer.getData("text");
+    if (text && containsImageData(text)) {
+      triggerImageRejection();
+      return;
+    }
+  };
+
+  const codePoints = countCodePoints(inputText);
+  const isOverLimit = codePoints > MAX_AI_PROMPT_CHARS;
+  const isNearLimit = codePoints > AI_PROMPT_WARNING_THRESHOLD && !isOverLimit;
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    if (containsImageData(val)) {
+      triggerImageRejection();
+      const sanitized = val
+        .replace(/data:image\/[a-zA-Z0-9+.-]+;base64,[^\s]*/gi, "")
+        .replace(/data:image\/[^\s]*/gi, "");
+      setInputText(sanitized);
+      return;
+    }
+    setInputText(val);
+  };
+
   const scrollToBottom = (smooth = true) => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -78,13 +159,18 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isThinking]);
+  }, [messages, isThinking, error]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || isThinking) return;
+    if (!inputText.trim() || isThinking || isOverLimit) return;
+    if (containsImageData(inputText)) {
+      triggerImageRejection();
+      return;
+    }
     onSendMessage(inputText.trim());
     setInputText("");
+    setImageError(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -378,7 +464,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
 
                   {/* Ready for Structuring Callout / Action (Phase 1 -> Phase 2) */}
                   {asstMsg?.readyForStructuring && onGenerateBaseMap && (
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-emerald-500/10 border border-primary/30 backdrop-blur-md shadow-sm space-y-2 text-left animate-rise-in mt-2">
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-positive/10 border border-primary/30 backdrop-blur-md shadow-sm space-y-2 text-left animate-rise-in mt-2">
                       <div className="flex items-center gap-1.5 text-primary dark:text-primary font-bold text-xs">
                         <Sparkles className="w-3.5 h-3.5 animate-pulse" />
                         <span>Idea delimitada con éxito</span>
@@ -620,11 +706,55 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
             </div>
           </div>
         )}
+        {/* Error Banner with Reintentar action */}
+        {error && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/50 space-y-2.5 text-left shadow-xs backdrop-blur-md animate-rise-in">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="uppercase tracking-wider text-[11px]">Error en la comunicación con la IA</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted dark:text-muted leading-relaxed">
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface/70 hover:bg-surface dark:bg-surface/10 dark:hover:bg-surface/20 border border-line/80 dark:border-line/20 text-xs font-semibold text-fg dark:text-fg shadow-xs transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reintentar</span>
+            </button>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Floating Prompt Composer Footer */}
-      <div className="p-4 border-t border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02] backdrop-blur-md shrink-0 space-y-2.5">
+      <div
+        className="p-4 border-t border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02] backdrop-blur-md shrink-0 space-y-2.5"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+      >
+        {/* Inline image rejection banner */}
+        {imageError && (
+          <div className="p-2.5 rounded-xl bg-danger/10 border border-danger/30 flex items-center justify-between gap-2 text-danger text-xs animate-fade-in">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-danger" />
+              <span>{imageError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setImageError(null)}
+              className="text-muted hover:text-fg cursor-pointer p-0.5"
+              aria-label="Cerrar aviso"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Suggestion Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {chatPhase === "PHASE_1_DISCOVERY" && onGenerateBaseMap && messages.some((m) => m.role === "user") && (
@@ -653,7 +783,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
         <form
           onSubmit={handleSend}
           className="
-            relative flex items-end
+            relative flex flex-col
             bg-sunken/50 dark:bg-app/40
             border border-line dark:border-line/5
             rounded-xl shadow-inner
@@ -661,26 +791,44 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({
             transition-all p-1.5 backdrop-blur-md
           "
         >
-          <textarea
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t("chat.composer.placeholder")}
-            rows={2}
-            className="w-full bg-transparent text-fg dark:text-fg text-xs p-2 pr-11 placeholder:text-muted dark:placeholder:text-muted outline-none resize-none font-normal"
-          />
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isThinking}
-            className="
-              absolute right-2 bottom-2 p-2 rounded-xl
-              bg-primary hover:bg-primary active:scale-95 text-fg
-              disabled:opacity-40 transition-all shadow-sm cursor-pointer
-            "
-            aria-label={t("chat.composer.send")}
-          >
-            <Send className="w-3.5 h-3.5" />
-          </button>
+          <div className="relative flex items-end w-full">
+            <textarea
+              value={inputText}
+              onChange={handleInputChange}
+              onPaste={handlePaste}
+              onKeyDown={handleKeyDown}
+              placeholder={t("chat.composer.placeholder")}
+              rows={2}
+              className="w-full bg-transparent text-fg dark:text-fg text-xs p-2 pr-11 placeholder:text-muted dark:placeholder:text-muted outline-none resize-none font-normal"
+            />
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isThinking || isOverLimit}
+              className="
+                absolute right-2 bottom-2 p-2 rounded-xl
+                bg-primary hover:bg-primary active:scale-95 text-fg
+                disabled:opacity-40 transition-all shadow-sm cursor-pointer
+              "
+              aria-label={t("chat.composer.send")}
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {(isNearLimit || isOverLimit) && (
+            <div className="w-full flex items-center justify-end px-2 pt-1 border-t border-line/30 dark:border-line/10">
+              <span
+                className={`text-[10px] font-mono ${
+                  isOverLimit
+                    ? "text-red-500 font-bold"
+                    : "text-amber-600 dark:text-amber-400 font-semibold"
+                }`}
+              >
+                {codePoints.toLocaleString()} / 20.000
+                {isOverLimit && " (límite excedido)"}
+              </span>
+            </div>
+          )}
         </form>
       </div>
     </motion.aside>

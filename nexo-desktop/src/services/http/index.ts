@@ -8,6 +8,7 @@ import {
   type AIResponse,
   type BackendStatus,
   type ConceptMap,
+  type Folder,
   type GeneratedDocument,
   type Language,
   type Message,
@@ -23,6 +24,7 @@ import type {
   AITutorRequest,
   AuthService,
   DocumentService,
+  FolderService,
   ProjectService,
   Services,
   WorkspaceService,
@@ -199,7 +201,13 @@ async function httpFetch<T>(endpoint: string, options: RequestInit = {}): Promis
       let errorMsg = `Error del servidor HTTP ${response.status}`;
       try {
         const errorData = await response.json();
-        if (errorData?.error?.message) errorMsg = errorData.error.message;
+        if (typeof errorData?.error === "string") {
+          errorMsg = errorData.error;
+        } else if (errorData?.error?.message) {
+          errorMsg = errorData.error.message;
+        } else if (typeof errorData?.message === "string") {
+          errorMsg = errorData.message;
+        }
       } catch {
         // Fallback to status text
       }
@@ -240,13 +248,53 @@ const httpAuth: AuthService = {
 };
 
 const httpProjects: ProjectService = {
-  async list(lang: Language): Promise<Project[]> {
-    return httpFetch<Project[]>(`/projects?lang=${lang}`, { method: "GET" });
+  async list(lang: Language, folderId?: string): Promise<Project[]> {
+    const params = new URLSearchParams({ lang });
+    if (folderId && folderId !== "all") {
+      params.set("folderId", folderId);
+    }
+    return httpFetch<Project[]>(`/projects?${params.toString()}`, { method: "GET" });
   },
   async create(input: NewProjectInput): Promise<Project> {
     return httpFetch<Project>("/projects", {
       method: "POST",
       body: JSON.stringify(input),
+    });
+  },
+  async update(id: string, updates: Partial<Project>): Promise<Project> {
+    return httpFetch<Project>(`/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  },
+  async delete(id: string): Promise<void> {
+    await httpFetch<void>(`/projects/${id}`, { method: "DELETE" });
+  },
+};
+
+const httpFolders: FolderService = {
+  async list(): Promise<Folder[]> {
+    return httpFetch<Folder[]>("/folders", { method: "GET" });
+  },
+  async create(name: string, color?: string): Promise<Folder> {
+    return httpFetch<Folder>("/folders", {
+      method: "POST",
+      body: JSON.stringify({ name, color }),
+    });
+  },
+  async rename(id: string, name: string): Promise<Folder> {
+    return httpFetch<Folder>(`/folders/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    });
+  },
+  async delete(id: string): Promise<void> {
+    await httpFetch<void>(`/folders/${id}`, { method: "DELETE" });
+  },
+  async moveProject(projectId: string, folderId: string | null): Promise<Project> {
+    return httpFetch<Project>(`/folders/projects/${projectId}/move`, {
+      method: "PUT",
+      body: JSON.stringify({ folderId }),
     });
   },
 };
@@ -296,6 +344,7 @@ const httpDocuments: DocumentService = {
 export const httpServices: Services = {
   auth: httpAuth,
   projects: httpProjects,
+  folders: httpFolders,
   workspace: httpWorkspace,
   ai: httpAI,
   documents: httpDocuments,

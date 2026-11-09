@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Globe, Bell, Volume2, Eye, EyeOff, LogOut, User as UserIcon, Check,
   Sparkles, Key, Cpu, Zap, RotateCw, CheckCircle2, AlertCircle, Save,
-  Sun, Moon, Palette, SlidersHorizontal, ChevronDown, Gauge, BrainCircuit, Rocket,
+  Sun, Moon, Palette, SlidersHorizontal, Gauge, BrainCircuit, Rocket, HelpCircle,
 } from "lucide-react";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
@@ -14,8 +14,14 @@ import {
   getGeminiApiKey, getGeminiModel, setGeminiConfig, isGeminiEnabled,
   setGeminiEnabled, testGeminiConnection, type GeminiTestResult,
 } from "../../services/gemini";
-import { registry } from "../../services/registry";
+import {
+  getOpenAIApiKey, getOpenAIModel, setOpenAIConfig, isOpenAIEnabled,
+  setOpenAIEnabled, testOpenAIConnection, type OpenAITestResult,
+} from "../../services/openai";
+import { registry, getAiProvider, setAiProvider, type AIProvider } from "../../services/registry";
 import { useConnectivityStore } from "../../store/useConnectivityStore";
+import { getPreferences, savePreferences } from "../../services/preferences";
+import { setSoundEnabled } from "../../services/audio/soundEffects";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -39,6 +45,11 @@ const MODEL_OPTIONS: ModelOption[] = [
   { value: "gemini-2.5-flash", label: "gemini-2.5-flash", hint: "Rápido y eficiente", icon: Gauge },
   { value: "gemini-2.5-pro",   label: "gemini-2.5-pro",   hint: "Razonamiento profundo", icon: BrainCircuit },
   { value: "gemini-flash-latest", label: "gemini-flash-latest", hint: "Última versión", icon: Rocket },
+];
+
+const OPENAI_MODEL_OPTIONS: ModelOption[] = [
+  { value: "gpt-4o-mini", label: "gpt-4o-mini", hint: "Rápido, económico y de alta precisión", icon: Gauge },
+  { value: "gpt-4o",      label: "gpt-4o",      hint: "Razonamiento profundo y máxima capacidad", icon: BrainCircuit },
 ];
 
 const ModelCard: React.FC<{
@@ -140,29 +151,118 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const lang = currentLanguage();
 
   const [activeSection, setActiveSection] = useState<SectionId>("appearance");
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [sound, setSound] = useState(true);
+  const [reduceMotion, setReduceMotionState] = useState(false);
+  const [notifications, setNotificationsState] = useState(true);
+  const [sound, setSoundState] = useState(true);
 
   /* ─── Tema ─── */
   const [theme, setTheme] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    if (isOpen && typeof document !== "undefined") {
-      setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+    if (isOpen) {
+      if (typeof document !== "undefined") {
+        setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+      }
+      const prefs = getPreferences();
+      setReduceMotionState(prefs.reduceMotion);
+      setNotificationsState(prefs.desktopNotifications);
+      setSoundState(prefs.sound);
     }
   }, [isOpen]);
+
+  const handleReduceMotionChange = (val: boolean) => {
+    setReduceMotionState(val);
+    savePreferences({ reduceMotion: val });
+  };
+
+  const handleSoundChange = (val: boolean) => {
+    setSoundState(val);
+    savePreferences({ sound: val });
+    setSoundEnabled(val);
+  };
+
+  const handleNotificationsChange = (val: boolean) => {
+    setNotificationsState(val);
+    savePreferences({ desktopNotifications: val });
+  };
+
+  const handleRestartOnboarding = () => {
+    try {
+      localStorage.removeItem("nexo.onboarding.completed");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("nexo:start-onboarding"));
+      }
+      onClose();
+    } catch {
+      /* ignore */
+    }
+  };
 
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
     if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle("dark", newTheme === "dark");
+      const isDark = newTheme === "dark";
+      document.documentElement.classList.toggle("dark", isDark);
+      document.documentElement.classList.toggle("light", !isDark);
+      document.documentElement.setAttribute("data-theme", newTheme);
+      document.documentElement.style.colorScheme = newTheme;
       try {
         localStorage.setItem("theme", newTheme);
+        localStorage.setItem("nexo.theme", newTheme);
       } catch {
         /* ignore */
       }
     }
+  };
+
+  /* ─── AI Provider & State ─── */
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>(getAiProvider);
+
+  // OpenAI state
+  const envOpenAIKey =
+    (import.meta as unknown as { env?: { VITE_OPENAI_API_KEY?: string } }).env
+      ?.VITE_OPENAI_API_KEY || "";
+  const [openaiApiKey, setOpenaiApiKey] = useState(getOpenAIApiKey);
+  const [openaiModel, setOpenaiModel] = useState(getOpenAIModel);
+  const [showOpenAIKey, setShowOpenAIKey] = useState(false);
+  const [openaiEnabled, setOpenaiEnabledState] = useState(isOpenAIEnabled);
+  const [testingOpenAI, setTestingOpenAI] = useState(false);
+  const [testOpenAIResult, setTestOpenAIResult] = useState<OpenAITestResult | null>(null);
+  const [savedOpenAISuccess, setSavedOpenAISuccess] = useState(false);
+
+  const isOpenAIFromEnv = Boolean(envOpenAIKey && openaiApiKey === envOpenAIKey);
+
+  const handleTestOpenAIConnection = async () => {
+    setTestingOpenAI(true);
+    setTestOpenAIResult(null);
+    try {
+      const res = await testOpenAIConnection(openaiApiKey, openaiModel);
+      setTestOpenAIResult(res);
+    } finally {
+      setTestingOpenAI(false);
+    }
+  };
+
+  const handleSaveOpenAI = () => {
+    setOpenAIConfig(openaiApiKey, openaiModel);
+    setOpenAIEnabled(openaiEnabled);
+    setAiProvider("openai");
+    setSelectedProvider("openai");
+    registry.notify();
+    useConnectivityStore.getState().refreshAiStatus();
+    setSavedOpenAISuccess(true);
+    setTimeout(() => setSavedOpenAISuccess(false), 2500);
+  };
+
+  const handleToggleOpenAI = (enabled: boolean) => {
+    setOpenaiEnabledState(enabled);
+    setOpenAIEnabled(enabled);
+    if (enabled) {
+      setAiProvider("openai");
+      setSelectedProvider("openai");
+    }
+    registry.notify();
+    useConnectivityStore.getState().refreshAiStatus();
   };
 
   /* ─── Gemini state ─── */
@@ -193,6 +293,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const handleSaveGemini = () => {
     setGeminiConfig(apiKey, model);
     setGeminiEnabled(geminiEnabled);
+    setAiProvider("gemini");
+    setSelectedProvider("gemini");
     registry.notify();
     useConnectivityStore.getState().refreshAiStatus();
     setSavedSuccess(true);
@@ -202,6 +304,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const handleToggleGemini = (enabled: boolean) => {
     setGeminiEnabledState(enabled);
     setGeminiEnabled(enabled);
+    if (enabled) {
+      setAiProvider("gemini");
+      setSelectedProvider("gemini");
+    }
     registry.notify();
     useConnectivityStore.getState().refreshAiStatus();
   };
@@ -214,7 +320,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     { id: "appearance" as const, label: t("settings.appearance", { defaultValue: "Apariencia" }), icon: Palette },
     { id: "interface"  as const, label: t("settings.interface",  { defaultValue: "Interfaz" }),   icon: SlidersHorizontal },
     { id: "language"   as const, label: t("settings.language",   { defaultValue: "Idioma" }),     icon: Globe },
-    { id: "ai"         as const, label: t("settings.ai",         { defaultValue: "Gemini AI" }),  icon: Sparkles },
+    { id: "ai"         as const, label: t("settings.ai",         { defaultValue: "Motor de IA" }), icon: Sparkles },
     { id: "account"    as const, label: t("settings.account",    { defaultValue: "Cuenta" }),     icon: UserIcon },
   ];
 
@@ -275,7 +381,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           title={t("settings.reduceMotion")}
           description={t("settings.reduceMotionDescription")}
           checked={reduceMotion}
-          onChange={setReduceMotion}
+          onChange={handleReduceMotionChange}
         />
       </div>
     </div>
@@ -288,7 +394,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {t("settings.interface", { defaultValue: "Interfaz" })}
         </h3>
         <p className="text-[10px] text-muted dark:text-muted leading-snug">
-          Notificaciones y experiencia sonora.
+          Notificaciones, experiencia sonora y guías interactivas.
         </p>
       </header>
       <div className="space-y-2">
@@ -297,15 +403,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           title={t("settings.desktopNotifications")}
           description={t("settings.desktopNotificationsDescription")}
           checked={notifications}
-          onChange={setNotifications}
+          onChange={handleNotificationsChange}
         />
         <ToggleRow
           icon={Volume2}
           title={t("settings.sound")}
           description={t("settings.soundDescription")}
           checked={sound}
-          onChange={setSound}
+          onChange={handleSoundChange}
         />
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleRestartOnboarding}
+            className="w-full p-2.5 rounded-xl border border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/5 hover:bg-surface/60 dark:hover:bg-surface/10 text-[11px] font-semibold text-fg dark:text-fg flex items-center justify-between transition-all cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <HelpCircle className="w-3.5 h-3.5 text-primary" />
+              <span>{t("settings.restartOnboarding", { defaultValue: "Reiniciar guía de bienvenida" })}</span>
+            </span>
+            <span className="text-[10px] text-primary font-bold">Ver tour →</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -350,150 +470,339 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const renderAI = () => (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-xs font-bold text-fg dark:text-fg mb-0.5">Google Gemini AI</h3>
-          <p className="text-[10px] text-muted dark:text-muted leading-snug">
-            Chat Copilot, Tutor pedagógico y mapa conceptual.
-          </p>
-        </div>
-        <label className="flex items-center gap-1.5 cursor-pointer shrink-0 pt-0.5">
-          <span className="text-[10px] text-muted dark:text-muted font-semibold">
-            {t("settings.aiActive", { defaultValue: "Activo" })}
-          </span>
-          <input
-            type="checkbox"
-            checked={geminiEnabled}
-            onChange={(e) => handleToggleGemini(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
-          />
-        </label>
-      </div>
-
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-[10px]">
-          <label className="font-semibold text-fg dark:text-muted flex items-center gap-1">
-            <Key className="w-3 h-3 text-muted dark:text-muted" />
-            Clave API
-          </label>
-          {isFromEnv && (
-            <span className="text-[9px] font-medium text-positive dark:text-positive bg-positive/10 px-1.5 py-0.5 rounded-full border border-positive/20">
-              .env.local
-            </span>
-          )}
-        </div>
-        <div className="relative">
-          <input
-            type={showKey ? "text" : "password"}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="AIzaSy..."
-            className="
-              w-full text-[11px] font-mono px-2.5 py-1.5 pr-8 rounded-lg
-              text-fg dark:text-fg placeholder:text-muted dark:placeholder:text-muted
-              bg-sunken/50 dark:bg-app/40
-              border border-line dark:border-line/5
-              shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
-              focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
-              transition-all duration-200
-            "
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg dark:hover:text-fg p-1 rounded-md hover:bg-surface/40 dark:hover:bg-surface/10 transition-colors cursor-pointer"
-            title={showKey ? "Ocultar clave" : "Mostrar clave"}
-          >
-            {showKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-semibold text-fg dark:text-muted flex items-center gap-1">
-          <Cpu className="w-3 h-3 text-muted dark:text-muted" />
-          Modelo
-        </label>
-        <div className="grid grid-cols-1 gap-1.5">
-          {MODEL_OPTIONS.map((opt) => (
-            <ModelCard
-              key={opt.value}
-              option={opt}
-              selected={model === opt.value}
-              onSelect={() => setModel(opt.value)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleTestConnection}
-        disabled={testing || !apiKey}
-        className="
-          w-full h-8 px-2.5 rounded-lg
-          border border-line/80 dark:border-line/10
-          bg-surface/60 dark:bg-surface/10 hover:bg-surface/90 dark:hover:bg-surface/15
-          text-[11px] font-semibold text-fg dark:text-fg
-          flex items-center justify-center gap-1.5
-          transition-all active:scale-95 disabled:opacity-50 cursor-pointer
-        "
-      >
-        {testing ? (
-          <>
-            <RotateCw className="w-3 h-3 animate-spin text-primary dark:text-primary" />
-            <span>Probando...</span>
-          </>
-        ) : (
-          <>
-            <Zap className="w-3 h-3 text-amber-500" />
-            <span>Probar Conexión</span>
-          </>
-        )}
-      </button>
-
-      {testResult && (
-        <div
-          className={`p-2 rounded-lg border text-[10px] flex items-center justify-between ${
-            testResult.ok
-              ? "bg-positive/10 border-positive/30 text-positive dark:text-positive"
-              : "bg-danger/10 border-danger/30 text-danger dark:text-danger"
+      {/* Selector de Proveedor de IA */}
+      <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedProvider("openai");
+            setAiProvider("openai");
+            useConnectivityStore.getState().refreshAiStatus();
+          }}
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+            selectedProvider === "openai"
+              ? "bg-primary text-primary-fg shadow-sm"
+              : "text-muted hover:text-fg hover:bg-surface/40"
           }`}
         >
-          <div className="flex items-center gap-1.5 min-w-0">
-            {testResult.ok ? <CheckCircle2 className="w-3 h-3 shrink-0" /> : <AlertCircle className="w-3 h-3 shrink-0" />}
-            <span className="font-medium truncate">
-              {testResult.ok ? `OK — ${testResult.model} (${testResult.latencyMs} ms)` : testResult.error}
-            </span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>OpenAI (GPT)</span>
+          {openaiEnabled && <span className="w-1.5 h-1.5 rounded-full bg-positive" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedProvider("gemini");
+            setAiProvider("gemini");
+            useConnectivityStore.getState().refreshAiStatus();
+          }}
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+            selectedProvider === "gemini"
+              ? "bg-primary text-primary-fg shadow-sm"
+              : "text-muted hover:text-fg hover:bg-surface/40"
+          }`}
+        >
+          <Cpu className="w-3.5 h-3.5" />
+          <span>Google Gemini</span>
+          {geminiEnabled && <span className="w-1.5 h-1.5 rounded-full bg-positive" />}
+        </button>
+      </div>
+
+      {selectedProvider === "openai" ? (
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold text-fg dark:text-fg mb-0.5">OpenAI GPT</h3>
+              <p className="text-[10px] text-muted dark:text-muted leading-snug">
+                Ideación conversacional, cuestionarios inteligentes y tutor pedagógico.
+              </p>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0 pt-0.5">
+              <span className="text-[10px] text-muted dark:text-muted font-semibold">
+                {t("settings.aiActive", { defaultValue: "Activo" })}
+              </span>
+              <input
+                type="checkbox"
+                checked={openaiEnabled}
+                onChange={(e) => handleToggleOpenAI(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
+              />
+            </label>
           </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px]">
+              <label className="font-semibold text-fg dark:text-muted flex items-center gap-1">
+                <Key className="w-3 h-3 text-muted dark:text-muted" />
+                Clave API (OpenAI)
+              </label>
+              {isOpenAIFromEnv && (
+                <span className="text-[9px] font-medium text-positive dark:text-positive bg-positive/10 px-1.5 py-0.5 rounded-full border border-positive/20">
+                  .env.local
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={showOpenAIKey ? "text" : "password"}
+                value={openaiApiKey}
+                onChange={(e) => setOpenaiApiKey(e.target.value)}
+                placeholder="sk-proj-..."
+                className="
+                  w-full text-[11px] font-mono px-2.5 py-1.5 pr-8 rounded-lg
+                  text-fg dark:text-fg placeholder:text-muted dark:placeholder:text-muted
+                  bg-sunken/50 dark:bg-app/40
+                  border border-line dark:border-line/5
+                  shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
+                  focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
+                  transition-all duration-200
+                "
+              />
+              <button
+                type="button"
+                onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg dark:hover:text-fg p-1 rounded-md hover:bg-surface/40 dark:hover:bg-surface/10 transition-colors cursor-pointer"
+                title={showOpenAIKey ? "Ocultar clave" : "Mostrar clave"}
+              >
+                {showOpenAIKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-semibold text-fg dark:text-muted flex items-center gap-1">
+              <Cpu className="w-3 h-3 text-muted dark:text-muted" />
+              Modelo
+            </label>
+            <div className="grid grid-cols-1 gap-1.5">
+              {OPENAI_MODEL_OPTIONS.map((opt) => (
+                <ModelCard
+                  key={opt.value}
+                  option={opt}
+                  selected={openaiModel === opt.value}
+                  onSelect={() => setOpenaiModel(opt.value)}
+                />
+              ))}
+            </div>
+          </div>
+
           <button
             type="button"
-            onClick={() => setTestResult(null)}
-            className="text-[10px] opacity-70 hover:opacity-100 ml-1.5 cursor-pointer shrink-0"
+            onClick={handleTestOpenAIConnection}
+            disabled={testingOpenAI || !openaiApiKey}
+            className="
+              w-full h-8 px-2.5 rounded-lg
+              border border-line/80 dark:border-line/10
+              bg-surface/60 dark:bg-surface/10 hover:bg-surface/90 dark:hover:bg-surface/15
+              text-[11px] font-semibold text-fg dark:text-fg
+              flex items-center justify-center gap-1.5
+              transition-all active:scale-95 disabled:opacity-50 cursor-pointer
+            "
           >
-            ✕
+            {testingOpenAI ? (
+              <>
+                <RotateCw className="w-3 h-3 animate-spin text-primary dark:text-primary" />
+                <span>Probando conexión con OpenAI...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3 h-3 text-amber-500" />
+                <span>Probar Conexión con OpenAI</span>
+              </>
+            )}
           </button>
+
+          {testOpenAIResult && (
+            <div
+              className={`p-2 rounded-lg border text-[10px] flex items-center justify-between ${
+                testOpenAIResult.ok
+                  ? "bg-positive/10 border-positive/30 text-positive dark:text-positive"
+                  : "bg-danger/10 border-danger/30 text-danger dark:text-danger"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                {testOpenAIResult.ok ? <CheckCircle2 className="w-3 h-3 shrink-0" /> : <AlertCircle className="w-3 h-3 shrink-0" />}
+                <span className="font-medium truncate">
+                  {testOpenAIResult.ok ? `OK — ${testOpenAIResult.model} (${testOpenAIResult.latencyMs} ms)` : testOpenAIResult.error}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTestOpenAIResult(null)}
+                className="text-[10px] opacity-70 hover:opacity-100 ml-1.5 cursor-pointer shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            {savedOpenAISuccess ? (
+              <span className="text-[10px] font-semibold text-positive dark:text-positive flex items-center gap-1">
+                <Check className="w-3 h-3" /> Guardado
+              </span>
+            ) : (
+              <span />
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveOpenAI}
+              className="!rounded-lg !bg-primary hover:!bg-primary !text-fg shadow-[0_4px_16px_rgba(37,99,235,0.25)] cursor-pointer !text-[11px] !py-1.5 !px-2.5"
+              icon={<Save className="w-3 h-3" />}
+            >
+              {t("settings.saveOpenAI", { defaultValue: "Guardar" })}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold text-fg dark:text-fg mb-0.5">Google Gemini AI</h3>
+              <p className="text-[10px] text-muted dark:text-muted leading-snug">
+                Chat Copilot, Tutor pedagógico y mapa conceptual.
+              </p>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0 pt-0.5">
+              <span className="text-[10px] text-muted dark:text-muted font-semibold">
+                {t("settings.aiActive", { defaultValue: "Activo" })}
+              </span>
+              <input
+                type="checkbox"
+                checked={geminiEnabled}
+                onChange={(e) => handleToggleGemini(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-line dark:border-line/10 text-primary accent-primary focus:ring-accent cursor-pointer"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px]">
+              <label className="font-semibold text-fg dark:text-muted flex items-center gap-1">
+                <Key className="w-3 h-3 text-muted dark:text-muted" />
+                Clave API
+              </label>
+              {isFromEnv && (
+                <span className="text-[9px] font-medium text-positive dark:text-positive bg-positive/10 px-1.5 py-0.5 rounded-full border border-positive/20">
+                  .env.local
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="
+                  w-full text-[11px] font-mono px-2.5 py-1.5 pr-8 rounded-lg
+                  text-fg dark:text-fg placeholder:text-muted dark:placeholder:text-muted
+                  bg-sunken/50 dark:bg-app/40
+                  border border-line dark:border-line/5
+                  shadow-inner dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]
+                  focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-primary dark:focus:border-primary
+                  transition-all duration-200
+                "
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg dark:hover:text-fg p-1 rounded-md hover:bg-surface/40 dark:hover:bg-surface/10 transition-colors cursor-pointer"
+                title={showKey ? "Ocultar clave" : "Mostrar clave"}
+              >
+                {showKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-semibold text-fg dark:text-muted flex items-center gap-1">
+              <Cpu className="w-3 h-3 text-muted dark:text-muted" />
+              Modelo
+            </label>
+            <div className="grid grid-cols-1 gap-1.5">
+              {MODEL_OPTIONS.map((opt) => (
+                <ModelCard
+                  key={opt.value}
+                  option={opt}
+                  selected={model === opt.value}
+                  onSelect={() => setModel(opt.value)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={testing || !apiKey}
+            className="
+              w-full h-8 px-2.5 rounded-lg
+              border border-line/80 dark:border-line/10
+              bg-surface/60 dark:bg-surface/10 hover:bg-surface/90 dark:hover:bg-surface/15
+              text-[11px] font-semibold text-fg dark:text-fg
+              flex items-center justify-center gap-1.5
+              transition-all active:scale-95 disabled:opacity-50 cursor-pointer
+            "
+          >
+            {testing ? (
+              <>
+                <RotateCw className="w-3 h-3 animate-spin text-primary dark:text-primary" />
+                <span>Probando...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3 h-3 text-amber-500" />
+                <span>Probar Conexión</span>
+              </>
+            )}
+          </button>
+
+          {testResult && (
+            <div
+              className={`p-2 rounded-lg border text-[10px] flex items-center justify-between ${
+                testResult.ok
+                  ? "bg-positive/10 border-positive/30 text-positive dark:text-positive"
+                  : "bg-danger/10 border-danger/30 text-danger dark:text-danger"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                {testResult.ok ? <CheckCircle2 className="w-3 h-3 shrink-0" /> : <AlertCircle className="w-3 h-3 shrink-0" />}
+                <span className="font-medium truncate">
+                  {testResult.ok ? `OK — ${testResult.model} (${testResult.latencyMs} ms)` : testResult.error}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTestResult(null)}
+                className="text-[10px] opacity-70 hover:opacity-100 ml-1.5 cursor-pointer shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            {savedSuccess ? (
+              <span className="text-[10px] font-semibold text-positive dark:text-positive flex items-center gap-1">
+                <Check className="w-3 h-3" /> Guardado
+              </span>
+            ) : (
+              <span />
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveGemini}
+              className="!rounded-lg !bg-primary hover:!bg-primary !text-fg shadow-[0_4px_16px_rgba(37,99,235,0.25)] cursor-pointer !text-[11px] !py-1.5 !px-2.5"
+              icon={<Save className="w-3 h-3" />}
+            >
+              {t("settings.saveGemini", { defaultValue: "Guardar" })}
+            </Button>
+          </div>
         </div>
       )}
-
-      <div className="flex items-center justify-between pt-1">
-        {savedSuccess ? (
-          <span className="text-[10px] font-semibold text-positive dark:text-positive flex items-center gap-1">
-            <Check className="w-3 h-3" /> Guardado
-          </span>
-        ) : (
-          <span />
-        )}
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleSaveGemini}
-          className="!rounded-lg !bg-primary hover:!bg-primary !text-fg shadow-[0_4px_16px_rgba(37,99,235,0.25)] cursor-pointer !text-[11px] !py-1.5 !px-2.5"
-          icon={<Save className="w-3 h-3" />}
-        >
-          {t("settings.saveGemini", { defaultValue: "Guardar" })}
-        </Button>
-      </div>
     </div>
   );
 

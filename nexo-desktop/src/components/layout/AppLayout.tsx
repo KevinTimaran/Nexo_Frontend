@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import { CommandPalette } from "../navigation/CommandPalette";
 import { SettingsModal } from "../../features/settings/SettingsModal";
 import { CreateProjectModal } from "../../features/dashboard/CreateProjectModal";
+import { OnboardingTour } from "../onboarding/OnboardingTour";
 import { services } from "../../services";
 import { useToast } from "../../context/ToastContext";
-import type { Project, NewProjectInput } from "../../domain/types";
+import type { Project, NewProjectInput, Folder } from "../../domain/types";
 
 export const AppLayout: React.FC = () => {
   const { t } = useTranslation();
@@ -17,12 +18,17 @@ export const AppLayout: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
 
-  // Load recent projects once on layout mount for Command Palette and global context
+  // Load recent projects and folders once on layout mount for Command Palette and global context
   useEffect(() => {
     services.projects
       .list("es")
       .then((data) => setRecentProjects(data))
+      .catch(() => {});
+    services.folders
+      .list()
+      .then((data) => setFolders(data))
       .catch(() => {});
   }, []);
 
@@ -95,7 +101,10 @@ export const AppLayout: React.FC = () => {
         isOpen={createProjectOpen}
         onClose={() => setCreateProjectOpen(false)}
         onSubmit={handleCreateProject}
+        folders={folders}
       />
+
+      <OnboardingTour />
     </div>
   );
 };

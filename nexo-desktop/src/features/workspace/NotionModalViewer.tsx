@@ -138,7 +138,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                   <button
                     onClick={() => onViewInGraph(node.id)}
                     className="h-8 px-2.5 rounded-xl border border-line/80 dark:border-line/10 hover:border-primary/50 bg-surface/60 dark:bg-surface/[0.06] hover:bg-surface/90 text-xs font-medium flex items-center gap-1.5 text-muted dark:text-muted hover:text-fg dark:hover:text-fg transition-all cursor-pointer shadow-xs"
-                    title="Localizar en la constelación Obsidian"
+                    title="Visualizar en Neural 3D"
                   >
                     <Network className="w-3.5 h-3.5 text-primary dark:text-primary" />
                     <span className="hidden sm:inline">Ver en Grafo</span>

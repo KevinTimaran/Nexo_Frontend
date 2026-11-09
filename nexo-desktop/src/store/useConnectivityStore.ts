@@ -11,8 +11,10 @@ import {
   getStoredApiUrl,
   setActiveServiceMode,
   setStoredApiUrl,
+  getAiProvider,
 } from "../services";
 import { isGeminiEnabled, getGeminiModel } from "../services/gemini";
+import { isOpenAIEnabled, getOpenAIModel } from "../services/openai";
 
 interface ConnectivityState {
   // Service mode ('mock' | 'server')
@@ -53,6 +55,25 @@ const initialMode = getActiveServiceMode();
 const initialApiUrl = getStoredApiUrl();
 
 function getActiveAiInfo(currentMode: ServiceMode) {
+  const provider = getAiProvider();
+  if (provider === "openai" && isOpenAIEnabled()) {
+    return {
+      status: "ready" as AIServiceStatus,
+      provider: `OpenAI (${getOpenAIModel()})`,
+    };
+  }
+  if (provider === "gemini" && isGeminiEnabled()) {
+    return {
+      status: "ready" as AIServiceStatus,
+      provider: `Google Gemini (${getGeminiModel()})`,
+    };
+  }
+  if (isOpenAIEnabled()) {
+    return {
+      status: "ready" as AIServiceStatus,
+      provider: `OpenAI (${getOpenAIModel()})`,
+    };
+  }
   if (isGeminiEnabled()) {
     return {
       status: "ready" as AIServiceStatus,

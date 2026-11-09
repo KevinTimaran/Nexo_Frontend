@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, FileDown, Minimize2 } from "lucide-react";
 import { getSpatialGroup, type SpatialNode } from "../../domain/spatial";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { MarkdownShortcutEditor } from "./MarkdownShortcutEditor";
 import { exportToDocx } from "./exportToDocx";
+import { countCodePoints, MAX_NODE_NAME_CHARS } from "../../domain/constants";
 
 interface DocFullscreenProps {
   node: SpatialNode;
@@ -22,6 +23,17 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
 }) => {
   const setDocViewMode = useWorkspaceStore((s) => s.setDocViewMode);
   const spatialGroupColors = useWorkspaceStore((s) => s.spatialGroupColors);
+  const updateSpatialNode = useWorkspaceStore((s) => s.updateSpatialNode);
+
+  const [titleValue, setTitleValue] = useState(node.name);
+  const lastValidTitleRef = useRef(node.name);
+
+  useEffect(() => {
+    setTitleValue(node.name);
+    if (node.name && node.name.trim().length > 0) {
+      lastValidTitleRef.current = node.name.trim();
+    }
+  }, [node.name, node.id]);
 
   const groupMeta = getSpatialGroup(node.group);
   const groupColor = spatialGroupColors[node.group] ?? groupMeta.color;
@@ -42,7 +54,7 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
           className="pointer-events-auto h-11 px-5 rounded-2xl bg-surface hover:bg-elevated text-muted hover:text-fg border border-border-color backdrop-blur-xl transition-all inline-flex items-center gap-2.5 text-xs font-semibold shadow-lg active:scale-95 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 text-concept-fg" />
-          <span>← Regresar al mapa 3D</span>
+          <span>Regresar al mapa 3D</span>
         </button>
 
         <div className="pointer-events-auto flex items-center gap-3">
@@ -59,7 +71,7 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
           <button
             type="button"
             onClick={() => {
-              void exportToDocx(node.name, content);
+              void exportToDocx(titleValue || node.name, content);
             }}
             style={{
               backgroundColor: "var(--button-primary, var(--accent))",
@@ -95,18 +107,59 @@ export const DocFullscreen: React.FC<DocFullscreenProps> = ({
               </span>
             </div>
             
-            {/* Título Editable */}
-            <textarea
-              rows={1}
-              value={node.name}
-              onChange={(e) => {
-                if (onTitleChange) onTitleChange(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              className="w-full bg-transparent text-3xl sm:text-4xl font-extrabold text-fg tracking-tight outline-none border-none p-0 resize-none placeholder:text-muted transition-colors"
-              placeholder="Título del documento..."
-            />
+            {/* Título Editable con validación estricta de 80 caracteres */}
+            <div className="space-y-1.5">
+              <textarea
+                rows={1}
+                value={titleValue}
+                maxLength={MAX_NODE_NAME_CHARS}
+                onChange={(e) => {
+                  const sanitized = e.target.value.replace(/[\r\n]+/g, " ");
+                  if (countCodePoints(sanitized) <= MAX_NODE_NAME_CHARS) {
+                    setTitleValue(sanitized);
+                    const trimmed = sanitized.trim();
+                    if (trimmed.length > 0) {
+                      lastValidTitleRef.current = trimmed;
+                      if (onTitleChange) {
+                        onTitleChange(sanitized);
+                      } else {
+                        updateSpatialNode(node.id, { name: sanitized });
+                      }
+                    }
+                  }
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
+                onBlur={() => {
+                  const trimmed = titleValue.trim();
+                  if (!trimmed) {
+                    const fallback = lastValidTitleRef.current || node.name || "Concepto";
+                    setTitleValue(fallback);
+                    if (onTitleChange) onTitleChange(fallback);
+                    else updateSpatialNode(node.id, { name: fallback });
+                  } else {
+                    setTitleValue(trimmed);
+                    lastValidTitleRef.current = trimmed;
+                    if (onTitleChange) onTitleChange(trimmed);
+                    else updateSpatialNode(node.id, { name: trimmed });
+                  }
+                }}
+                className="w-full bg-transparent text-3xl sm:text-4xl font-extrabold text-fg tracking-tight outline-none border-none p-0 resize-none placeholder:text-muted transition-colors"
+                placeholder="Título del documento..."
+              />
+              <div className="flex items-center justify-between text-[11px] text-muted">
+                <span>{countCodePoints(titleValue)}/{MAX_NODE_NAME_CHARS}</span>
+                {countCodePoints(titleValue) >= MAX_NODE_NAME_CHARS && (
+                  <span className="text-amber-500 font-medium">Máximo 80 caracteres permitidos</span>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Editor Body (Lienzo Negro con margen interno) */}

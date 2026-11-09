@@ -6,9 +6,13 @@ import {
   Check,
   Loader2,
   FolderKanban,
-  FileText,
-  PanelRightClose,
-  PanelRightOpen,
+  Lightbulb,
+  Leaf,
+  Scale,
+  Rocket,
+  Book,
+  Compass,
+  Layers,
 } from "lucide-react";
 import { services } from "../../services";
 import { detectMessageLanguage } from "../../services/ai/prompts";
@@ -18,13 +22,22 @@ import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import { ConceptCanvas } from "./ConceptCanvas";
 import { AIChatDrawer } from "./AIChatDrawer";
-import { NodeInspectorSheet } from "./NodeInspectorSheet";
+import { FullScreenDiscoveryChat, type ChatMessage } from "./FullScreenDiscoveryChat";
 import { NotionModalViewer } from "./NotionModalViewer";
-import { AddNodeModal } from "./AddNodeModal";
 import { GenerateDocumentModal } from "../documents/GenerateDocumentModal";
 import { SpaceWorkspace } from "../spatial/SpaceWorkspace";
 import { Button } from "../../components/ui/Button";
-import type { ConceptMap, ConceptNode, Message, ChatPhase } from "../../domain/types";
+import { NexoLogo } from "../../components/brand/NexoLogo";
+import type { ConceptMap, ConceptNode, Message, ChatPhase, ProjectIcon } from "../../domain/types";
+
+const PROJECT_HEADER_ICONS: Record<ProjectIcon, React.ReactNode> = {
+  lightbulb: <Lightbulb className="w-3.5 h-3.5" />,
+  leaf: <Leaf className="w-3.5 h-3.5" />,
+  scale: <Scale className="w-3.5 h-3.5" />,
+  rocket: <Rocket className="w-3.5 h-3.5" />,
+  book: <Book className="w-3.5 h-3.5" />,
+  compass: <Compass className="w-3.5 h-3.5" />,
+};
 
 export const WorkspaceView: React.FC = () => {
   const { t } = useTranslation();
@@ -48,17 +61,30 @@ export const WorkspaceView: React.FC = () => {
     isChatOpen,
     toggleChat,
     moveNode,
-    addNode,
     removeNode,
     chatPhase,
     setChatPhase,
     isZenMode,
     docViewMode,
+    isArchitectureUnlocked,
+    setArchitectureUnlocked,
+    discoveryMessages,
+    discoverySelectedOptions,
+    setDiscoveryMessages,
+    setDiscoverySelectedOptions,
+    resetWorkspace,
   } = useWorkspaceStore();
 
   const [loading, setLoading] = useState(true);
-  const [isAddNodeOpen, setIsAddNodeOpen] = useState(false);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+
+  // Reset workspace state upon navigating away so landing mode is fresh when reopening
+  useEffect(() => {
+    return () => {
+      resetWorkspace();
+    };
+  }, [resetWorkspace]);
 
   // Load Workspace data on project change or language switch
   useEffect(() => {
@@ -99,11 +125,12 @@ export const WorkspaceView: React.FC = () => {
     saveSession(workspace.map, updatedMessages);
 
     setThinking(true);
+    setChatError(null);
 
     const messageLang = detectMessageLanguage(text, lang);
 
-    // Send last 3-4 messages to maintain conversational context
-    const recentMessageHistory = workspace.messages.slice(-3);
+    // Provide conversation history in forward chronological order
+    const recentMessageHistory = workspace.messages;
 
     try {
       const response = await services.ai.reply({
@@ -115,8 +142,8 @@ export const WorkspaceView: React.FC = () => {
         messageHistory: recentMessageHistory,
       });
 
-      const nextNodes = [...workspace.map.nodes, ...response.newNodes];
-      const nextRelations = [...workspace.map.relations, ...response.newRelations];
+      const nextNodes = [...(workspace.map?.nodes || []), ...(response.newNodes || [])];
+      const nextRelations = [...(workspace.map?.relations || []), ...(response.newRelations || [])];
       const nextMap: ConceptMap = { nodes: nextNodes, relations: nextRelations };
       const nextMessages = [...updatedMessages, response.message];
 
@@ -128,14 +155,80 @@ export const WorkspaceView: React.FC = () => {
 
       saveSession(nextMap, nextMessages);
 
+      if (isDiscoveryMode) {
+        const currentDiscovery = useWorkspaceStore.getState().discoveryMessages;
+        const lastMsg = currentDiscovery[currentDiscovery.length - 1];
+        const listWithUser =
+          lastMsg && lastMsg.role === "user" && lastMsg.content === text
+            ? currentDiscovery
+            : [
+                ...currentDiscovery,
+                {
+                  id: userMessage.id,
+                  role: "user" as const,
+                  content: text,
+                  type: "text" as const,
+                },
+              ];
+
+        const newDiscoveryMsgs: ChatMessage[] = [];
+        const action = (response.message as any).action;
+        const isReady =
+          action === "ready" ||
+          Boolean(
+            response.message.readyForStructuring &&
+              (!response.message.discoveryQuestions || response.message.discoveryQuestions.length === 0)
+          );
+        const hasQuestions = Boolean(
+          response.message.discoveryQuestions &&
+            response.message.discoveryQuestions.length > 0 &&
+            action !== "ready"
+        );
+
+        if (hasQuestions) {
+          newDiscoveryMsgs.push({
+            id: response.message.id || `msg-${Date.now()}`,
+            role: "assistant",
+            content: response.message.text,
+            type: "questionnaire",
+            questions: response.message.discoveryQuestions!.map((dq, idx) => ({
+              id: dq.id || `dq-${Date.now()}-${idx}`,
+              question: dq.question,
+              options: dq.options || [],
+              type: dq.type,
+              allowCustom: dq.allowCustom,
+            })),
+          });
+        } else if (isReady) {
+          newDiscoveryMsgs.push({
+            id: response.message.id || `msg-${Date.now()}`,
+            role: "assistant",
+            content: response.message.text,
+            type: "ready",
+            dimensions: (response.message as any).dimensions,
+          });
+        } else {
+          newDiscoveryMsgs.push({
+            id: response.message.id || `msg-${Date.now()}`,
+            role: "assistant",
+            content: response.message.text,
+            type: "text",
+          });
+        }
+        setDiscoveryMessages([...listWithUser, ...newDiscoveryMsgs]);
+      }
+
       if (response.newNodes.length > 0) {
         showToast(`Se mapearon ${response.newNodes.length} nuevos conceptos.`, "success");
-        if (activePhase === "PHASE_2_STRUCTURING") {
+        setArchitectureUnlocked(true);
+        if (activePhase === "PHASE_2_STRUCTURING" || activePhase === "PHASE_1_DISCOVERY") {
           setChatPhase("PHASE_3_EXPANSION");
         }
       }
-    } catch {
-      showToast(t("chat.error.title"), "error");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : t("chat.error.title");
+      setChatError(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setThinking(false);
     }
@@ -144,16 +237,38 @@ export const WorkspaceView: React.FC = () => {
   const handleGenerateBaseMap = async () => {
     if (!workspace || !projectId) return;
     setChatPhase("PHASE_2_STRUCTURING");
-    await handleSendMessage("Estructura la idea base en el nodo central del mapa conceptual.", "PHASE_2_STRUCTURING");
+    const userMsgs = discoveryMessages.filter((m) => m.role === "user");
+    const userIdea =
+      userMsgs.map((m) => m.content).join(" | ") ||
+      workspace.project.description ||
+      workspace.project.name;
+    const prompt = `Estructura el proyecto "${workspace.project.name}" (Idea y decisiones: ${userIdea}) y sus dimensiones estratégicas (económica, social, técnica y legal) en el mapa conceptual.`;
+    await handleSendMessage(prompt, "PHASE_2_STRUCTURING");
+  };
+
+  const handleGenerateArchitecture = async () => {
+    try {
+      if (!workspace?.map?.nodes?.length) {
+        await handleGenerateBaseMap();
+      }
+      setArchitectureUnlocked(true);
+      setCanvasMode("notion");
+    } catch {
+      // Error is caught and surfaced in handleSendMessage
+    }
+  };
+
+  const handleChatSendMessage = async (text: string) => {
+    const isDimensionExplore = /(explorar punto de vista|punto de vista|dimensi[oó]n)\s*(econ[oó]mic|social|t[eé]cnic|legal|humano|mesero|pasajer)/i.test(text);
+    if (isDimensionExplore && !workspace?.map?.nodes?.length) {
+      await handleSendMessage(text, "PHASE_2_STRUCTURING");
+    } else {
+      await handleSendMessage(text);
+    }
   };
 
   const handleNodeMove = (nodeId: string, x: number, y: number) => {
     moveNode(nodeId, x, y);
-  };
-
-  const handleAddNode = (newNodeData: Omit<ConceptNode, "id">) => {
-    const newNode = addNode(newNodeData);
-    showToast(t("projects.create.created", { name: newNode.title }), "success");
   };
 
   const handleRemoveNode = (nodeId: string) => {
@@ -166,7 +281,7 @@ export const WorkspaceView: React.FC = () => {
   };
 
   const handleAskAIAboutNode = (nodeTitle: string) => {
-    if (!isChatOpen) toggleChat();
+    setCanvasMode("discovery");
     void handleSendMessage(t("canvas.node.askText", { title: nodeTitle }));
   };
 
@@ -189,7 +304,7 @@ export const WorkspaceView: React.FC = () => {
     if (workspaceContainerRef.current) {
       workspaceContainerRef.current.scrollTop = 0;
     }
-  }, [projectId, loading]);
+  }, [projectId, loading, canvasMode]);
 
   if (loading) {
     return (
@@ -240,8 +355,8 @@ export const WorkspaceView: React.FC = () => {
   const nodesList = workspace.map.nodes || [];
   const relationsList = workspace.map.relations || [];
 
-  const selectedNode = nodesList.find((n) => n.id === selectedNodeId) || null;
   const docNode = nodesList.find((n) => n.id === expandedDocNodeId) || null;
+  const isDiscoveryMode = canvasMode === "discovery" || canvasMode === "obsidian";
 
   // Find related nodes for doc overlay
   const docRelatedNodes = docNode
@@ -255,7 +370,7 @@ export const WorkspaceView: React.FC = () => {
   return (
     <div
       ref={workspaceContainerRef}
-      className="w-full h-full flex flex-col relative overflow-hidden bg-app dark:bg-app text-fg dark:text-fg font-sans select-none"
+      className="flex flex-col h-screen w-full relative overflow-hidden bg-app dark:bg-app text-fg dark:text-fg font-sans select-none"
     >
       {/* ─── Ambient VisionOS Light Orbs for Glass Refraction ─── */}
       <div
@@ -273,7 +388,7 @@ export const WorkspaceView: React.FC = () => {
 
       {/* Unified VisionOS Top Navigation Bar */}
       {!(canvasMode === "spatial" && (isZenMode || docViewMode === "fullscreen")) && (
-        <header className="relative z-30 w-full px-6 py-4 flex items-center justify-between gap-4 pointer-events-auto">
+        <header className="shrink-0 z-50 relative w-full px-6 py-4 flex items-center justify-between gap-4 pointer-events-auto">
           {/* Left: Back Button & Project Identification */}
           <div className="flex items-center gap-3">
             <button
@@ -300,12 +415,17 @@ export const WorkspaceView: React.FC = () => {
                 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl select-none
               "
             >
+              <NexoLogo size={18} />
+              <div className="h-3.5 w-px bg-sunken/60 dark:bg-surface/10" />
+              <div className="flex items-center text-accent-primary" title={workspace.project.icon}>
+                {PROJECT_HEADER_ICONS[workspace.project.icon] || <Layers className="w-3.5 h-3.5" />}
+              </div>
               <h2 className="text-xs sm:text-sm font-bold text-fg dark:text-fg tracking-tight max-w-[200px] truncate">
                 {workspace.project.name}
               </h2>
               <div className="h-3.5 w-px bg-sunken/60 dark:bg-surface/10" />
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-positive dark:text-positive bg-positive/15 px-2 py-0.5 rounded-full border border-positive/25">
-                <Check className="w-3 h-3 text-positive dark:text-positive" />
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-positive/10 text-positive border border-positive/20 px-2 py-0.5 rounded-full glass-pill backdrop-blur-md">
+                <Check className="w-3 h-3 text-positive" />
                 {t("workspace.saved")}
               </span>
             </div>
@@ -313,83 +433,69 @@ export const WorkspaceView: React.FC = () => {
 
           {/* Center: Global View Mode Switcher */}
           <div className="flex items-center justify-center">
-            <ViewModeToggle mode={canvasMode} onChange={setCanvasMode} />
+            <ViewModeToggle
+              mode={canvasMode}
+              onChange={setCanvasMode}
+              isLocked={!isArchitectureUnlocked && (!workspace?.map?.nodes?.length)}
+            />
           </div>
 
-          {/* Right: Actions (Document Export & AI Copilot Toggle) */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsDocModalOpen(true)}
-              className="
-                flex items-center gap-1.5 px-3.5 py-2 rounded-2xl
-                bg-surface/70 dark:bg-app/60 backdrop-blur-2xl
-                border border-line/80 dark:border-line/10
-                shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl
-                text-xs font-semibold text-fg dark:text-fg
-                hover:bg-surface/90 dark:hover:bg-surface/5 transition-all cursor-pointer select-none
-              "
-              title="Generar Documento Ejecutivo"
-            >
-              <FileText className="w-4 h-4 text-positive dark:text-positive" />
-              <span className="hidden lg:inline">{t("workspace.exportDoc", "Documento")}</span>
-            </button>
-
-            {canvasMode !== "spatial" && (
-              <button
-                onClick={toggleChat}
-                className={`
-                  flex items-center gap-1.5 px-3.5 py-2 rounded-2xl
-                  backdrop-blur-2xl transition-all cursor-pointer select-none text-xs font-semibold
-                  ${
-                    isChatOpen
-                      ? "bg-primary text-fg shadow-[0_4px_16px_rgba(37,99,235,0.35)] border border-primary"
-                      : "bg-surface/70 dark:bg-app/60 border border-line/80 dark:border-line/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-2xl text-fg dark:text-fg hover:bg-surface/90 dark:hover:bg-surface/5"
-                  }
-                `}
-                title={isChatOpen ? "Cerrar Chat IA" : "Abrir Chat IA"}
-              >
-                {isChatOpen ? (
-                  <PanelRightClose className="w-4 h-4" />
-                ) : (
-                  <PanelRightOpen className="w-4 h-4 text-primary dark:text-primary" />
-                )}
-                <span className="hidden sm:inline">Copilot IA</span>
-              </button>
-            )}
-          </div>
+          {/* Right section: Layout balance */}
+          <div className="flex items-center gap-2 min-w-[32px] justify-end" />
         </header>
       )}
 
       {/* Main Workspace Body */}
-      <div className="flex-1 flex relative overflow-hidden">
-        {/* Spatial Canvas (Main center) */}
-        <div className="flex-1 h-full relative">
+      <div className="flex-1 min-h-0 flex relative overflow-hidden">
+        {/* Main Center Workspace Area */}
+        <div className="flex-1 overflow-hidden relative h-full min-h-0">
           {canvasMode === "spatial" ? (
             <SpaceWorkspace />
+          ) : isDiscoveryMode ? (
+            <FullScreenDiscoveryChat
+              messages={discoveryMessages}
+              initialMessages={discoveryMessages}
+              initialSelectedOptions={discoverySelectedOptions}
+              onMessagesChange={setDiscoveryMessages}
+              onSelectedOptionsChange={setDiscoverySelectedOptions}
+              onSendMessage={handleChatSendMessage}
+              onSelectOption={(questionId, option) => {
+                setDiscoverySelectedOptions({
+                  ...useWorkspaceStore.getState().discoverySelectedOptions,
+                  [questionId]: option,
+                });
+              }}
+              onGenerateArchitecture={handleGenerateArchitecture}
+              onNavigateToMode={async (mode) => {
+                try {
+                  if (!workspace?.map?.nodes?.length) {
+                    await handleGenerateBaseMap();
+                  }
+                  setArchitectureUnlocked(true);
+                  setCanvasMode(mode);
+                } catch {
+                  // Error is caught and surfaced in handleSendMessage
+                }
+              }}
+              isThinking={isThinking}
+              error={chatError}
+              onRetry={() => {
+                setChatError(null);
+                const lastUserMsg = [...discoveryMessages]
+                  .reverse()
+                  .find((m) => m.role === "user");
+                if (lastUserMsg) void handleSendMessage(lastUserMsg.content);
+              }}
+            />
           ) : (
-            <>
-              <ConceptCanvas
-                map={workspace.map}
-                selectedNodeId={selectedNodeId}
-                onSelectNode={selectNode}
-                onNodeMove={handleNodeMove}
-                onOpenAddNode={() => setIsAddNodeOpen(true)}
-                onOpenDocDetail={(node) => setExpandedDocNodeId(node.id)}
-                isChatOpen={isChatOpen}
-              />
-
-              {/* Node Inspector Sheet overlay (when in Obsidian mode and a node is selected) */}
-              {canvasMode === "obsidian" && selectedNode && !docNode && (
-                <NodeInspectorSheet
-                  node={selectedNode}
-                  isChatOpen={isChatOpen}
-                  onClose={() => selectNode(null)}
-                  onAskAI={handleAskAIAboutNode}
-                  onRemoveNode={handleRemoveNode}
-                  onOpenDoc={(node) => setExpandedDocNodeId(node.id)}
-                />
-              )}
-            </>
+            <ConceptCanvas
+              map={workspace.map}
+              selectedNodeId={selectedNodeId}
+              onSelectNode={selectNode}
+              onNodeMove={handleNodeMove}
+              onOpenDocDetail={(node) => setExpandedDocNodeId(node.id)}
+              isChatOpen={false}
+            />
           )}
 
           {/* Document Detail Overlay (expanded Markdown / editorial view) */}
@@ -400,6 +506,7 @@ export const WorkspaceView: React.FC = () => {
               onViewInGraph={() => {
                 setExpandedDocNodeId(null);
                 selectNode(docNode.id);
+                setCanvasMode("spatial");
               }}
               onAskAI={() => handleAskAIAboutNode(docNode.title)}
               onRemoveNode={() => {
@@ -411,17 +518,19 @@ export const WorkspaceView: React.FC = () => {
           )}
         </div>
 
-        {/* AI Copilot Drawer (Floating Creative Glass Drawer) */}
-        {canvasMode !== "spatial" && (
+        {/* AI Copilot Drawer (Floating Creative Glass Drawer - isolated strictly to Ideación IA, hidden when !isDiscoveryMode) */}
+        {isDiscoveryMode && isChatOpen && (
           <AIChatDrawer
             isOpen={isChatOpen}
             onClose={toggleChat}
             messages={workspace.messages}
             isThinking={isThinking}
+            error={chatError}
             onSendMessage={handleSendMessage}
             onGenerateBaseMap={handleGenerateBaseMap}
             onSelectNode={(nodeId) => selectNode(nodeId)}
             onRetry={() => {
+              setChatError(null);
               const lastUserMsg = [...workspace.messages]
                 .reverse()
                 .find((m) => m.role === "user");
@@ -430,13 +539,6 @@ export const WorkspaceView: React.FC = () => {
           />
         )}
       </div>
-
-      {/* Add Concept Node Modal */}
-      <AddNodeModal
-        isOpen={isAddNodeOpen}
-        onClose={() => setIsAddNodeOpen(false)}
-        onAdd={handleAddNode}
-      />
 
       {/* Executive Summary Export Modal */}
       <GenerateDocumentModal

@@ -4,6 +4,7 @@ import { Glass } from "glisse";
 import { Search, X, Network, Filter, MoreVertical, Trash2, Edit2, Check } from "lucide-react";
 import { getSpatialGroup } from "../../domain/spatial";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { countCodePoints, MAX_NODE_NAME_CHARS } from "../../domain/constants";
 
 export const NodeListPanel: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -83,11 +84,12 @@ export const NodeListPanel: React.FC = () => {
 
   const handleSaveRename = (e: React.MouseEvent | React.KeyboardEvent, nodeId: string) => {
     e.stopPropagation();
-    if (renameValue.trim() && updateSpatialNode) {
-      updateSpatialNode(nodeId, { name: renameValue.trim() });
+    const trimmed = renameValue.trim();
+    if (trimmed && countCodePoints(trimmed) <= MAX_NODE_NAME_CHARS && updateSpatialNode) {
+      updateSpatialNode(nodeId, { name: trimmed });
+      setRenameId(null);
+      setActiveMenu(null);
     }
-    setRenameId(null);
-    setActiveMenu(null);
   };
 
   return (
@@ -349,28 +351,51 @@ export const NodeListPanel: React.FC = () => {
                               <motion.div 
                                 key="rename"
                                 initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
-                                className="flex gap-1.5 items-center"
+                                className="flex flex-col gap-1.5"
                               >
-                                <input 
-                                  autoFocus
-                                  value={renameValue}
-                                  onChange={(e) => setRenameValue(e.target.value)}
-                                  onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(e, node.id)}
-                                  className="flex-1 bg-surface/80 text-fg text-[11px] px-2.5 py-1.5 rounded-lg ring-1 ring-line/20 outline-none focus:ring-line/50 transition-all shadow-inner"
-                                  placeholder="Nuevo nombre..."
-                                />
-                                <button 
-                                  onClick={(e) => handleSaveRename(e, node.id)}
-                                  className="p-1.5 bg-surface/15 hover:bg-surface/25 rounded-lg ring-1 ring-line/20 text-fg transition-colors"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                </button>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setRenameId(null); }}
-                                  className="p-1.5 bg-surface/5 hover:bg-red-500/20 rounded-lg ring-1 ring-line/10 text-muted hover:text-red-300 transition-colors"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex gap-1.5 items-center">
+                                  <input 
+                                    autoFocus
+                                    value={renameValue}
+                                    maxLength={MAX_NODE_NAME_CHARS}
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(/[\r\n]+/g, " ");
+                                      if (countCodePoints(val) <= MAX_NODE_NAME_CHARS) {
+                                        setRenameValue(val);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveRename(e, node.id);
+                                      if (e.key === 'Escape') {
+                                        e.stopPropagation();
+                                        setRenameId(null);
+                                      }
+                                    }}
+                                    className="flex-1 bg-surface/80 text-fg text-[11px] px-2.5 py-1.5 rounded-lg ring-1 ring-line/20 outline-none focus:ring-line/50 transition-all shadow-inner"
+                                    placeholder="Nuevo nombre (máx. 80)..."
+                                  />
+                                  <button 
+                                    onClick={(e) => handleSaveRename(e, node.id)}
+                                    disabled={!renameValue.trim() || countCodePoints(renameValue.trim()) > MAX_NODE_NAME_CHARS}
+                                    className="p-1.5 bg-surface/15 hover:bg-surface/25 disabled:opacity-40 rounded-lg ring-1 ring-line/20 text-fg transition-colors cursor-pointer"
+                                    aria-label="Confirmar renombrado"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setRenameId(null); }}
+                                    className="p-1.5 bg-surface/5 hover:bg-red-500/20 rounded-lg ring-1 ring-line/10 text-muted hover:text-red-300 transition-colors cursor-pointer"
+                                    aria-label="Cancelar renombrado"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px] text-muted px-1">
+                                  <span>{countCodePoints(renameValue)}/{MAX_NODE_NAME_CHARS}</span>
+                                  {countCodePoints(renameValue) >= MAX_NODE_NAME_CHARS && (
+                                    <span className="text-amber-500 font-medium">Límite de 80 caracteres</span>
+                                  )}
+                                </div>
                               </motion.div>
 
                             ) : (

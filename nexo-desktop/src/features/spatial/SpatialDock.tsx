@@ -8,7 +8,7 @@ import {
   useSpring,
 } from "framer-motion";
 import { Glass } from "glisse";
-import { Bot, Palette, ListTree, Flower2 } from "lucide-react";
+import { Palette, ListTree, Flower2 } from "lucide-react";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 
 interface MagneticDockButtonProps {
@@ -178,7 +178,7 @@ export const SpatialDock: React.FC = () => {
   const toggleZenMode = useWorkspaceStore((s) => s.toggleZenMode);
 
   const togglePanel = useCallback(
-    (panel: "chat" | "filters" | "nodelist") => {
+    (panel: "filters" | "nodelist") => {
       setActiveLeftPanel(activeLeftPanel === panel ? null : panel);
     },
     [activeLeftPanel, setActiveLeftPanel]
@@ -186,18 +186,10 @@ export const SpatialDock: React.FC = () => {
 
   const panelItems: DockItem[] = [
     {
-      key: "chat",
-      icon: <Bot className="w-5 h-5" />,
-      label: "Abrir Chat de IA",
-      shortcut: "1",
-      isActive: activeLeftPanel === "chat",
-      onClick: () => togglePanel("chat"),
-    },
-    {
       key: "filters",
       icon: <Palette className="w-5 h-5" />,
       label: "Filtros y Configuración de Color",
-      shortcut: "2",
+      shortcut: "1",
       isActive: activeLeftPanel === "filters",
       onClick: () => togglePanel("filters"),
     },
@@ -205,7 +197,7 @@ export const SpatialDock: React.FC = () => {
       key: "nodelist",
       icon: <ListTree className="w-5 h-5" />,
       label: "Explorador de Nodos",
-      shortcut: "3",
+      shortcut: "2",
       isActive: activeLeftPanel === "nodelist",
       onClick: () => togglePanel("nodelist"),
     },
@@ -270,14 +262,11 @@ export const SpatialDock: React.FC = () => {
       const key = e.key.toLowerCase();
       if (key === "1") {
         e.preventDefault();
-        togglePanel("chat");
+        togglePanel("filters");
       } else if (key === "2") {
         e.preventDefault();
-        togglePanel("filters");
-      } else if (key === "3") {
-        e.preventDefault();
         togglePanel("nodelist");
-      } else if (key === "z" || key === "4") {
+      } else if (key === "z" || key === "3") {
         e.preventDefault();
         toggleZenMode();
       }

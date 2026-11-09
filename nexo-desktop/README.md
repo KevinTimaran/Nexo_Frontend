@@ -19,3 +19,7 @@ cd ~/Universidad/Diseno_de_interfaces/Proyectos/AppPc/Nexo_Backend/Nexo_Backend/
 cd ~/Universidad/Diseno_de_interfaces/Proyectos/AppPc/Nexo_Frontend/nexo-desktop
 npm run tauri dev   
 
+
+# Hoja de Ruta de Implementación
+
+Para la planificación arquitectónica y la especificación detallada por fases (Fases 01 a 09), consulte la [Hoja de Ruta Maestra de Implementación](../../../docs/implementation/README.md).

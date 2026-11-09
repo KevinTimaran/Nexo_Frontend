@@ -4,11 +4,12 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, Eye, EyeOff, Lock, Mail, User as UserIcon, ShieldCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, User as UserIcon, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { NexoLogo } from "../../components/brand/NexoLogo";
 import { registerSchema, type RegisterFormData } from "./authValidations";
 
 export const RegisterView: React.FC = () => {
@@ -96,14 +97,14 @@ export const RegisterView: React.FC = () => {
               <div
                 className="
                   relative w-14 h-14 rounded-2xl
-                  bg-gradient-to-br from-blue-600 to-indigo-600
+                  bg-surface/80 dark:bg-surface-primary
                   flex items-center justify-center text-fg
-                  shadow-lg shadow-blue-500/25 ring-1 ring-line/40
+                  shadow-lg ring-1 ring-line/40
                   transition-transform duration-300 hover:scale-[1.03]
                   mb-3
                 "
               >
-                <Sparkles className="w-6 h-6 drop-shadow-sm" />
+                <NexoLogo size={36} />
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight text-fg dark:text-fg">

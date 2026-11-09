@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Flower2 } from "lucide-react";
+import { Flower2, Sparkles } from "lucide-react";
 import { SpatialCanvas3D } from "./SpatialCanvas3D";
 import { SpatialDock } from "./SpatialDock";
 import { ColorSettingsPanel } from "./ColorSettingsPanel";
 import { NodeListPanel } from "./NodeListPanel";
-import { SpatialChatPanel } from "./SpatialChatPanel";
 import { NodeMiniCard } from "./NodeMiniCard";
 import { DocSidebar } from "./DocSidebar";
 import { DocFullscreen } from "./DocFullscreen";
@@ -14,6 +13,7 @@ import { type SpatialNode } from "../../domain/spatial";
 
 export const SpaceWorkspace: React.FC = () => {
   const spatialNodes = useWorkspaceStore((s) => s.spatialNodes);
+  const isThinking = useWorkspaceStore((s) => s.isThinking);
   const activeLeftPanel = useWorkspaceStore((s) => s.activeLeftPanel);
   const setActiveLeftPanel = useWorkspaceStore((s) => s.setActiveLeftPanel);
   const isZenMode = useWorkspaceStore((s) => s.isZenMode);
@@ -24,6 +24,7 @@ export const SpaceWorkspace: React.FC = () => {
   const setDocViewMode = useWorkspaceStore((s) => s.setDocViewMode);
   const spatialDocs = useWorkspaceStore((s) => s.spatialDocs);
   const setSpatialDoc = useWorkspaceStore((s) => s.setSpatialDoc);
+  const updateSpatialNode = useWorkspaceStore((s) => s.updateSpatialNode);
 
   // Selected node entity
   const selectedNode: SpatialNode | undefined = useMemo(
@@ -31,11 +32,12 @@ export const SpaceWorkspace: React.FC = () => {
     [spatialNodes, selectedNodeId]
   );
 
-  // Current document content for Notion modal (fallback to node.desc)
+  // Current document content for Notion modal (fallback to node.details or node.desc)
   const docContent = useMemo(() => {
     if (!selectedNodeId) return "";
     return (
       spatialDocs[selectedNodeId] ??
+      selectedNode?.details ??
       selectedNode?.desc ??
       "Documento de investigación en desarrollo..."
     );
@@ -84,14 +86,22 @@ export const SpaceWorkspace: React.FC = () => {
         <SpatialCanvas3D />
       </div>
 
+      {/* 3D Structuring Loading Overlay */}
+      {isThinking && spatialNodes.length === 0 && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <div className="p-6 rounded-2xl glass-card border border-primary/30 max-w-sm text-center space-y-3 pointer-events-auto animate-pulse">
+            <Sparkles className="w-8 h-8 animate-spin text-primary mx-auto" />
+            <h3 className="text-sm font-bold text-fg">Generando Espacio Neuronal 3D...</h3>
+            <p className="text-xs text-muted">Estructurando conceptos, órbitas y enlaces direccionales con IA.</p>
+          </div>
+        </div>
+      )}
+
       {/* Vertical Dock on Left */}
       {!isZenMode && docViewMode !== "fullscreen" && <SpatialDock />}
 
       {/* Auxiliary Left Panels */}
       <AnimatePresence>
-        {!isZenMode && docViewMode !== "fullscreen" && activeLeftPanel === "chat" && (
-          <SpatialChatPanel key="chat-panel" />
-        )}
         {!isZenMode && docViewMode !== "fullscreen" && activeLeftPanel === "filters" && (
           <ColorSettingsPanel key="filters-panel" />
         )}
@@ -141,6 +151,7 @@ export const SpaceWorkspace: React.FC = () => {
             node={selectedNode}
             content={docContent}
             onChange={(text) => setSpatialDoc(selectedNode.id, text)}
+            onTitleChange={(newTitle) => updateSpatialNode(selectedNode.id, { name: newTitle })}
           />
         )}
       </AnimatePresence>

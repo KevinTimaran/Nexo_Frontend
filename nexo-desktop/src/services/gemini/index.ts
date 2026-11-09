@@ -1,7 +1,8 @@
 /**
  * Native Google Gemini Service for Nexo Desktop.
  * Communicates directly with Google Generative Language API (v1beta).
- * Supports JSON Schema outputs, Tutor didactic mode, and graceful fallback.
+ * Supports JSON Schema outputs, Tutor didactic mode, and genuine error transparency.
+ * NO SILENT MOCK FALLBACKS: Failures surface structured typed errors.
  */
 import type {
   AIResponse,
@@ -16,33 +17,107 @@ import type {
   ResearchPhase,
 } from "../../domain/types";
 import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
-import { mockServices } from "../mock";
 import { getSystemInstruction, buildUserPrompt, detectMessageLanguage } from "../ai/prompts";
+import { normalizeCategory } from "../../domain/constants";
 
 export type { AICardType };
 
-const STORAGE_KEY_GEMINI_KEY = "nexo.gemini.key";
-const STORAGE_KEY_GEMINI_MODEL = "nexo.gemini.model";
-const STORAGE_KEY_GEMINI_ENABLED = "nexo.gemini.enabled";
+/* ---------------- Error Class Hierarchy ---------------- */
+
+export class GeminiError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string = "GEMINI_ERROR",
+    public readonly status?: number
+  ) {
+    super(message);
+    this.name = "GeminiError";
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+export class APIKeyMissingError extends GeminiError {
+  constructor(
+    message: string = "No se ha configurado ninguna clave API de Google Gemini. Configura VITE_GEMINI_API_KEY en .env.local o accede a Ajustes."
+  ) {
+    super(message, "API_KEY_MISSING", 401);
+    this.name = "APIKeyMissingError";
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+export class ProviderQuotaError extends GeminiError {
+  constructor(
+    message: string = "Límite de cuota excedido para Google Gemini (HTTP 429). Espera un momento antes de reintentar."
+  ) {
+    super(message, "PROVIDER_QUOTA_EXCEEDED", 429);
+    this.name = "ProviderQuotaError";
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+export class NetworkError extends GeminiError {
+  constructor(
+    detail?: string,
+    message: string = detail || "Error de red al conectar con Google Gemini. Revisa tu conexión a internet."
+  ) {
+    super(message, "NETWORK_ERROR", 0);
+    this.name = "NetworkError";
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/* ---------------- Configuration & Storage ---------------- */
+
+export const STORAGE_KEY_GEMINI_KEY = "nexo.gemini.key";
+export const STORAGE_KEY_GEMINI_MODEL = "nexo.gemini.model";
+export const STORAGE_KEY_GEMINI_ENABLED = "nexo.gemini.enabled";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+export const DEFAULT_GEMINI_API_KEY =
+  (typeof import.meta !== "undefined" && (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } })?.env?.VITE_GEMINI_API_KEY) ||
+  (typeof process !== "undefined" && process.env?.VITE_GEMINI_API_KEY) ||
+  "";
+
+let inMemoryKey: string | null = null;
+let inMemoryModel: string | null = null;
 
 const uid = (prefix: string) =>
   `${prefix}-${typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).slice(2, 10)}`;
 
 /**
- * Returns the configured Gemini API key:
- * 1. Checks user override in localStorage
- * 2. Checks environment variable VITE_GEMINI_API_KEY (.env.local)
+ * Returns the configured Gemini API key with strict precedence:
+ * 1. Checks user override in localStorage ("nexo.gemini.key")
+ * 2. Checks in-memory override (for testing and runtime config)
+ * 3. Checks environment variable VITE_GEMINI_API_KEY (.env.local / import.meta.env / process.env)
+ * 4. In browser/Tauri window runtime: falls back to DEFAULT_GEMINI_API_KEY so desktop app never degrades to mock.
+ * 5. In headless/node test runner: returns empty string if no key is configured.
  */
 export function getGeminiApiKey(): string {
   try {
-    const custom = localStorage.getItem(STORAGE_KEY_GEMINI_KEY);
-    if (custom && custom.trim().length > 0) return custom.trim();
+    if (typeof localStorage !== "undefined") {
+      const custom = localStorage.getItem(STORAGE_KEY_GEMINI_KEY);
+      if (custom && custom.trim().length > 0) return custom.trim();
+    }
   } catch {
     // Ignore storage issues
   }
-  const envKey = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY;
-  return envKey?.trim() || "";
+  if (inMemoryKey && inMemoryKey.trim().length > 0) {
+    return inMemoryKey.trim();
+  }
+  const envMeta = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } })?.env?.VITE_GEMINI_API_KEY;
+  if (envMeta && envMeta.trim().length > 0) return envMeta.trim();
+
+  if (typeof process !== "undefined" && process.env?.VITE_GEMINI_API_KEY) {
+    const processKey = process.env.VITE_GEMINI_API_KEY;
+    if (processKey && processKey.trim().length > 0) return processKey.trim();
+  }
+
+  // In browser/Tauri environment, ensure we always use the production Gemini API key
+  if (typeof window !== "undefined") {
+    return DEFAULT_GEMINI_API_KEY;
+  }
+
+  return "";
 }
 
 /**
@@ -50,33 +125,54 @@ export function getGeminiApiKey(): string {
  */
 export function getGeminiModel(): string {
   try {
-    const custom = localStorage.getItem(STORAGE_KEY_GEMINI_MODEL);
-    if (custom && custom.trim().length > 0) return custom.trim();
+    if (typeof localStorage !== "undefined") {
+      const custom = localStorage.getItem(STORAGE_KEY_GEMINI_MODEL);
+      if (custom && custom.trim().length > 0) return custom.trim();
+    }
   } catch {
     // Ignore storage issues
   }
-  const envModel = (import.meta as unknown as { env?: { VITE_GEMINI_MODEL?: string } }).env?.VITE_GEMINI_MODEL;
-  return envModel?.trim() || DEFAULT_GEMINI_MODEL;
+  if (inMemoryModel && inMemoryModel.trim().length > 0) {
+    return inMemoryModel.trim();
+  }
+  const envModel = (import.meta as unknown as { env?: { VITE_GEMINI_MODEL?: string } })?.env?.VITE_GEMINI_MODEL;
+  if (envModel && envModel.trim().length > 0) return envModel.trim();
+
+  if (typeof process !== "undefined" && process.env?.VITE_GEMINI_MODEL) {
+    const processModel = process.env.VITE_GEMINI_MODEL;
+    if (processModel && processModel.trim().length > 0) return processModel.trim();
+  }
+  return DEFAULT_GEMINI_MODEL;
 }
 
 export function setGeminiConfig(key?: string, model?: string): void {
-  try {
-    if (key !== undefined) {
-      if (key.trim().length === 0) {
-        localStorage.removeItem(STORAGE_KEY_GEMINI_KEY);
-      } else {
-        localStorage.setItem(STORAGE_KEY_GEMINI_KEY, key.trim());
+  if (key !== undefined) {
+    inMemoryKey = key.trim().length === 0 ? null : key.trim();
+    try {
+      if (typeof localStorage !== "undefined") {
+        if (key.trim().length === 0) {
+          localStorage.removeItem(STORAGE_KEY_GEMINI_KEY);
+        } else {
+          localStorage.setItem(STORAGE_KEY_GEMINI_KEY, key.trim());
+        }
       }
+    } catch (err) {
+      console.warn("No se pudo guardar la clave de Gemini en localStorage:", err);
     }
-    if (model !== undefined) {
-      if (model.trim().length === 0) {
-        localStorage.removeItem(STORAGE_KEY_GEMINI_MODEL);
-      } else {
-        localStorage.setItem(STORAGE_KEY_GEMINI_MODEL, model.trim());
+  }
+  if (model !== undefined) {
+    inMemoryModel = model.trim().length === 0 ? null : model.trim();
+    try {
+      if (typeof localStorage !== "undefined") {
+        if (model.trim().length === 0) {
+          localStorage.removeItem(STORAGE_KEY_GEMINI_MODEL);
+        } else {
+          localStorage.setItem(STORAGE_KEY_GEMINI_MODEL, model.trim());
+        }
       }
+    } catch (err) {
+      console.warn("No se pudo guardar el modelo de Gemini en localStorage:", err);
     }
-  } catch (err) {
-    console.warn("No se pudo guardar la configuración de Gemini:", err);
   }
 }
 
@@ -86,8 +182,10 @@ export function isGeminiConfigured(): boolean {
 
 export function isGeminiEnabled(): boolean {
   try {
-    const val = localStorage.getItem(STORAGE_KEY_GEMINI_ENABLED);
-    if (val === "false") return false;
+    if (typeof localStorage !== "undefined") {
+      const val = localStorage.getItem(STORAGE_KEY_GEMINI_ENABLED);
+      if (val === "false") return false;
+    }
   } catch {
     // Default to true
   }
@@ -96,7 +194,9 @@ export function isGeminiEnabled(): boolean {
 
 export function setGeminiEnabled(enabled: boolean): void {
   try {
-    localStorage.setItem(STORAGE_KEY_GEMINI_ENABLED, enabled ? "true" : "false");
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_GEMINI_ENABLED, enabled ? "true" : "false");
+    }
   } catch {
     // Ignore storage issues
   }
@@ -166,6 +266,65 @@ export async function testGeminiConnection(key?: string, model?: string): Promis
   }
 }
 
+/* ---------------- Internal Error Helpers ---------------- */
+
+async function handleGeminiResponseError(response: Response): Promise<never> {
+  const status = response.status;
+  let detailMessage = `Error en API de Gemini (${status}): ${response.statusText}`;
+  let detailCode = "PROVIDER_HTTP_ERROR";
+
+  try {
+    const errorText = await response.text();
+    if (errorText) {
+      try {
+        const json = JSON.parse(errorText);
+        if (json?.error?.message) {
+          detailMessage = json.error.message;
+        }
+        if (json?.error?.status) {
+          detailCode = json.error.status;
+        }
+      } catch {
+        detailMessage = `${detailMessage} - ${errorText.slice(0, 300)}`;
+      }
+    }
+  } catch {
+    // Keep default detailMessage
+  }
+
+  if (status === 429) {
+    throw new ProviderQuotaError(detailMessage);
+  }
+  if (status === 401 || status === 403) {
+    throw new GeminiError(detailMessage, "API_KEY_INVALID", status);
+  }
+  throw new GeminiError(detailMessage, detailCode, status);
+}
+
+function handleGeminiException(err: unknown, fallbackMessage: string, defaultCode: string): never {
+  if (err instanceof GeminiError) {
+    throw err;
+  }
+  if (err instanceof Error) {
+    const msg = err.message || "";
+    const name = err.name || "";
+    const isNetwork =
+      name === "TypeError" ||
+      name === "AbortError" ||
+      msg.includes("fetch") ||
+      msg.includes("network") ||
+      msg.includes("Failed to fetch") ||
+      msg.includes("ENOTFOUND") ||
+      msg.includes("ECONNREFUSED");
+
+    if (isNetwork) {
+      throw new NetworkError(err.message);
+    }
+    throw new GeminiError(err.message, defaultCode);
+  }
+  throw new GeminiError(fallbackMessage, "UNKNOWN_ERROR");
+}
+
 /* ---------------- Helper layout positioning ---------------- */
 const GAP_X = 340;
 const GAP_Y = 170;
@@ -175,17 +334,14 @@ function calculateNextPosition(existingNodes: ConceptNode[]): { x: number; y: nu
     return { x: 80, y: 160 };
   }
 
-  // Find right-most node
   let maxX = existingNodes[0].x;
   for (const n of existingNodes) {
     if (n.x > maxX) maxX = n.x;
   }
 
-  // Anchor to the latest node
   const lastNode = existingNodes[existingNodes.length - 1];
   const targetX = maxX > 600 ? maxX : lastNode.x + GAP_X;
 
-  // Find a free Y slot to avoid overlaps
   let targetY = lastNode.y;
   let guard = 0;
   while (existingNodes.some((n) => Math.abs(n.x - targetX) < 220 && Math.abs(n.y - targetY) < 130) && guard < 15) {
@@ -197,12 +353,19 @@ function calculateNextPosition(existingNodes: ConceptNode[]): { x: number; y: nu
 }
 
 interface GeminiStructuredReply {
-  text: string;
-  simplifiedExplanation: string;
-  cardType: AICardType;
+  action?: "chat" | "questionnaire" | "ready";
+  message?: string;
+  questions?: Array<{
+    id?: string;
+    question: string;
+    options: string[];
+  }>;
+  text?: string;
+  simplifiedExplanation?: string;
+  cardType?: AICardType;
   readyForStructuring?: boolean;
   discoveryQuestions?: DiscoveryQuestion[];
-  nodes: Array<{
+  nodes?: Array<{
     title: string;
     description: string;
     kind: ConceptKind;
@@ -212,11 +375,20 @@ interface GeminiStructuredReply {
     metadata: string;
     details: string;
   }>;
+  relationships?: Array<{
+    sourceTitle?: string;
+    targetTitle?: string;
+    from?: string;
+    to?: string;
+    type?: string;
+    strength?: number;
+    value?: number;
+    label?: string;
+  }>;
 }
 
-/**
- * Gemini AI Service implementation for Nexo Desktop.
- */
+/* ---------------- Gemini AI Service ---------------- */
+
 export const geminiAiService: AIService = {
   async reply(request: AIReplyRequest): Promise<AIResponse> {
     const apiKey = getGeminiApiKey();
@@ -227,10 +399,9 @@ export const geminiAiService: AIService = {
 
     const effectiveLang = detectMessageLanguage(text, lang);
 
-    // If Gemini is not configured, fall back directly to mock
+    // Fallback 1 Replacement: Throw typed error when key is missing
     if (!apiKey) {
-      console.info("Gemini API key no configurada, usando servicio simulado.");
-      return mockServices.ai.reply({ ...request, lang: effectiveLang });
+      throw new APIKeyMissingError();
     }
 
     const activePhase: ChatPhase =
@@ -251,8 +422,9 @@ export const geminiAiService: AIService = {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+    let response: Response;
     try {
-      const response = await fetch(url, {
+      response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -263,29 +435,30 @@ export const geminiAiService: AIService = {
           },
         }),
       });
+    } catch (fetchErr) {
+      // Fallback 3 Replacement (network/connectivity failure)
+      handleGeminiException(fetchErr, "Error de red al conectar con Google Gemini.", "NETWORK_ERROR");
+    }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn(`Error en API de Gemini (${response.status}):`, errorText);
-        return mockServices.ai.reply({ ...request, lang: effectiveLang });
-      }
+    // Fallback 2 Replacement: Throw typed error on non-200 HTTP response
+    if (!response.ok) {
+      await handleGeminiResponseError(response);
+    }
 
+    try {
       const data = await response.json();
       const rawJson = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!rawJson) {
-        throw new Error("Respuesta vacía de Gemini");
+        throw new GeminiError("Respuesta vacía o incompleta de Google Gemini.", "EMPTY_RESPONSE", 200);
       }
 
       const parsed: GeminiStructuredReply = JSON.parse(rawJson);
 
-      // Map proposed nodes into domain ConceptNodes (enforcing phase rules)
       const newNodes: ConceptNode[] = [];
       const newRelations: ConceptRelation[] = [];
-
       const isWarning = parsed.cardType === "warning";
 
-      // In Phase 1 Discovery or when warning guardrail triggers, NEVER add nodes to canvas
       if (activePhase !== "PHASE_1_DISCOVERY" && !isWarning) {
         let currentMapNodes = [...map.nodes];
         const anchorNode = map.nodes.find((n) => n.kind === "concept") ?? map.nodes[0];
@@ -295,7 +468,7 @@ export const geminiAiService: AIService = {
           const node: ConceptNode = {
             id: uid("n"),
             kind: rawNode.kind || "concept",
-            category: rawNode.category || "technical",
+            category: normalizeCategory(rawNode.category),
             priority: rawNode.priority || "medium",
             status: rawNode.kind === "risk" ? "review" : "exploring",
             phase: rawNode.phase || (activePhase === "PHASE_2_STRUCTURING" ? "planning" : "execution"),
@@ -318,6 +491,60 @@ export const geminiAiService: AIService = {
             });
           }
         }
+
+        // Parse explicit relationships returned by Gemini LLM
+        if (parsed.relationships && parsed.relationships.length > 0) {
+          for (const rel of parsed.relationships) {
+            const sTitle = (rel.sourceTitle || rel.from || "").toLowerCase().trim();
+            const tTitle = (rel.targetTitle || rel.to || "").toLowerCase().trim();
+            if (!sTitle || !tTitle) continue;
+
+            const source = currentMapNodes.find(
+              (n) => n.title.toLowerCase().trim() === sTitle || n.id === rel.from || n.title.toLowerCase().includes(sTitle)
+            );
+            const target = currentMapNodes.find(
+              (n) => n.title.toLowerCase().trim() === tTitle || n.id === rel.to || n.title.toLowerCase().includes(tTitle)
+            );
+
+            if (source && target && source.id !== target.id) {
+              const alreadyExists = newRelations.some(
+                (r) => (r.from === source.id && r.to === target.id) || (r.from === target.id && r.to === source.id)
+              );
+              if (!alreadyExists) {
+                newRelations.push({
+                  id: uid("r"),
+                  from: source.id,
+                  to: target.id,
+                  type: rel.type || "enables",
+                  value: rel.strength || rel.value || 3,
+                  label: rel.label || undefined,
+                });
+              }
+            }
+          }
+        }
+
+        // Automatic Causal Fallback: Ensure generated concepts are linked to the anchor concept in 3D
+        const rootNode = anchorNode || newNodes[0];
+        if (rootNode && newRelations.length === 0 && newNodes.length > 1) {
+          for (const n of newNodes) {
+            if (n.id !== rootNode.id) {
+              newRelations.push({
+                id: uid("r"),
+                from: rootNode.id,
+                to: n.id,
+                type: n.category === "legal" ? "regulates" : n.category === "economic" ? "funds" : "enables",
+                value: 3,
+                label:
+                  n.category === "legal"
+                    ? "Marco Legal"
+                    : n.category === "economic"
+                      ? "Sustento Económico"
+                      : "Componente",
+              });
+            }
+          }
+        }
       }
 
       if (isWarning) {
@@ -326,10 +553,34 @@ export const geminiAiService: AIService = {
       }
 
       const primaryNode = newNodes[0];
-
       const insightItems = [
         ...newNodes.map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
       ];
+
+      const action = parsed.action;
+      const effectiveText = parsed.message || parsed.text || "";
+      const rawQuestions = parsed.questions || parsed.discoveryQuestions || [];
+      const isReadyAction = action === "ready";
+      const isChatAction = action === "chat";
+      const isQuestionnaireAction = action === "questionnaire";
+
+      const mappedQuestions = isChatAction
+        ? []
+        : rawQuestions.map((q: any, idx: number) => ({
+            id: q.id || `q-${idx + 1}`,
+            question: q.question,
+            options: q.options || [],
+            type: q.type || (idx === 1 ? "multiple" : "single"),
+            allowCustom: q.allowCustom ?? true,
+          }));
+
+      const isReadyStructuring = isWarning
+        ? false
+        : isReadyAction
+          ? true
+          : (isChatAction || isQuestionnaireAction)
+            ? false
+            : (parsed.readyForStructuring ?? (activePhase !== "PHASE_1_DISCOVERY"));
 
       return {
         message: {
@@ -338,17 +589,13 @@ export const geminiAiService: AIService = {
           createdAt: now,
           replyTo,
           cardType: parsed.cardType || "idea",
-          text: parsed.text,
-          simplifiedExplanation: parsed.simplifiedExplanation,
+          text: effectiveText,
+          simplifiedExplanation: parsed.simplifiedExplanation || (isReadyAction ? "Idea lista para estructuración." : ""),
           chatPhase: activePhase,
-          readyForStructuring: isWarning
-            ? false
-            : (parsed.readyForStructuring ?? (activePhase !== "PHASE_1_DISCOVERY")),
-          discoveryQuestions: parsed.discoveryQuestions?.map((q, idx) => ({
-            id: q.id || `q-${idx + 1}`,
-            question: q.question,
-            options: q.options || [],
-          })),
+          action: action,
+          readyForStructuring: isReadyStructuring,
+          dimensions: (parsed as any).dimensions || (isReadyAction ? ["economic", "social", "technical", "legal"] : undefined),
+          discoveryQuestions: mappedQuestions,
           insight:
             insightItems.length > 0
               ? {
@@ -375,9 +622,9 @@ export const geminiAiService: AIService = {
         newNodes,
         newRelations,
       };
-    } catch (err) {
-      console.error("Error al procesar respuesta con Gemini, utilizando respaldo simulado:", err);
-      return mockServices.ai.reply({ ...request, lang: effectiveLang });
+    } catch (parseErr) {
+      // Fallback 3 Replacement (JSON parse / structured response failure)
+      handleGeminiException(parseErr, "Error al procesar la respuesta de Gemini.", "GEMINI_PARSE_ERROR");
     }
   },
 
@@ -391,8 +638,9 @@ export const geminiAiService: AIService = {
       lang
     );
 
+    // Fallback 4 Replacement: Throw typed error when key is missing in tutor mode
     if (!apiKey) {
-      return mockServices.ai.explain({ ...request, lang: effectiveLang });
+      throw new APIKeyMissingError();
     }
 
     const targetLang = effectiveLang === "es" ? "Español" : "English";
@@ -413,8 +661,9 @@ Genera una respuesta didáctica estructurada con EXACTAMENTE los siguientes 3 pu
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+    let response: Response;
     try {
-      const response = await fetch(url, {
+      response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -425,18 +674,30 @@ Genera una respuesta didáctica estructurada con EXACTAMENTE los siguientes 3 pu
           },
         }),
       });
+    } catch (fetchErr) {
+      // Fallback 7 Replacement (network failure in tutor mode)
+      handleGeminiException(fetchErr, "Error de red en modo tutor de Google Gemini.", "NETWORK_ERROR");
+    }
 
-      if (!response.ok) {
-        return mockServices.ai.explain({ ...request, lang: effectiveLang });
-      }
+    // Fallback 5 Replacement: Throw typed error on non-200 HTTP response
+    if (!response.ok) {
+      await handleGeminiResponseError(response);
+    }
 
+    try {
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      return text?.trim() || mockServices.ai.explain({ ...request, lang: effectiveLang });
-    } catch (err) {
-      console.warn("Fallo en modo tutor con Gemini, usando respaldo:", err);
-      return mockServices.ai.explain({ ...request, lang: effectiveLang });
+      // Fallback 6 Replacement: Throw typed error when text is empty
+      const trimmedText = text?.trim();
+      if (!trimmedText) {
+        throw new GeminiError("Respuesta vacía de Google Gemini en modo tutor.", "EMPTY_RESPONSE", 200);
+      }
+
+      return trimmedText;
+    } catch (parseErr) {
+      // Fallback 7 Replacement (JSON parse failure in tutor mode)
+      handleGeminiException(parseErr, "Fallo al procesar la respuesta de tutor con Gemini.", "GEMINI_TUTOR_ERROR");
     }
   },
 };

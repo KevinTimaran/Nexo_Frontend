@@ -1,9 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Command, Globe, Settings, Sparkles } from "lucide-react";
+import { Command, Globe, Settings } from "lucide-react";
 import { currentLanguage, setLanguage } from "../../i18n";
 import type { Language } from "../../domain/types";
 import { ConnectivityStatus } from "../connectivity/ConnectivityStatus";
+import { NexoLogo } from "../brand/NexoLogo";
 
 interface TitlebarProps {
   onOpenCommand: () => void;
@@ -41,9 +42,7 @@ export const Titlebar: React.FC<TitlebarProps> = ({
       {/* Left section: Native traffic lights spacing on macOS */}
       <div className="flex items-center gap-3 pl-[72px]">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-concept-fg to-concept-fg/80 text-fg flex items-center justify-center shadow-xs">
-            <Sparkles className="w-3 h-3" />
-          </div>
+          <NexoLogo size={22} />
           <span className="text-body font-bold text-fg tracking-tight">
             {t("app.name")}
           </span>

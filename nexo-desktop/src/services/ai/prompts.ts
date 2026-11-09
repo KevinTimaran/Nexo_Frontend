@@ -95,95 +95,200 @@ Si el mensaje del usuario no tiene NINGUNA relación con la ideación o el proye
   "readyForStructuring": false,
   "discoveryQuestions": [],
   "nodes": []
-}`;
+}
+
+CATEGORÍAS CANÓNICAS OBLIGATORIAS (4 DOMINIOS):
+Cada concepto propuesto en 'nodes' DEBE clasificarse estrictamente en una de las siguientes 4 categorías canónicas:
+1. "legal": Normativas, términos comerciales, privacidad, licencias, protección de datos, propiedad intelectual, contratos.
+2. "economic": Modelos de ingresos, monetización, precios, estructura de costos, CAC/LTV, financiamiento, rentabilidad.
+3. "political": Gobernanza, relaciones institucionales, políticas públicas, alineación de stakeholders, consenso.
+4. "technical": Arquitectura de software, infraestructura, bases de datos, APIs, seguridad, algoritmos, protocolos.
+
+RELEVANCIA Y SCORING (1-10):
+Cada concepto en 'nodes' DEBE incluir un número entero 'relevanceScore' de 1 a 10 evaluando su viabilidad e impacto estratégico:
+- 9-10: Crítico / Fundacional para el proyecto (alta prioridad).
+- 7-8: Alto impacto / Esencial.
+- 5-6: Medio / Soporte operacional.
+- 1-4: Bajo / Periférico o a futuro.
+
+RELACIONES SEMÁNTICAS DIRECCIONALES:
+En fases de estructuración y expansión, vincula los conceptos mediante relaciones causales en el campo 'relationships'.
+Cada relación contiene:
+- sourceTitle: Título del concepto origen.
+- targetTitle: Título del concepto destino.
+- type: Uno de ["enables", "regulates", "funds", "requires", "mitigates", "depends_on"].
+- strength: Entero de 1 a 5 (fuerza de la conexión y densidad de partículas en 3D).
+- label: Breve descripción de la conexión (ej. "Regula cumplimiento normativo").
+
+PREVENCIÓN ESTRICTA DE DUPLICADOS:
+Revisa los 'Nodos existentes en el lienzo'. NO propongas conceptos idénticos o semánticamente redundantes con los que ya existen. Si una idea se vincula con un concepto existente, usa su título exacto en 'relationships' en vez de crear otro nodo duplicado.`;
 
   if (phase === "PHASE_1_DISCOVERY") {
     return `${baseHeader}
 
 ==================================================
-ESTADO ACTUAL: FASE 1 — DESCUBRIMIENTO (PHASE_1_DISCOVERY)
+ESTADO ACTUAL: FASE 1 — DESCUBRIMIENTO (ENRUTADOR JSON ESTRICTO)
 ==================================================
-Objetivo estricto: Definir el "Qué, Quién y Cómo" de la idea sin apresurar soluciones.
+Eres un Arquitecto de Software Consultor experto. Tu objetivo es entender la idea del usuario. DEBES responder SIEMPRE con un objeto JSON válido con esta estructura:
+{
+  "action": "chat" | "questionnaire" | "ready",
+  "message": "Texto que le dirás al usuario",
+  "questions": [array de preguntas solo si action es questionnaire]
+}
 
-TU REGLA DE ORO DE FASE 1:
-ESTADO: FASE 1 - DESCUBRIMIENTO.
-El usuario te entregará una idea cruda en el campo 'userMessage'.
-TU MISIÓN OBLIGATORIA: Lee estrictamente la idea del usuario. NO uses ejemplos predefinidos. Genera 2 o 3 preguntas de opción múltiple que sirvan EXCLUSIVAMENTE para delimitar la idea específica que el usuario acaba de proponer. Si el usuario habla de medicina, tus preguntas deben ser sobre pacientes, doctores o clínicas.
-Devuelve el JSON con la propiedad discoveryQuestions.
+REGLAS DE DECISIÓN:
+1. Si la idea es vaga, confusa o fuera de tema (ej. 'quiero hacer un sándwich' o 'hola'): Usa action: "chat", haz preguntas abiertas en texto pidiendo que aclare su idea de software. NO envíes cuestionarios.
+2. Si la idea ya es clara (ej. 'app de citas para doctores'): Usa action: "questionnaire" y genera exactamente 3 preguntas clave de opción múltiple para definir detalles técnicos o de negocio.
+3. Si el usuario ya respondió el cuestionario o la idea está 100% clara y definida: Usa action: "ready", y en el mensaje dile que estás listo para generar el proyecto.
+
+REGLA DE CONTEXTUALIZACIÓN ESTRICTA:
+Eres un Arquitecto de Software Consultor experto. Cuando la idea del usuario esté clara y decidas enviar un 'questionnaire', TIENES PROHIBIDO usar preguntas genéricas de plantillas de startups (nada de 'público general', 'early adopters' o 'comunidades P2P' a menos que sea una red social).
+
+Tus 3 preguntas deben estar HIPER-PERSONALIZADAS a la INDUSTRIA y MODELO DE NEGOCIO que propone el usuario. 
+Ejemplo: Si el usuario propone una 'app de gestión de restaurantes con múltiples sedes', tus preguntas deben ser sobre:
+1. Roles y permisos (Ej: ¿El sistema tendrá jerarquía entre Superadmin de franquicia, Gerente de sede y Meseros?).
+2. Arquitectura de datos (Ej: ¿Sincronización multi-tenant en tiempo real o bases de datos aisladas por sede?).
+3. Operaciones (Ej: ¿Se integrará con hardware POS e impresoras térmicas o será 100% cloud en tablets?).
+
+Genera siempre un JSON válido adaptando las preguntas y las opciones de respuesta estrictamente al dominio del problema del usuario.
+
+Estructura de cada pregunta en 'questions' (solo cuando action es "questionnaire"):
+[
+  {
+    "id": "q1",
+    "question": "¿Enunciado de la pregunta clave?",
+    "options": ["Opción A", "Opción B", "Opción C"],
+    "type": "single",
+    "allowCustom": true
+  }
+]
 
 Requisitos de calidad:
-- Cada pregunta de opción múltiple debe tener 2 o 3 opciones claras, diferenciadas y relevantes al contexto real del usuario (no genéricas).
-- Las preguntas deben ir dirigidas al mundo real del usuario: si habla de medicina, pregunta sobre pacientes, doctores o clínicas. Si habla de comercio, pregunta sobre clientes, canales o rentabilidad. Si habla de tecnología, pregunta sobre arquitectura, escalabilidad o mantenimiento.
-- No uses ejemplos predefinidos. Todas las preguntas deben estar dibujadas a partir de la idea específica del usuario.
-- Evalúa si la idea ya cuenta con suficiente definición (¿está claro qué es, para quién es y cuál es el mecanismo clave?).
-  - Si la idea aún es ambigua o recién empieza: "readyForStructuring": false.
-  - Si la idea ya tiene suficiente claridad y madurez para fijar la piedra angular: "readyForStructuring": true.
-- En esta Fase 1, "nodes" DEBE SER SIEMPRE UNA LISTA VACÍA ([]). NO crees nodos en el lienzo todavía.
-
-Formato de salida JSON obligatorio para FASE 1:
-{
-  "text": "Breve evaluación reflexiva de la idea del usuario (máximo 2 párrafos concisos)",
-  "simplifiedExplanation": "Explicación en palabras sencillas de por qué delimitamos este aspecto",
-  "cardType": "idea",
-  "readyForStructuring": false,
-  "discoveryQuestions": [
-    {
-      "id": "q1",
-      "question": "¿Cuál es el aspecto más incierto de tu idea que aún no has resuelto?",
-      "options": []
-    }
-  ],
-  "nodes": []
-}`;
+- Cuando action sea "questionnaire", genera EXACTAMENTE 3 preguntas clave de opción múltiple hiper-personalizadas al dominio del usuario. Define "type": "single" o "type": "multiple" según corresponda a la pregunta, y permite siempre respuestas personalizadas ("allowCustom": true).
+- Cada pregunta debe contener entre 2 y 4 opciones técnicas o de negocio específicas de la industria propuesta.
+- CONSULTORÍA ABIERTA Y EJEMPLOS: Si el usuario hace preguntas abiertas, dudas de implementación o pide ejemplos reales (ej. Toast POS, Square), responde con action: "chat" actuando como consultor de producto y citando casos reales.
+- VALIDADOR DE RECHAZO DE OPCIONES: Si el usuario indica que ninguna de las opciones propuestas le parece adecuada o las rechaza, responde con action: "chat", valida empáticamente su postura y pídele que describa su propio enfoque alternativo; NO uses action: "ready".
+- RESPUESTAS PERSONALIZADAS: Si el usuario incluye una opción personalizada ("Otra: ..."), incorpórala explícitamente en el alcance del proyecto al pasar a action: "ready".
+- DIMENSIONES ESTRATÉGICAS: Cuando uses action: "ready", presenta las 4 dimensiones estratégicas para profundizar (Económica, Social / Humana, Técnica y Legal) antes de generar el mapa.
+- En esta Fase 1, no crees nodos en el lienzo. Devuelve únicamente el objeto JSON con la estructura indicada.`;
   }
 
   if (phase === "PHASE_2_STRUCTURING") {
     return `${baseHeader}
 
 ==================================================
-ESTADO ACTUAL: FASE 2 — ESTRUCTURACIÓN (PHASE_2_STRUCTURING)
+ESTADO ACTUAL: FASE 2 — ESTRUCTURACIÓN MULTIDIMENSIONAL (PHASE_2_STRUCTURING)
 ==================================================
-Objetivo estricto: Sintetizar y fijar el NODO CENTRAL FUNDAMENTAL en el lienzo.
+Objetivo estricto: Sintetizar la arquitectura fundacional y sus 4 dimensiones estratégicas en el lienzo ("Concept Canvas") y espacio 3D ("Neuronal 3D").
 
 REGLAS DE FASE 2:
-1. La idea base ha alcanzado suficiente solidez gracias a la delimitación previa.
-2. Ahora debes sintetizar el núcleo del proyecto y proponer EXACTAMENTE UN (1) NODO CENTRAL para el lienzo ("Concept Canvas").
-3. El nodo propuesto DEBE tener:
-   - kind: "concept"
-   - phase: "planning"
-   - category: "technical" o la categoría predominante ("economic", "legal")
-   - priority: "high"
-   - title: Nombre conciso y potente del concepto central (máx. 4 palabras)
-   - description: Declaración de valor clara y precisa de 1-2 oraciones
-   - metadata: Métrica clave de impacto o hipótesis central (ej. "Enfoque B2B verificado")
+1. La idea base ha alcanzado solidez y delimitación previa.
+2. Ahora debes estructurar la arquitectura del proyecto generando entre 4 y 5 conceptos clave que cubran las 4 dimensiones canónicas obligatorias:
+   a) Núcleo Técnico ("technical"): El concepto central y arquitectura fundacional (relevanceScore: 10, prioridad "high", phase: "planning").
+   b) Dimensión Económica ("economic"): Modelo de monetización, costos o viabilidad financiera (relevanceScore: 8-9, prioridad "high", phase: "planning").
+   c) Dimensión Social / Humana ("political"): Adopción de usuarios, bienestar, comunidad o gobernanza (relevanceScore: 8-9, prioridad "high", phase: "planning").
+   d) Dimensión Legal / Regulatoria ("legal"): Cumplimiento normativo, contratos, protección de datos o licencias (relevanceScore: 8-9, prioridad "high", phase: "planning").
+3. Cada concepto propuesto DEBE tener:
+   - title: Nombre conciso y potente del concepto (máx. 4 palabras).
+   - description: Declaración de valor clara y precisa de 1-2 oraciones.
+   - category: Una de las 4 canónicas ("technical", "economic", "political", "legal").
+   - kind: "concept" (o "risk" para marcos regulatorios críticos).
+   - priority: "high" o "medium".
+   - relevanceScore: 8 a 10.
+   - phase: "planning".
+   - metadata: Métrica clave de impacto (ej. "Relevancia 10/10 • Técnico").
    - details: Documentación completa en formato Markdown con subtítulos:
-     ### Núcleo de la Propuesta
-     ### Público Objetivo Primario
-     ### Ventaja Diferencial
-4. En el campo 'text', explica al usuario que este nodo representa la piedra angular de su proyecto y que a partir de este momento comenzarán a explorar sus ramificaciones.
-5. "readyForStructuring": true.
-6. "discoveryQuestions": [].
+     ### Resumen Ejecutivo
+     ### Análisis de Viabilidad e Impacto
+     ### Plan de Acción y Próximos Pasos
+4. RELACIONES CAUSALES DIRECCIONALES:
+   Debes incluir en 'relationships' las conexiones entre el concepto central y cada una de las dimensiones:
+   - sourceTitle: Título del concepto origen (ej. concepto central técnico).
+   - targetTitle: Título del concepto destino (ej. dimensión económica, social o legal).
+   - type: Uno de ["enables", "regulates", "funds", "requires", "depends_on"].
+   - strength: Entero de 3 a 5 (densidad de partículas en 3D).
+   - label: Breve explicación de la relación (ej. "Sustento del modelo de negocio").
+5. En el campo 'text', explica al usuario que has estructurado los pilares fundamentales del proyecto en el Tablero de Conceptos y Espacio Neuronal 3D.
+6. "readyForStructuring": true.
+7. "discoveryQuestions": [].
 
 Formato de salida JSON obligatorio para FASE 2:
 {
-  "text": "Hemos consolidado la idea base. He generado el concepto central en tu lienzo para que sea el ancla de todo el proyecto.",
-  "simplifiedExplanation": "Este es el corazón de tu proyecto en el lienzo.",
+  "text": "Hemos consolidado la idea base. He estructurado la arquitectura de tu proyecto cubriendo sus dimensiones técnica, económica, social y legal en el Tablero y el Espacio Neuronal 3D.",
+  "simplifiedExplanation": "Se han estructurado los 4 pilares fundamentales de tu proyecto en el lienzo y espacio 3D.",
   "cardType": "idea",
   "readyForStructuring": true,
   "discoveryQuestions": [],
   "nodes": [
     {
-      "title": "Mercado Agrícola B2B Directo",
-      "description": "Plataforma de abastecimiento directo entre agricultores certificados y restaurantes urbanos sin intermediarios.",
+      "title": "Arquitectura Central del Sistema",
+      "description": "Estructura técnica fundacional que define el mecanismo operativo principal del proyecto.",
       "kind": "concept",
       "category": "technical",
       "priority": "high",
+      "relevanceScore": 10,
       "phase": "planning",
-      "metadata": "Hipótesis B2B validada",
-      "details": "### Núcleo de la Propuesta\\nConexión directa con trazabilidad de origen.\\n\\n### Público Objetivo\\nRestaurantes y productores locales."
+      "metadata": "Relevancia 10/10 • Técnico",
+      "details": "### Resumen Ejecutivo\\nDefinición fundacional del mecanismo técnico principal propuesto.\\n\\n### Análisis de Viabilidad e Impacto\\nImpacto directo en la viabilidad y valor ofrecido a los usuarios.\\n\\n### Plan de Acción y Próximos Pasos\\n1. Validar la hipótesis técnica central."
+    },
+    {
+      "title": "Modelo Económico y Monetización",
+      "description": "Estructura de ingresos, amortización de costos y viabilidad financiera del proyecto.",
+      "kind": "concept",
+      "category": "economic",
+      "priority": "high",
+      "relevanceScore": 9,
+      "phase": "planning",
+      "metadata": "Relevancia 9/10 • Económico",
+      "details": "### Resumen Ejecutivo\\nEsquema de monetización y análisis de flujos financieros.\\n\\n### Análisis de Viabilidad e Impacto\\nRetorno de inversión y equilibrio operativo.\\n\\n### Plan de Acción y Próximos Pasos\\n1. Modelar costos operativos unitarios."
+    },
+    {
+      "title": "Adopción e Impacto de Usuarios",
+      "description": "Estrategia de experiencia, curva de aprendizaje y valor social para los usuarios clave.",
+      "kind": "concept",
+      "category": "political",
+      "priority": "high",
+      "relevanceScore": 8,
+      "phase": "planning",
+      "metadata": "Relevancia 8/10 • Social",
+      "details": "### Resumen Ejecutivo\\nEstrategia de adopción humana y reducción de fricciones.\\n\\n### Análisis de Viabilidad e Impacto\\nMejora de la retención y bienestar en la operación.\\n\\n### Plan de Acción y Próximos Pasos\\n1. Evaluar retroalimentación de usuarios iniciales."
+    },
+    {
+      "title": "Marco Legal y Cumplimiento",
+      "description": "Garantías regulatorias, términos de servicio y protección de datos para la operación.",
+      "kind": "risk",
+      "category": "legal",
+      "priority": "high",
+      "relevanceScore": 9,
+      "phase": "planning",
+      "metadata": "Relevancia 9/10 • Legal",
+      "details": "### Resumen Ejecutivo\\nMarco regulatorio y normativas de privacidad aplicables.\\n\\n### Análisis de Viabilidad e Impacto\\nMitigación de contingencias legales y fortalecimiento de confianza.\\n\\n### Plan de Acción y Próximos Pasos\\n1. Redactar políticas de privacidad y términos contractuales."
+    }
+  ],
+  "relationships": [
+    {
+      "sourceTitle": "Arquitectura Central del Sistema",
+      "targetTitle": "Modelo Económico y Monetización",
+      "type": "funds",
+      "strength": 4,
+      "label": "Monetiza el flujo operativo"
+    },
+    {
+      "sourceTitle": "Arquitectura Central del Sistema",
+      "targetTitle": "Adopción e Impacto de Usuarios",
+      "type": "enables",
+      "strength": 4,
+      "label": "Facilita la experiencia de usuario"
+    },
+    {
+      "sourceTitle": "Arquitectura Central del Sistema",
+      "targetTitle": "Marco Legal y Cumplimiento",
+      "type": "regulates",
+      "strength": 5,
+      "label": "Cumple marco normativo obligatorio"
     }
   ]
-}`;
+} `;
   }
 
   // PHASE_3_EXPANSION (Default / Advanced phase)
@@ -197,13 +302,17 @@ Objetivo: Sugerir ramificaciones multidimensionales para robustecer el proyecto.
 REGLAS DE FASE 3:
 1. La idea central ya está anclada en el lienzo.
 2. Tu misión ahora es proponer ramificaciones hacia marcos específicos:
-   - Viabilidad Legal / Regulatoria (ej. permisos, protección de datos, términos contractuales).
-   - Retos Tecnológicos / Arquitectura (ej. escalabilidad, seguridad, integraciones).
-   - Modelo Económico / Financiero (ej. comisiones, costos operativos, monetización).
-   - Validación / Factores de Riesgo (ej. adopción, confianza presencial, logística).
-3. Propón de 1 a 3 nodos detallados para enriquecer el mapa conceptual. Cada nodo debe especificar su relación implícita con el núcleo.
-4. "readyForStructuring": true.
-5. "discoveryQuestions": [].
+   - Viabilidad Legal / Regulatoria ("legal") (ej. permisos, protección de datos, términos contractuales).
+   - Retos Tecnológicos / Arquitectura ("technical") (ej. escalabilidad, seguridad, integraciones).
+   - Modelo Económico / Financiero ("economic") (ej. comisiones, costos operativos, monetización).
+   - Políticas Institucionales / Gobernanza ("political") (ej. adopción, consenso de stakeholders).
+3. Propón de 1 a 3 nodos detallados para enriquecer el mapa conceptual. Cada nodo debe incluir 'relevanceScore' (1 a 10) y documentación estructurada en Markdown:
+   ### Resumen Ejecutivo
+   ### Análisis de Viabilidad e Impacto
+   ### Plan de Acción y Próximos Pasos
+4. Establece las conexiones causales en 'relationships' vinculando los nuevos conceptos con los conceptos existentes o entre sí.
+5. "readyForStructuring": true.
+6. "discoveryQuestions": [].
 
 Formato de salida JSON obligatorio para FASE 3:
 {
@@ -214,14 +323,24 @@ Formato de salida JSON obligatorio para FASE 3:
   "discoveryQuestions": [],
   "nodes": [
     {
-      "title": "Cumplimiento y Términos Comerciales",
-      "description": "Marco normativo para la resolución de disputas de calidad en la entrega física.",
+      "title": "Marco de Privacidad y Normativa Legal",
+      "description": "Estructura regulatoria y términos para garantizar la protección de datos y el cumplimiento legal.",
       "kind": "risk",
       "category": "legal",
       "priority": "high",
+      "relevanceScore": 9,
       "phase": "validation",
-      "metadata": "Riesgo crítico de confianza",
-      "details": "### Marco Legal y Mitigación\\nCláusulas claras de inspección al recibir el producto."
+      "metadata": "Relevancia 9/10 • Legal",
+      "details": "### Resumen Ejecutivo\\nMarco normativo y políticas de uso adaptadas al dominio del proyecto.\\n\\n### Análisis de Viabilidad e Impacto\\nPrevención de contingencias legales y fortalecimiento de la confianza.\\n\\n### Plan de Acción y Próximos Pasos\\n1. Redactar términos de servicio y políticas de privacidad."
+    }
+  ],
+  "relationships": [
+    {
+      "sourceTitle": "Arquitectura Central del Sistema",
+      "targetTitle": "Marco de Privacidad y Normativa Legal",
+      "type": "regulates",
+      "strength": 4,
+      "label": "Garantiza marco legal de operación"
     }
   ]
 }`;
@@ -235,31 +354,48 @@ export function buildUserPrompt(ctx: PromptContext): string {
 
   let phaseInstruction = "";
   if (phase === "PHASE_1_DISCOVERY") {
-    // ALWAYS center the user's real message: it is the only thing the questions must be about.
-    phaseInstruction = `ESTADO: FASE 1 - DESCUBRIMIENTO.
-    El usuario te entregará una idea cruda en el campo 'userMessage'.
-    TU MISIÓN OBLIGATORIA: Lee estrictamente la idea del usuario. NO uses ejemplos predefinidos. Genera 2 o 3 preguntas de opción múltiple que sirvan EXCLUSIVAMENTE para delimitar la idea específica que el usuario acaba de proponer. Si el usuario habla de medicina, tus preguntas deben ser sobre pacientes, doctores o clínicas.
-    Devuelve el JSON con la propiedad discoveryQuestions.
-    Restricción estricta: Tus preguntas deben estar dibujadas 100% a partir del contenido del 'userMessage' que verás a continuación. No inventes, no usés ejemplos preestablecidos. Todo el contenido de tu respuesta debe estar condicionado a lo que el usuario escribió.`;
+    phaseInstruction = `ESTADO: FASE 1 - DESCUBRIMIENTO (ENRUTADOR JSON ESTRICTO).
+Eres un Arquitecto de Software Consultor experto. Tu objetivo es entender la idea del usuario. DEBES responder SIEMPRE con un objeto JSON válido con esta estructura:
+{
+  "action": "chat" | "questionnaire" | "ready",
+  "message": "Texto que le dirás al usuario",
+  "questions": [array de preguntas solo si action es questionnaire]
+}
+
+REGLAS DE DECISIÓN:
+1. Si la idea es vaga, confusa o fuera de tema (ej. 'quiero hacer un sándwich' o 'hola'): Usa action: "chat", haz preguntas abiertas en texto pidiendo que aclare su idea de software. NO envíes cuestionarios.
+2. Si la idea ya es clara (ej. 'app de citas para doctores'): Usa action: "questionnaire" y genera exactamente 3 preguntas clave de opción múltiple para definir detalles técnicos o de negocio.
+3. Si el usuario ya respondió el cuestionario o la idea está 100% clara y definida: Usa action: "ready", y en el mensaje dile que estás listo para generar el proyecto.
+
+REGLA DE CONTEXTUALIZACIÓN ESTRICTA:
+Eres un Arquitecto de Software Consultor experto. Cuando la idea del usuario esté clara y decidas enviar un 'questionnaire', TIENES PROHIBIDO usar preguntas genéricas de plantillas de startups (nada de 'público general', 'early adopters' o 'comunidades P2P' a menos que sea una red social).
+
+Tus 3 preguntas deben estar HIPER-PERSONALIZADAS a la INDUSTRIA y MODELO DE NEGOCIO que propone el usuario. 
+Ejemplo: Si el usuario propone una 'app de gestión de restaurantes con múltiples sedes', tus preguntas deben ser sobre:
+1. Roles y permisos (Ej: ¿El sistema tendrá jerarquía entre Superadmin de franquicia, Gerente de sede y Meseros?).
+2. Arquitectura de datos (Ej: ¿Sincronización multi-tenant en tiempo real o bases de datos aisladas por sede?).
+3. Operaciones (Ej: ¿Se integrará con hardware POS e impresoras térmicas o será 100% cloud en tablets?).
+
+Genera siempre un JSON válido adaptando las preguntas y las opciones de respuesta estrictamente al dominio del problema del usuario. Soporta selección única o múltiple ("type": "single" | "multiple"), respuestas personalizadas ("allowCustom": true), consultoría abierta con ejemplos de la industria y presentación de dimensiones estratégicas.`;
   } else if (phase === "PHASE_2_STRUCTURING") {
-    phaseInstruction = `Instrucción de fase: Sintetiza lo conversado y genera ÚNICAMENTE el nodo central fundamental en 'nodes' para el lienzo.`;
+    phaseInstruction = `Instrucción de fase: Sintetiza lo conversado y genera la arquitectura multidimensional del proyecto cubriendo las 4 dimensiones canónicas ('technical', 'economic', 'political', 'legal') en 'nodes' y sus relaciones causales en 'relationships'.`;
   } else {
     phaseInstruction = `Instrucción de fase: Sugiere ramificaciones estructuradas (legal, técnico, económico o riesgos) vinculadas a los conceptos existentes.`;
   }
 
   const isEs = lang === "es";
 
-  // Build the message history section (last 3-4 messages)
-  const messageHistoryText = messageHistory
-    ? messageHistory
-        .slice(-4)
-        .reverse()
-        .map((m) => {
-          const role = m.role === "user" ? "Usuario" : "Asistente";
-          return `${role}: ${m.text}`;
-        })
-        .join("\\n")
-    : "(Sin historial de mensajes)";
+  // Build the message history section in forward chronological order (oldest to newest)
+  // Preserves multi-turn ideation context without reverse ordering or arbitrary 4-message truncation
+  const messageHistoryText =
+    messageHistory && messageHistory.length > 0
+      ? messageHistory
+          .map((m) => {
+            const role = m.role === "user" ? "Usuario" : "Asistente";
+            return `${role}: ${m.text}`;
+          })
+          .join("\n")
+      : "(Sin historial de mensajes)";
 
   return `Nodos existentes en el lienzo:
 ${existingNodesSummary || "(Lienzo en blanco)"}
@@ -283,4 +419,127 @@ INSTRUCCIÓN DE IDIOMA CRÍTICA:
 - ${isEs ? "El mensaje está en ESPAÑOL: TODO el JSON (text, simplifiedExplanation, discoveryQuestions, options, títulos, descripciones y detalles de nodos) DEBE ESTAR 100% EN ESPAÑOL." : "The message is in ENGLISH: the entire JSON (text, simplifiedExplanation, discoveryQuestions, options, node titles, descriptions, and details) MUST BE 100% IN ENGLISH."}
 
 Genera tu respuesta en formato JSON estrictamente válido conforme a las instrucciones del sistema.`;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Normalización semántica y prevención de conceptos duplicados (Phase 05)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+const COMMON_STOPWORDS = new Set([
+  "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "en",
+  "para", "por", "con", "y", "o", "the", "a", "an", "of", "in", "to", "for",
+  "with", "and", "or"
+]);
+
+/**
+ * Normaliza un título de concepto para comparación determinista:
+ * 1. Minúsculas y recortes
+ * 2. Eliminación de diacríticos Unicode (NFD)
+ * 3. Eliminación de puntuación y caracteres no alfanuméricos
+ * 4. Filtrado de stop words en español e inglés
+ * 5. Colapso de espacios múltiples
+ */
+export function normalizeTitle(title: string): string {
+  if (!title) return "";
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos y diacríticos
+    .replace(/[^a-z0-9\s]/gi, " ")   // Reemplazar puntuación por espacio
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !COMMON_STOPWORDS.has(w))
+    .join(" ")
+    .trim();
+}
+
+/**
+ * Calcula la similitud de Jaccard entre los conjuntos de palabras de dos textos.
+ */
+export function calculateJaccardSimilarity(str1: string, str2: string): number {
+  const tokens1 = new Set(str1.split(" ").filter((t) => t.length > 0));
+  const tokens2 = new Set(str2.split(" ").filter((t) => t.length > 0));
+
+  if (tokens1.size === 0 && tokens2.size === 0) return 1.0;
+  if (tokens1.size === 0 || tokens2.size === 0) return 0.0;
+
+  let intersectionCount = 0;
+  for (const token of tokens1) {
+    if (tokens2.has(token)) intersectionCount++;
+  }
+
+  const unionSize = new Set([...tokens1, ...tokens2]).size;
+  return unionSize > 0 ? intersectionCount / unionSize : 0.0;
+}
+
+/**
+ * Calcula la distancia de edición de Levenshtein entre dos cadenas.
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,       // Borrado
+        dp[i][j - 1] + 1,       // Inserción
+        dp[i - 1][j - 1] + cost // Sustitución
+      );
+    }
+  }
+
+  return dp[m][n];
+}
+
+/**
+ * Evalúa si un título candidato duplica algún concepto existente.
+ * Retorna el ConceptNode (o nodo) duplicado si se detecta concordancia, o null si es nuevo.
+ */
+export function findDuplicateConcept<T extends { title: string }>(
+  candidateTitle: string,
+  existingNodes: T[]
+): T | null {
+  const normCandidate = normalizeTitle(candidateTitle);
+  if (!normCandidate) return null;
+
+  for (const node of existingNodes) {
+    const normExisting = normalizeTitle(node.title);
+    if (!normExisting) continue;
+
+    // 1. Concordancia normalizada exacta
+    if (normCandidate === normExisting) {
+      return node;
+    }
+
+    // 2. Coeficiente de similitud de Jaccard (>= 0.75)
+    const jaccard = calculateJaccardSimilarity(normCandidate, normExisting);
+    if (jaccard >= 0.75) {
+      return node;
+    }
+
+    // 3. Tolerancia de Levenshtein para variaciones gramaticales/plurales
+    if (Math.abs(normCandidate.length - normExisting.length) <= 3) {
+      const dist = levenshteinDistance(normCandidate, normExisting);
+      if (dist <= 2 && Math.max(normCandidate.length, normExisting.length) >= 6) {
+        return node;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Retorna true si un título candidato duplica algún concepto existente.
+ */
+export function isDuplicateConcept<T extends { title: string }>(
+  candidateTitle: string,
+  existingNodes: T[]
+): boolean {
+  return findDuplicateConcept(candidateTitle, existingNodes) !== null;
 }

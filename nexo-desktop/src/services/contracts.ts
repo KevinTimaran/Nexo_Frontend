@@ -12,6 +12,7 @@ import type {
   Language,
   Message,
   NewProjectInput,
+  Folder,
   Project,
   User,
   Workspace,
@@ -24,8 +25,18 @@ export interface AuthService {
 }
 
 export interface ProjectService {
-  list(lang: Language): Promise<Project[]>;
+  list(lang: Language, folderId?: string): Promise<Project[]>;
   create(input: NewProjectInput): Promise<Project>;
+  update?(id: string, updates: Partial<Project>): Promise<Project>;
+  delete?(id: string): Promise<void>;
+}
+
+export interface FolderService {
+  list(): Promise<Folder[]>;
+  create(name: string, color?: string): Promise<Folder>;
+  rename(id: string, name: string): Promise<Folder>;
+  delete(id: string): Promise<void>;
+  moveProject(projectId: string, folderId: string | null): Promise<Project>;
 }
 
 export interface WorkspaceService {
@@ -62,6 +73,7 @@ export interface DocumentService {
 export interface Services {
   auth: AuthService;
   projects: ProjectService;
+  folders: FolderService;
   workspace: WorkspaceService;
   ai: AIService;
   documents: DocumentService;
