@@ -1,14 +1,12 @@
 import React from "react";
 import {
-  Scale,
-  TrendingUp,
-  Users,
-  Cpu,
   Flame,
   AlertCircle,
   Clock,
 } from "lucide-react";
 import type { ConceptKind, ConceptStatus, NodeCategory, NodePriority } from "../../domain/types";
+import { SemanticBadge } from "../semantic/SemanticBadges";
+import { resolvePerspectiveVisual } from "../../theme/semanticVisuals";
 
 export interface BadgeProps {
   children?: React.ReactNode;
@@ -70,42 +68,8 @@ export const Badge: React.FC<BadgeProps> = ({
 
   // If a category is passed, render a semantic category badge
   if (category) {
-    const categoryConfig = {
-      legal: {
-        label: "Legal / Regulatorio",
-        icon: <Scale className="w-3 h-3 text-category-legal shrink-0" />,
-        style:
-          "bg-category-legal/10 text-category-legal border border-category-legal/25 dark:bg-category-legal/15 backdrop-blur-sm",
-      },
-      economic: {
-        label: "Económico / Financiero",
-        icon: <TrendingUp className="w-3 h-3 text-category-economic shrink-0" />,
-        style:
-          "bg-category-economic/10 text-category-economic border border-category-economic/25 dark:bg-category-economic/15 backdrop-blur-sm",
-      },
-      political: {
-        label: "Político / Social",
-        icon: <Users className="w-3 h-3 text-category-political shrink-0" />,
-        style:
-          "bg-category-political/10 text-category-political border border-category-political/25 dark:bg-category-political/15 backdrop-blur-sm",
-      },
-      technical: {
-        label: "Técnico / Operacional",
-        icon: <Cpu className="w-3 h-3 text-category-technical shrink-0" />,
-        style:
-          "bg-category-technical/10 text-category-technical border border-category-technical/25 dark:bg-category-technical/15 backdrop-blur-sm",
-      },
-    };
-
-    const config = (category && categoryConfig[category]) ? categoryConfig[category] : categoryConfig.technical;
-    return (
-      <span
-        className={`inline-flex items-center shrink-0 ${sizeStyles[size]} ${config.style} ${className}`}
-      >
-        {config.icon}
-        <span>{children ?? config.label}</span>
-      </span>
-    );
+    const visual = resolvePerspectiveVisual({ category });
+    return <SemanticBadge token={visual} label={typeof children === "string" ? children : undefined} compact={size === "sm"} className={className} />;
   }
 
   // Default / Kind-based badge

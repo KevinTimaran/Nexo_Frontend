@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Node, Edge, NodeChange, EdgeChange, Connection } from "reactflow";
+import { MarkerType, type Node, type Edge, type NodeChange, type EdgeChange, type Connection } from "reactflow";
 import { applyNodeChanges, applyEdgeChanges } from "reactflow";
 import {
   INITIAL_DISCOVERY_MESSAGES,
@@ -28,6 +28,7 @@ import { normalizeRelationType } from "../services/ai/reconcileGraph";
 import { normalizeCategory } from "../domain/constants";
 import { services } from "../services";
 import { initialDiscovery } from "../services/ai/discovery";
+import { resolveRelationVisual } from "../theme/semanticVisuals";
 
 export interface ConceptNodeData extends ConceptNode {
   onOpenDeepDive?: (id: string) => void;
@@ -119,6 +120,10 @@ interface WorkspaceState {
     semanticKind?: ConceptNode["semanticKind"];
     semanticState?: ConceptNode["semanticState"];
     provenanceOrigin?: ConceptNode["provenanceOrigin"];
+    perspectiveId?: ConceptNode["perspectiveId"];
+    cognitiveMode?: ConceptNode["cognitiveMode"];
+    evidenceValidationState?: ConceptNode["evidenceValidationState"];
+    contextValidationStatus?: ConceptNode["contextValidationStatus"];
     sourceFactIds?: string[];
     sourceMessageIds?: string[];
   }) => ConceptNode | null;
@@ -191,26 +196,33 @@ export function convertMapToFlow(
     },
   }));
 
-  const edges: Edge[] = relationsList.map((r) => ({
-    id: r.id,
-    source: r.from,
-    target: r.to,
-    type: "smoothstep",
-    label: r.label,
-    data: {
-      semanticType: r.semanticType,
-      semanticKey: r.semanticKey,
-      origin: r.origin,
-      sourceFactIds: r.sourceFactIds,
-      sourceMessageIds: r.sourceMessageIds,
-      manuallyEditedFields: r.manuallyEditedFields,
-    },
-    animated: true,
-    style: {
-      stroke: "#3b82f6",
-      strokeWidth: 2,
-    },
-  }));
+  const edges: Edge[] = relationsList.map((r) => {
+    const visual = resolveRelationVisual(r.semanticType ?? r.type);
+    return {
+      id: r.id,
+      source: r.from,
+      target: r.to,
+      type: "smoothstep",
+      label: r.label ?? visual.shortLabel,
+      ariaLabel: `${visual.label}: ${r.label ?? `${r.from} a ${r.to}`}`,
+      data: {
+        semanticType: r.semanticType,
+        semanticKey: r.semanticKey,
+        visualFamily: visual.id,
+        origin: r.origin,
+        sourceFactIds: r.sourceFactIds,
+        sourceMessageIds: r.sourceMessageIds,
+        manuallyEditedFields: r.manuallyEditedFields,
+      },
+      animated: visual.id === "influence" || visual.id === "dependency",
+      markerEnd: visual.directed ? { type: MarkerType.ArrowClosed, color: visual.dark } : undefined,
+      style: {
+        stroke: visual.dark,
+        strokeWidth: visual.id === "support" || visual.id === "challenge" ? 2.2 : 1.7,
+        strokeDasharray: visual.lineStyle === "dashed" ? "8 5" : visual.lineStyle === "dotted" ? "2 5" : undefined,
+      },
+    };
+  });
 
   return { nodes, edges };
 }
@@ -292,6 +304,10 @@ export function projectSpatialNodes(
       semanticKind: node.semanticKind,
       semanticState: node.semanticState,
       provenanceOrigin: node.provenanceOrigin,
+      perspectiveId: node.perspectiveId,
+      cognitiveMode: node.cognitiveMode,
+      evidenceValidationState: node.evidenceValidationState,
+      contextValidationStatus: node.contextValidationStatus,
       sourceFactIds: node.sourceFactIds,
       sourceMessageIds: node.sourceMessageIds,
       definitionVersion: node.definitionVersion,
@@ -777,7 +793,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       type: "smoothstep",
       data: { semanticType: "related_to", semanticKey, origin: "user" },
       animated: true,
-      style: { stroke: "#3b82f6", strokeWidth: 2 },
+      style: { stroke: resolveRelationVisual("related_to").dark, strokeWidth: 1.7, strokeDasharray: "2 5" },
     };
     if (workspace.map.relations.some((relation) => relationKey(relation, workspace.map.nodes) === semanticKey)) {
       const { nodes, edges } = convertMapToFlow(workspace.map, (id) => get().openDeepDive(id));
@@ -996,6 +1012,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           semanticKind: node.semanticKind ?? nodeDraft.semanticKind,
           semanticState: node.semanticState ?? nodeDraft.semanticState,
           provenanceOrigin: node.provenanceOrigin ?? nodeDraft.provenanceOrigin,
+          perspectiveId: node.perspectiveId ?? nodeDraft.perspectiveId,
+          cognitiveMode: node.cognitiveMode ?? nodeDraft.cognitiveMode,
+          evidenceValidationState: node.evidenceValidationState ?? nodeDraft.evidenceValidationState,
+          contextValidationStatus: node.contextValidationStatus ?? nodeDraft.contextValidationStatus,
         } : node);
         const nextMap = { ...workspace.map, nodes: nextNodes };
         const nextWorkspace = { ...workspace, map: nextMap };
@@ -1032,6 +1052,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       semanticKind: nodeDraft.semanticKind,
       semanticState: nodeDraft.semanticState,
       provenanceOrigin: nodeDraft.provenanceOrigin,
+      perspectiveId: nodeDraft.perspectiveId,
+      cognitiveMode: nodeDraft.cognitiveMode,
+      evidenceValidationState: nodeDraft.evidenceValidationState,
+      contextValidationStatus: nodeDraft.contextValidationStatus,
       sourceFactIds: nodeDraft.sourceFactIds,
       sourceMessageIds: nodeDraft.sourceMessageIds,
       kind: nodeDraft.kind,

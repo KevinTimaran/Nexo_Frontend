@@ -420,6 +420,13 @@ export function generateEvidenceConceptNode(
     x: 400 + Math.floor(Math.random() * 80),
     y: 300 + Math.floor(Math.random() * 80),
     metadata: `Fuente: ${evidence.source.organization || evidence.source.domain} · Confiabilidad: ${evidence.source.trustScore}/100`,
+    semanticKey: `evidence:${evidence.id}`,
+    semanticKind: "evidence",
+    semanticState: "confirmed",
+    provenanceOrigin: "research_evidence",
+    verification: "confirmed",
+    evidenceValidationState: evidence.validationState,
+    sourceFactIds: evidence.hypothesesLinkedIds,
     details: [
       `### Evidencia Externa: ${evidence.source.title}`,
       `**Fuente:** [${evidence.source.domain}](${evidence.source.url})`,

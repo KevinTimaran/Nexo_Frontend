@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { ChevronDown, Compass, Eye, EyeOff, RotateCcw, X } from "lucide-react";
 import type { PerspectiveActionEvent, PerspectiveEvaluation, PerspectiveId } from "../../domain/types";
 import { visiblePerspectives } from "../../services/ai/perspectiveEngine";
+import { SemanticBadge } from "../../components/semantic/SemanticBadges";
+import { SemanticIcon } from "../../components/semantic/SemanticIcon";
+import { perspectiveVisuals, semanticStatusVisuals } from "../../theme/semanticVisuals";
 
 interface PerspectivePanelProps {
   perspectives?: PerspectiveEvaluation[];
@@ -38,14 +41,17 @@ export const PerspectivePanel: React.FC<PerspectivePanelProps> = ({ perspectives
       <div className="space-y-2">
         {visible.map((item) => {
           const isExpanded = expanded.has(item.perspectiveId) || item.explorationStatus === "explored";
+          const visual = perspectiveVisuals[item.perspectiveId];
+          const statusVisual = item.explorationStatus === "explored" ? semanticStatusVisuals.confirmed : semanticStatusVisuals.proposed;
           return (
-            <article key={item.perspectiveId} className="rounded-xl border border-line bg-surface/50 p-3 space-y-2">
+            <article key={item.perspectiveId} className="rounded-xl border border-line bg-surface/50 p-3 space-y-2 border-l-4" style={{ borderLeftColor: visual.dark }}>
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg flex items-center justify-center bg-surface border border-line" style={{ color: visual.dark }}><SemanticIcon name={visual.icon} className="w-3.5 h-3.5" /></span>
                     <h4 className="text-xs font-bold text-fg">{item.label}</h4>
-                    <span className="text-[10px] rounded-full border border-line px-2 py-0.5 text-muted">{item.relevance === "relevant" ? "Relevante" : "Por explorar"}</span>
-                    {item.explorationStatus === "explored" && <span className="text-[10px] text-positive font-semibold">Explorada</span>}
+                    <SemanticBadge token={visual} compact />
+                    <SemanticBadge token={statusVisual} label={item.explorationStatus === "explored" ? "Explorada" : item.relevance === "relevant" ? "Relevante" : "Por explorar"} borderStyle={statusVisual.borderStyle} compact />
                   </div>
                   <p className="text-xs text-muted mt-1 leading-relaxed">{item.rationale}</p>
                 </div>

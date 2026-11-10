@@ -1,8 +1,10 @@
 import React from "react";
 import { X, FileText, Share2, ExternalLink } from "lucide-react";
 import { GlisseCard } from "../../components/ui/GlisseCard";
-import { SPATIAL_GROUPS, type SpatialNode } from "../../domain/spatial";
+import { type SpatialNode } from "../../domain/spatial";
 import { graphSemanticLabels } from "../../domain/graphSemantics";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
+import { semanticNodeVisuals } from "../../theme/semanticVisuals";
 
 export interface DetailCardProps {
   node: SpatialNode;
@@ -25,9 +27,9 @@ export const DetailCard: React.FC<DetailCardProps> = ({
   onSelectNeighbor,
   className = "",
 }) => {
-  const groupConfig = SPATIAL_GROUPS.find((g) => g.id === node.group);
-  const clusterColor = groupConfig?.color ?? "#6366f1";
   const semanticLabels = graphSemanticLabels(node);
+  const semantic = semanticNodeVisuals(node);
+  const clusterColor = semantic.perspective.dark;
 
   return (
     <GlisseCard
@@ -53,7 +55,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
             }}
           />
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
-            Clúster: {node.group}
+            Perspectiva: {semantic.perspective.label}
           </span>
         </div>
 
@@ -87,6 +89,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({
             ))}
           </div>
         )}
+        <SemanticNodeBadges node={node} showPerspective showOrigin className="mt-2" />
       </div>
 
       {/* Stats Pill */}

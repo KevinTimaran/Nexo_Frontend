@@ -4,6 +4,8 @@ import { Glass } from "glisse";
 import { ArrowDown, X } from "lucide-react";
 import { getSpatialGroup, type SpatialNode } from "../../domain/spatial";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
+import { semanticNodeVisuals } from "../../theme/semanticVisuals";
 
 interface NodeMiniCardProps {
   node: SpatialNode;
@@ -15,7 +17,8 @@ export const NodeMiniCard: React.FC<NodeMiniCardProps> = ({ node, onClose }) => 
   const setDocViewMode = useWorkspaceStore((s) => s.setDocViewMode);
 
   const groupMeta = getSpatialGroup(node.group);
-  const groupColor = spatialGroupColors[node.group] ?? groupMeta.color;
+  const semantic = semanticNodeVisuals(node);
+  const groupColor = spatialGroupColors[node.group] ?? semantic.perspective.dark ?? groupMeta.color;
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     // Glisse swipe-right or swipe-down to dismiss
@@ -99,6 +102,8 @@ export const NodeMiniCard: React.FC<NodeMiniCardProps> = ({ node, onClose }) => 
       <p className="text-xs text-muted leading-relaxed line-clamp-2">
         {node.desc || "Sin descripción adicional en este nodo de investigación."}
       </p>
+
+      <SemanticNodeBadges node={node} showPerspective showOrigin compact max={4} />
 
       {/* Primary Action Button: "Redactar Documento" with arrow down icon */}
       <button

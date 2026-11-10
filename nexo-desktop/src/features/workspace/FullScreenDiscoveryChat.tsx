@@ -27,6 +27,17 @@ import { memoryPresentationForFact, type MemoryAction } from "../../services/ai/
 import { cognitiveMemoryKind, transitionCognitiveBlock } from "../../services/ai/cognitiveAssistance";
 import { isValidExternalUrl } from "../../services/ai/research";
 import { PerspectivePanel } from "./PerspectivePanel";
+import { SemanticBadge } from "../../components/semantic/SemanticBadges";
+import { SemanticIcon } from "../../components/semantic/SemanticIcon";
+import {
+  perspectiveVisuals,
+  resolvePerspectiveVisual,
+  resolveSemanticStatusVisual,
+  semanticStatusVisuals,
+  semanticTypeVisuals,
+  statusFromEvidence,
+  statusFromValidation,
+} from "../../theme/semanticVisuals";
 
 export type QuestionnaireSelectionType = "single" | "multiple";
 export type StrategicDimension = "economic" | "social" | "technical" | "legal";
@@ -316,12 +327,21 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
     const statusLabel = block.status === "accepted"
       ? (proposalKind === "hypothesis" ? "Conservada como hipótesis" : "Aceptada")
       : block.status === "rejected" ? "Rechazada" : block.status === "mapped" ? "En el tablero" : block.status === "modified" ? "Modificada" : "Propuesta de Nexo";
+    const typeVisual = semanticTypeVisuals[block.mode];
+    const perspectiveVisual = block.perspectiveId ? perspectiveVisuals[block.perspectiveId] : perspectiveVisuals.general;
+    const statusVisual = block.status === "rejected"
+      ? semanticStatusVisuals.rejected
+      : block.mode === "hypothesis"
+        ? semanticStatusVisuals.hypothesis
+        : block.status === "accepted" || block.status === "mapped"
+          ? semanticStatusVisuals.confirmed
+          : semanticStatusVisuals.proposed;
     return (
-      <section className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${block.status === "rejected" ? "opacity-60" : ""}`} aria-label={block.title}>
+      <section className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${block.status === "rejected" ? "opacity-60" : ""}`} style={{ borderStyle: statusVisual.borderStyle, borderLeftWidth: 4, borderLeftColor: perspectiveVisual.dark }} aria-label={`${typeVisual.label}: ${block.title}. ${statusVisual.label}.`}>
         <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">{block.mode === "risk" || block.mode === "contradiction" ? <AlertTriangle className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}</div>
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0" style={{ color: typeVisual.dark }}><SemanticIcon name={typeVisual.icon} className="w-4 h-4" /></div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2"><span className="text-[9px] uppercase tracking-wider font-bold text-primary">{labels[block.mode]}</span><span className="text-[9px] text-muted">{statusLabel}</span></div>
+            <div className="flex flex-wrap items-center gap-1.5"><SemanticBadge token={typeVisual} label={labels[block.mode]} compact /><SemanticBadge token={perspectiveVisual} compact /><SemanticBadge token={statusVisual} label={statusLabel} borderStyle={statusVisual.borderStyle} compact /></div>
             <h3 className="text-sm font-bold text-fg mt-1">{block.title}</h3>
           </div>
         </div>
@@ -389,6 +409,8 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
 
   if (block.type === "evidence_card") {
     const { evidence } = block;
+    const evidenceType = semanticTypeVisuals.evidence;
+    const evidenceStatus = semanticStatusVisuals[statusFromEvidence(evidence.validationState)];
     const isInactive = evidence.status === "discarded";
     const statusLabel =
       evidence.status === "accepted"
@@ -398,15 +420,6 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
         : evidence.status === "discarded"
         ? "Descartada"
         : "Evidencia externa recuperada";
-
-    const badgeColor =
-      evidence.validationState === "supports"
-        ? "text-positive bg-positive/10 border-positive/20"
-        : evidence.validationState === "challenges"
-        ? "text-negative bg-negative/10 border-negative/20"
-        : evidence.validationState === "mixed"
-        ? "text-warning bg-warning/10 border-warning/20"
-        : "text-primary bg-primary/10 border-primary/20";
 
     const badgeText =
       evidence.validationState === "supports"
@@ -424,21 +437,18 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
         className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${
           isInactive ? "opacity-60" : ""
         }`}
-        aria-label={`Evidencia: ${evidence.source.title}`}
+        aria-label={`Evidencia: ${evidence.source.title}. ${evidenceStatus.label}.`}
+        style={{ borderStyle: evidenceStatus.borderStyle, borderLeftWidth: 4, borderLeftColor: evidenceType.dark }}
       >
         <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Compass className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0" style={{ color: evidenceType.dark }}>
+              <SemanticIcon name={evidenceType.icon} className="w-4 h-4" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-primary">
-                  EVIDENCIA EXTERNA
-                </span>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                  {badgeText}
-                </span>
+                <SemanticBadge token={evidenceType} label="Evidencia externa" compact />
+                <SemanticBadge token={evidenceStatus} label={badgeText} borderStyle={evidenceStatus.borderStyle} compact />
                 <span className="text-[9px] text-muted">{statusLabel}</span>
               </div>
               <h3 className="text-sm font-bold text-fg mt-1">{evidence.source.title}</h3>
@@ -560,15 +570,8 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
   }
 
   if (block.type === "research_summary") {
-    const badgeColor =
-      block.validationState === "supports"
-        ? "text-positive bg-positive/10 border-positive/20"
-        : block.validationState === "challenges"
-        ? "text-negative bg-negative/10 border-negative/20"
-        : block.validationState === "mixed"
-        ? "text-warning bg-warning/10 border-warning/20"
-        : "text-primary bg-primary/10 border-primary/20";
-
+    const researchType = semanticTypeVisuals.evidence;
+    const researchStatus = semanticStatusVisuals[statusFromEvidence(block.validationState)];
     const badgeText =
       block.validationState === "supports"
         ? "Respalda hipótesis"
@@ -581,21 +584,18 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
     return (
       <section
         className="mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden"
-        aria-label={`Síntesis de investigación: ${block.query}`}
+        aria-label={`Síntesis de investigación: ${block.query}. ${researchStatus.label}.`}
+        style={{ borderStyle: researchStatus.borderStyle, borderLeftWidth: 4, borderLeftColor: researchType.dark }}
       >
         <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Compass className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0" style={{ color: researchType.dark }}>
+              <SemanticIcon name={researchType.icon} className="w-4 h-4" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-primary">
-                  SÍNTESIS DE INVESTIGACIÓN
-                </span>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                  {badgeText}
-                </span>
+                <SemanticBadge token={researchType} label="Síntesis de investigación" compact />
+                <SemanticBadge token={researchStatus} label={badgeText} borderStyle={researchStatus.borderStyle} compact />
               </div>
               <h3 className="text-sm font-bold text-fg mt-1">«{block.query}»</h3>
             </div>
@@ -674,17 +674,8 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
   if (block.type === "validation_summary") {
     const { validation } = block;
     const isInactive = validation.status === "archived";
-
-    const badgeColor =
-      validation.validationStatus === "supported"
-        ? "text-positive bg-positive/10 border-positive/20"
-        : validation.validationStatus === "partially_supported"
-        ? "text-primary bg-primary/10 border-primary/20"
-        : validation.validationStatus === "challenged"
-        ? "text-negative bg-negative/10 border-negative/20"
-        : validation.validationStatus === "mixed"
-        ? "text-warning bg-warning/10 border-warning/20"
-        : "text-muted bg-surface border-line";
+    const validationType = semanticTypeVisuals.validation_result;
+    const validationStatus = semanticStatusVisuals[statusFromValidation(validation.validationStatus)];
 
     const badgeText =
       validation.validationStatus === "supported"
@@ -704,21 +695,18 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
         className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${
           isInactive ? "opacity-60" : ""
         }`}
-        aria-label={`Validación de contexto: ${validation.targetClaim}`}
+        aria-label={`Validación de contexto: ${validation.targetClaim}. ${validationStatus.label}.`}
+        style={{ borderStyle: validationStatus.borderStyle, borderLeftWidth: 4, borderLeftColor: validationType.dark }}
       >
         <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <CalendarDays className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0" style={{ color: validationType.dark }}>
+              <SemanticIcon name={validationType.icon} className="w-4 h-4" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-primary">
-                  VALIDACIÓN DE CONTEXTO E HISTÓRICO
-                </span>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                  {badgeText}
-                </span>
+                <SemanticBadge token={validationType} label="Validación de contexto" compact />
+                <SemanticBadge token={validationStatus} label={badgeText} borderStyle={validationStatus.borderStyle} compact />
                 <span className="text-[9px] text-muted">
                   Confianza: <span className="font-semibold text-fg">{validation.evidenceConfidence}</span>
                 </span>
@@ -847,8 +835,14 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
         {block.items.map((idea) => {
           const isEditing = editingIdeaId === idea.id;
           const isInactive = idea.status === "discarded";
+          const ideaPerspective = resolvePerspectiveVisual({ category: idea.category });
+          const ideaStatus = idea.status === "discarded"
+            ? semanticStatusVisuals.rejected
+            : idea.status === "approved" || idea.status === "mapped"
+              ? semanticStatusVisuals.confirmed
+              : semanticStatusVisuals.proposed;
           return (
-            <article key={idea.id} className={`rounded-xl border border-line bg-surface p-4 flex flex-col ${isInactive ? "opacity-55" : ""}`}>
+            <article key={idea.id} className={`rounded-xl border border-line bg-surface p-4 flex flex-col ${isInactive ? "opacity-55" : ""}`} style={{ borderStyle: ideaStatus.borderStyle, borderLeftWidth: 4, borderLeftColor: ideaPerspective.dark }}>
               {isEditing ? (
                 <div className="space-y-2.5">
                   <input value={idea.title} maxLength={80} onChange={(event) => updateIdea(idea.id, { title: event.target.value })} className="w-full rounded-lg border border-line bg-app px-3 py-2 text-xs font-bold text-fg outline-none focus:border-primary" />
@@ -863,6 +857,7 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
                     <h4 className="text-xs font-bold text-fg">{idea.title}</h4>
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted">{idea.status === "mapped" ? "En tablero" : idea.status === "approved" ? "Aprobada" : idea.status === "discarded" ? "Descartada" : "Propuesta"}</span>
                   </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2"><SemanticBadge token={semanticTypeVisuals.suggestion} compact /><SemanticBadge token={ideaPerspective} compact /><SemanticBadge token={ideaStatus} borderStyle={ideaStatus.borderStyle} compact /></div>
                   <p className="text-[11px] text-muted mt-1.5 leading-relaxed">{idea.description}</p>
                   {idea.benefits.length > 0 && <div className="mt-3"><p className="text-[10px] font-bold text-fg">Beneficios</p><div className="flex flex-wrap gap-1 mt-1">{idea.benefits.map((benefit) => <span key={benefit} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold">{benefit}</span>)}</div></div>}
                   {idea.resources.length > 0 && <p className="text-[10px] text-muted mt-2"><span className="font-bold text-fg">Recursos:</span> {idea.resources.join(", ")}</p>}
@@ -1021,6 +1016,12 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
 
   const renderMemoryItem = (fact: ProjectFact) => {
     const presentation = memoryPresentationForFact(fact);
+    const memoryType = fact.kind ? semanticTypeVisuals[fact.kind] : semanticTypeVisuals.legacy_unknown;
+    const memoryStatus = resolveSemanticStatusVisual({
+      semanticKind: fact.kind,
+      semanticState: fact.memoryState,
+      verification: fact.status,
+    });
     const isEditing = editingMemoryKey === fact.key;
     const isResolving = resolvingMemoryKey === fact.key;
     const actionLabel: Record<Exclude<MemoryAction, "explore">, string> = {
@@ -1033,7 +1034,10 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
     return (
       <div key={fact.key} className="mt-2 rounded-xl border border-line bg-surface/70 p-3" data-memory-key={fact.key} data-memory-state={fact.memoryState}>
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <span className="rounded-full border border-line px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted">{presentation.label}</span>
+          <div className="flex flex-wrap gap-1.5">
+            <SemanticBadge token={memoryType} label={presentation.label} compact />
+            <SemanticBadge token={memoryStatus} borderStyle={memoryStatus.borderStyle} compact />
+          </div>
           <p className="min-w-0 flex-1 basis-full text-[11px] leading-relaxed text-fg">{fact.value}</p>
         </div>
         {isEditing && (

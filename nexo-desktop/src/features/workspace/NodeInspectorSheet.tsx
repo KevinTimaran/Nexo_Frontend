@@ -5,6 +5,8 @@ import { X, Sparkles, Trash2, CheckCircle2, AlertTriangle, FileText } from "luci
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import type { ConceptNode, ResearchPhase } from "../../domain/types";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
+import { semanticNodeVisuals } from "../../theme/semanticVisuals";
 
 interface NodeInspectorSheetProps {
   node: ConceptNode | null;
@@ -41,6 +43,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
   };
 
   const phase = resolvePhase(node);
+  const semantic = semanticNodeVisuals(node);
 
   const getPhaseBadge = (p: ResearchPhase) => {
     switch (p) {
@@ -113,6 +116,7 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
           <div>
             <h3 className="text-lg font-bold text-fg dark:text-fg leading-snug">{node.title}</h3>
             <p className="text-xs text-muted dark:text-muted mt-2 leading-relaxed">{node.description}</p>
+            <SemanticNodeBadges node={node} showPerspective showOrigin className="mt-3" />
           </div>
 
           <div className="p-3.5 rounded-2xl bg-surface/40 dark:bg-surface/5 border border-line/50 dark:border-line/10 space-y-2.5 backdrop-blur-md shadow-xs">
@@ -122,6 +126,30 @@ export const NodeInspectorSheet: React.FC<NodeInspectorSheetProps> = ({
                 {t(`nodeStatus.${node.status}`)}
               </span>
             </div>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted font-medium">Lectura semántica:</span>
+              <span className="text-[10px] text-fg text-right">{semantic.type.label} · {semantic.perspective.label}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted font-medium">Certeza:</span>
+              <span className="text-[10px] text-fg text-right">{semantic.status.label}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-muted font-medium">Procedencia:</span>
+              <span className="text-[10px] text-fg text-right">{semantic.origin.label}</span>
+            </div>
+            {(node.sourceFactIds?.length || node.sourceMessageIds?.length) && (
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-muted font-medium">Trazabilidad:</span>
+                <span className="text-[10px] text-fg text-right">{node.sourceFactIds?.length ?? 0} hechos · {node.sourceMessageIds?.length ?? 0} mensajes</span>
+              </div>
+            )}
+            {node.manuallyEditedFields && node.manuallyEditedFields.length > 0 && (
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-muted font-medium">Edición manual:</span>
+                <span className="text-[10px] text-fg text-right">{node.manuallyEditedFields.join(", ")}</span>
+              </div>
+            )}
             {node.metadata && (
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted dark:text-muted font-medium">Métrica / Evidencia:</span>

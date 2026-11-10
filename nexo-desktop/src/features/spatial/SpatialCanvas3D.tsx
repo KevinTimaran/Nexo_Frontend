@@ -6,12 +6,18 @@ import SpriteText from "three-spritetext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { warmLuxuryDark, warmEditorialLight } from "../../theme/tokens";
 import {
-  getSpatialGroup,
-  type SpatialGroupId,
+  DEFAULT_SPATIAL_GROUP_COLORS,
   type SpatialLink,
   type SpatialNode,
 } from "../../domain/spatial";
 import { playNodeSelectSound } from "../../services/audio/soundEffects";
+import { SemanticLegend } from "../../components/semantic/SemanticLegend";
+import {
+  resolvePerspectiveVisual,
+  resolveRelationVisual,
+  semanticColor,
+  semanticNodeVisuals,
+} from "../../theme/semanticVisuals";
 
 /* ───────────────────────────── Types ───────────────────────────── */
 
@@ -46,6 +52,8 @@ interface NodeVisual {
   meshGroup: THREE.Group;
   haloSprite: THREE.Sprite;
   coreMesh: THREE.Mesh;
+  statusRing: THREE.Mesh;
+  statusMarker: SpriteText;
   group: string;
   seed: number;
   baseRadius: number;
@@ -92,6 +100,13 @@ const BASE = {
 } as const;
 
 const nodeRadius = (val: number): number => Math.cbrt(Math.max(val, 1)) * NODE_REL_SIZE;
+
+function semanticCoreGeometry(shape: ReturnType<typeof semanticNodeVisuals>["type"]["shape"], radius: number): THREE.BufferGeometry {
+  if (shape === "square") return new THREE.BoxGeometry(radius * 0.72, radius * 0.72, radius * 0.72);
+  if (shape === "diamond") return new THREE.OctahedronGeometry(radius * 0.58, 0);
+  if (shape === "cut-corner") return new THREE.TetrahedronGeometry(radius * 0.66, 0);
+  return new THREE.SphereGeometry(radius * 0.42, 24, 24);
+}
 
 const emphasisFor = (group: string, filter: string | null): Emphasis =>
   filter === null ? "neutral" : group === filter ? "focus" : "dim";
@@ -245,6 +260,24 @@ export const SpatialCanvas3D: React.FC = () => {
     }
     return true;
   });
+  const [reduceMotion, setReduceMotion] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return document.documentElement.dataset.reduceMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const update = () => setReduceMotion(document.documentElement.dataset.reduceMotion === "true" || Boolean(media?.matches));
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-reduce-motion"] });
+    media?.addEventListener?.("change", update);
+    update();
+    return () => {
+      observer.disconnect();
+      media?.removeEventListener?.("change", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -276,12 +309,14 @@ export const SpatialCanvas3D: React.FC = () => {
     }
   }, [isDarkTheme]);
 
-  const resolveGroupColor = useCallback(
-    (groupId: string) => {
-      const fromStore = spatialGroupColors[groupId as SpatialGroupId];
-      return fromStore ?? getSpatialGroup(groupId).color;
+  const resolveNodeColor = useCallback(
+    (node: SpatialNode) => {
+      const fromStore = spatialGroupColors[node.group];
+      const defaultColor = DEFAULT_SPATIAL_GROUP_COLORS[node.group];
+      if (fromStore && defaultColor && fromStore !== defaultColor) return fromStore;
+      return semanticColor(resolvePerspectiveVisual(node), isDarkTheme);
     },
-    [spatialGroupColors]
+    [spatialGroupColors, isDarkTheme],
   );
 
   const fgRef = useRef<FGMethods | undefined>(undefined);
@@ -304,6 +339,14 @@ export const SpatialCanvas3D: React.FC = () => {
     }),
     [spatialNodes, spatialLinks]
   );
+  const visiblePerspectiveVisuals = useMemo(() => {
+    const byId = new Map<string, ReturnType<typeof resolvePerspectiveVisual>>();
+    spatialNodes.forEach((node) => {
+      const visual = resolvePerspectiveVisual(node);
+      byId.set(visual.id, visual);
+    });
+    return [...byId.values()];
+  }, [spatialNodes]);
 
   const nodeById = useMemo(() => {
     const map = new Map<string, FGNode>();
@@ -428,7 +471,7 @@ export const SpatialCanvas3D: React.FC = () => {
       }
 
       // 3. Rotación ambiental del universo de estrellas
-      if (starsRef.current) {
+      if (starsRef.current && !reduceMotion) {
         starsRef.current.rotation.y = time * 0.015;
         starsRef.current.rotation.x = Math.sin(time * 0.01) * 0.05;
       }
@@ -460,14 +503,14 @@ export const SpatialCanvas3D: React.FC = () => {
         }
 
         // Flotación orgánica en 3 ejes (órbita suave para que nunca parezcan estáticos)
-        v.floatGroup.position.y = Math.sin(time * 1.4 + v.seed) * 2.4;
-        v.floatGroup.position.x = Math.cos(time * 0.9 + v.seed) * 1.6;
-        v.floatGroup.position.z = Math.sin(time * 1.1 + v.seed * 1.7) * 1.6;
+        v.floatGroup.position.y = reduceMotion ? 0 : Math.sin(time * 1.4 + v.seed) * 2.4;
+        v.floatGroup.position.x = reduceMotion ? 0 : Math.cos(time * 0.9 + v.seed) * 1.6;
+        v.floatGroup.position.z = reduceMotion ? 0 : Math.sin(time * 1.1 + v.seed * 1.7) * 1.6;
 
         // Pulso de respiración en el halo luminoso y el núcleo interno
-        const pulse = 1 + Math.sin(time * 2.2 + v.seed) * 0.12;
+        const pulse = reduceMotion ? 1 : 1 + Math.sin(time * 2.2 + v.seed) * 0.12;
         v.haloSprite.scale.setScalar(v.baseRadius * 5 * pulse);
-        v.coreMesh.scale.setScalar(0.92 + Math.sin(time * 2.2 + v.seed) * 0.08);
+        v.coreMesh.scale.setScalar(reduceMotion ? 1 : 0.92 + Math.sin(time * 2.2 + v.seed) * 0.08);
       });
 
       rafId = requestAnimationFrame(animate);
@@ -475,12 +518,15 @@ export const SpatialCanvas3D: React.FC = () => {
 
     animate();
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [reduceMotion]);
 
   /* ── Creación de cada Nodo 3D ── */
   const buildNodeObject = useCallback(
     (node: FGNode): THREE.Object3D => {
-      const color = new THREE.Color(resolveGroupColor(node.group));
+      const semantic = semanticNodeVisuals(node);
+      const color = new THREE.Color(resolveNodeColor(node));
+      const typeColor = new THREE.Color(semanticColor(semantic.type, isDarkTheme));
+      const statusColor = new THREE.Color(semanticColor(semantic.status, isDarkTheme));
       const radius = nodeRadius(node.val);
 
       const wrapper = new THREE.Group();
@@ -505,12 +551,26 @@ export const SpatialCanvas3D: React.FC = () => {
       meshGroup.add(new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), orb));
 
       const core = new THREE.MeshBasicMaterial({
-        color,
+        color: typeColor,
         transparent: true,
         opacity: BASE.coreOpacity,
+        wireframe: semantic.type.shape !== "round",
       });
-      const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.42, 24, 24), core);
+      const coreMesh = new THREE.Mesh(semanticCoreGeometry(semantic.type.shape, radius), core);
       meshGroup.add(coreMesh);
+
+      const statusRingMaterial = new THREE.MeshBasicMaterial({
+        color: statusColor,
+        transparent: true,
+        opacity: semantic.status.opacity * 0.86,
+      });
+      const statusRing = new THREE.Mesh(
+        new THREE.TorusGeometry(radius * 1.2, Math.max(0.12, radius * 0.055), 8, 36),
+        statusRingMaterial,
+      );
+      statusRing.rotation.x = Math.PI / 2;
+      statusRing.rotation.z = semantic.status.borderStyle === "dashed" ? Math.PI / 4 : 0;
+      meshGroup.add(statusRing);
 
       const halo = new THREE.SpriteMaterial({
         map: getHaloTexture(),
@@ -525,13 +585,21 @@ export const SpatialCanvas3D: React.FC = () => {
       haloSprite.raycast = () => {};
       floatGroup.add(haloSprite);
 
-      const label = new SpriteText(node.name, 3.4, fgColor);
+      const label = new SpriteText(`${semantic.type.glyph} ${node.name}`, 3.4, fgColor);
       label.fontFace = LABEL_FONT;
       label.fontWeight = "600";
       label.material.transparent = true;
       label.material.depthWrite = false;
       label.position.set(0, radius + 4, 0);
       floatGroup.add(label);
+
+      const statusMarker = new SpriteText(semantic.status.glyph, 4.2, semanticColor(semantic.status, isDarkTheme));
+      statusMarker.fontFace = LABEL_FONT;
+      statusMarker.fontWeight = "800";
+      statusMarker.material.transparent = true;
+      statusMarker.material.depthWrite = false;
+      statusMarker.position.set(radius * 1.15, radius * 0.85, 0);
+      floatGroup.add(statusMarker);
 
       let light: THREE.PointLight | null = null;
       let lightIntensity = 0;
@@ -547,6 +615,8 @@ export const SpatialCanvas3D: React.FC = () => {
         meshGroup,
         haloSprite,
         coreMesh,
+        statusRing,
+        statusMarker,
         baseRadius: radius,
         group: node.group,
         orb,
@@ -576,23 +646,24 @@ export const SpatialCanvas3D: React.FC = () => {
 
       return wrapper;
     },
-    [getHaloTexture, resolveGroupColor, fgColor, isDarkTheme]
+    [getHaloTexture, resolveNodeColor, fgColor, isDarkTheme]
   );
 
   useEffect(() => {
-    visualsRef.current.forEach((visual) => {
-      const colorHex = resolveGroupColor(visual.group);
+    spatialNodes.forEach((node) => {
+      const visual = visualsRef.current.get(String(node.id));
+      if (!visual) return;
+      const colorHex = resolveNodeColor(node);
       const color = new THREE.Color(colorHex);
       visual.orb.color.copy(color);
       visual.orb.emissive.copy(color);
-      visual.core.color.copy(color);
       visual.halo.color.copy(color);
       if (visual.light) {
         visual.light.color.copy(color);
       }
     });
     fgRef.current?.refresh?.();
-  }, [resolveGroupColor]);
+  }, [resolveNodeColor, spatialNodes]);
 
   // Synchronize SpriteText labels in real time upon node rename
   useEffect(() => {
@@ -605,13 +676,21 @@ export const SpatialCanvas3D: React.FC = () => {
 
     spatialNodes.forEach((node) => {
       const visual = visualsRef.current.get(String(node.id));
-      if (visual && visual.label && visual.label.text !== node.name) {
-        visual.label.text = node.name;
+      if (visual) {
+        const semantic = semanticNodeVisuals(node);
+        const nextLabel = `${semantic.type.glyph} ${node.name}`;
+        if (visual.label.text !== nextLabel) visual.label.text = nextLabel;
+        visual.core.color.set(semanticColor(semantic.type, isDarkTheme));
+        visual.statusMarker.text = semantic.status.glyph;
+        visual.statusMarker.color = semanticColor(semantic.status, isDarkTheme);
+        const ringMaterial = visual.statusRing.material as THREE.MeshBasicMaterial;
+        ringMaterial.color.set(semanticColor(semantic.status, isDarkTheme));
+        ringMaterial.opacity = semantic.status.opacity * 0.86;
       }
     });
 
     fgRef.current?.refresh?.();
-  }, [spatialNodes]);
+  }, [spatialNodes, isDarkTheme]);
 
   useEffect(() => {
     activeFilterRef.current = activeFilter;
@@ -632,14 +711,15 @@ export const SpatialCanvas3D: React.FC = () => {
       const tgtEnd = link.target;
       const source = (typeof srcEnd === "object" && srcEnd !== null ? srcEnd : nodeById.get(String(srcEnd))) as FGNode | undefined;
       const target = (typeof tgtEnd === "object" && tgtEnd !== null ? tgtEnd : nodeById.get(String(tgtEnd))) as FGNode | undefined;
-      const sourceColor = source ? resolveGroupColor(source.group) : fgColor;
-      if (!activeFilter) return { emphasis: "neutral", color: sourceColor };
+      const relationVisual = resolveRelationVisual(link.semanticType ?? link.type);
+      const relationColor = semanticColor(relationVisual, isDarkTheme);
+      if (!activeFilter) return { emphasis: "neutral", color: relationColor };
       const touchesFilter = source?.group === activeFilter || target?.group === activeFilter;
       return touchesFilter
-        ? { emphasis: "focus", color: resolveGroupColor(activeFilter) }
-        : { emphasis: "dim", color: sourceColor };
+        ? { emphasis: "focus", color: relationColor }
+        : { emphasis: "dim", color: relationColor };
     },
-    [nodeById, activeFilter, resolveGroupColor, fgColor]
+    [nodeById, activeFilter, isDarkTheme]
   );
 
   const linkColor = useCallback(
@@ -656,18 +736,28 @@ export const SpatialCanvas3D: React.FC = () => {
   const linkWidth = useCallback(
     (link: FGLink): number => {
       const { emphasis } = linkEmphasis(link);
-      return emphasis === "focus" ? 1.4 : emphasis === "dim" ? 0.2 : 0.6;
+      const family = resolveRelationVisual(link.semanticType ?? link.type).id;
+      const base = family === "support" || family === "challenge" ? 1.15 : family === "neutral" ? 0.45 : 0.8;
+      return emphasis === "focus" ? base * 1.8 : emphasis === "dim" ? 0.2 : base;
     },
     [linkEmphasis]
   );
 
   const linkParticles = useCallback(
     (link: FGLink): number => {
+      if (reduceMotion) return 0;
       const { emphasis } = linkEmphasis(link);
+      const relationVisual = resolveRelationVisual(link.semanticType ?? link.type);
+      if (!relationVisual.directed) return 0;
       const base = Math.max(1, Math.round(link.value ?? 1));
       return emphasis === "dim" ? 0 : emphasis === "focus" ? base + 2 : base;
     },
-    [linkEmphasis]
+    [linkEmphasis, reduceMotion]
+  );
+
+  const linkArrowLength = useCallback(
+    (link: FGLink): number => resolveRelationVisual(link.semanticType ?? link.type).directed ? 4 : 0,
+    [],
   );
 
   const linkParticleWidth = useCallback(
@@ -707,7 +797,7 @@ export const SpatialCanvas3D: React.FC = () => {
 
     const travelDistance = startPos.distanceTo(endPos) + startTarget.distanceTo(endTarget) * 0.5;
     // Escalado con raíz cuadrada: suave de cerca (~1.1s) y majestuoso de lejos (~2.4s máx)
-    const duration = Math.min(2400, Math.max(1050, 700 + Math.sqrt(travelDistance) * 42));
+    const duration = reduceMotion ? 180 : Math.min(2400, Math.max(1050, 700 + Math.sqrt(travelDistance) * 42));
 
     zoomOutImpulseRef.current = 0;
     flightRef.current = {
@@ -718,7 +808,7 @@ export const SpatialCanvas3D: React.FC = () => {
       endPos,
       endTarget,
     };
-  }, []);
+  }, [reduceMotion]);
 
   const handleNodeClick = useCallback(
     (node: FGNode) => {
@@ -870,9 +960,12 @@ export const SpatialCanvas3D: React.FC = () => {
         linkDirectionalParticleSpeed={PARTICLE_SPEED}
         linkDirectionalParticleWidth={linkParticleWidth}
         linkDirectionalParticleColor={linkParticleColor}
+        linkDirectionalArrowLength={linkArrowLength}
+        linkDirectionalArrowRelPos={1}
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
       />
+      <SemanticLegend perspectives={visiblePerspectiveVisuals} floating className="pointer-events-auto" />
     </div>
   );
 };

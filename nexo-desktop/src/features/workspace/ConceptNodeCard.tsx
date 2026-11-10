@@ -1,10 +1,12 @@
 import React, { memo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
-import { Maximize2, Sparkles, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import type { ConceptNodeData } from "../../store/useWorkspaceStore";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import type { ResearchPhase, NodePriority } from "../../domain/types";
-import { graphSemanticLabels } from "../../domain/graphSemantics";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
+import { SemanticIcon } from "../../components/semantic/SemanticIcon";
+import { semanticNodeVisuals } from "../../theme/semanticVisuals";
 
 const PHASE_CONFIG: Record<
   ResearchPhase,
@@ -53,7 +55,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
     const phaseInfo = PHASE_CONFIG[phase] || PHASE_CONFIG.planning;
     const priority = data.priority || "medium";
     const priorityInfo = PRIORITY_BADGE[priority] || PRIORITY_BADGE.medium;
-    const semanticLabels = graphSemanticLabels(data);
+    const semantic = semanticNodeVisuals(data);
 
     const handleOpenDetails = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -81,6 +83,15 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
               : "border-line/80 dark:border-line/10 hover:border-concept-fg/40"
           }
         `}
+        data-semantic-type={semantic.type.id}
+        data-semantic-status={semantic.status.id}
+        data-perspective={semantic.perspective.id}
+        aria-label={`${data.title}. ${semantic.type.label}. ${semantic.perspective.label}. ${semantic.status.label}.`}
+        style={{
+          borderStyle: semantic.status.borderStyle,
+          opacity: semantic.status.opacity,
+          clipPath: semantic.type.shape === "cut-corner" ? "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%)" : undefined,
+        }}
       >
         {/* Specular hairline reflection */}
         <div
@@ -113,7 +124,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
         />
 
         {/* 1. Barra superior muy fina con el color de su fase */}
-        <div className={`h-1.5 w-full rounded-t-2xl ${phaseInfo.bar} transition-colors duration-200`} />
+        <div className="h-1.5 w-full rounded-t-2xl transition-colors duration-200" style={{ backgroundColor: semantic.perspective.dark }} />
 
         {/* 2. Contenido de la mini-tarjeta */}
         <div className="p-3.5 space-y-2">
@@ -130,11 +141,7 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
               >
                 {priorityInfo.label}
               </span>
-              {semanticLabels.slice(0, 2).map((label) => (
-                <span key={label} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border border-line/60 bg-surface/50 text-muted">
-                  {label}
-                </span>
-              ))}
+              <SemanticNodeBadges node={data} showPerspective showOrigin={false} compact max={2} />
             </div>
 
             {/* Botón tipo ghost con ícono Maximize2 visible en hover */}
@@ -167,9 +174,10 @@ export const ConceptNodeCard: React.FC<NodeProps<ConceptNodeData>> = memo(
               <span className="truncate max-w-[200px] font-mono text-[10px]">
                 {data.metadata}
               </span>
-              {data.kind === "concept" && <Sparkles className="w-3.5 h-3.5 text-concept-fg shrink-0" />}
-              {data.kind === "viability" && <CheckCircle2 className="w-3.5 h-3.5 text-positive-fg shrink-0" />}
-              {data.kind === "risk" && <AlertTriangle className="w-3.5 h-3.5 text-risk-fg shrink-0" />}
+              <span className="inline-flex items-center gap-1 font-sans" style={{ color: semantic.type.dark }} title={semantic.type.label}>
+                <SemanticIcon name={semantic.type.icon} className="w-3.5 h-3.5" />
+                <span className="sr-only">{semantic.type.label}</span>
+              </span>
             </div>
           )}
         </div>

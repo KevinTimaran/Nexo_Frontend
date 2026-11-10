@@ -112,6 +112,14 @@ export interface ConceptNode {
   semanticKind?: ProjectMemoryKind;
   semanticState?: ProjectMemoryState;
   provenanceOrigin?: ProjectMemoryOrigin;
+  /** Canonical analytical lens when the node was created from a perspective-aware insight. */
+  perspectiveId?: PerspectiveId;
+  /** Existing cognitive-assistance type, retained when a chat insight becomes a graph node. */
+  cognitiveMode?: CognitiveAssistanceMode;
+  /** Evidence result used to derive visual status without persisting computed colors. */
+  evidenceValidationState?: EvidenceValidationState;
+  /** Context-validation result used to derive visual status without persisting computed colors. */
+  contextValidationStatus?: ValidationStatus;
   sourceMessageIds?: string[];
   /** New layout fields are separate; x/y/z remain readable legacy aliases. */
   layout?: ConceptNodeLayout;

@@ -1,5 +1,6 @@
 // src/theme/tokens.ts
 import type { NodeCategory, NodePriority } from "../domain/types";
+import { perspectiveVisuals } from "./semanticVisuals";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -139,8 +140,8 @@ export const semanticColors = {
   category: {
     legal: {
       name: "Legal / Regulatorio",
-      light: "#6B21A8",
-      dark: "#A855F7",
+      light: perspectiveVisuals.legal.light,
+      dark: perspectiveVisuals.legal.dark,
       bgLight: "rgba(107, 33, 168, 0.08)",
       bgDark: "rgba(168, 85, 247, 0.15)",
       borderLight: "rgba(107, 33, 168, 0.3)",
@@ -148,8 +149,8 @@ export const semanticColors = {
     },
     economic: {
       name: "Económico / Financiero",
-      light: "#065F46",
-      dark: "#10B981",
+      light: perspectiveVisuals.economic.light,
+      dark: perspectiveVisuals.economic.dark,
       bgLight: "rgba(6, 95, 70, 0.08)",
       bgDark: "rgba(16, 185, 129, 0.15)",
       borderLight: "rgba(6, 95, 70, 0.3)",
@@ -157,8 +158,8 @@ export const semanticColors = {
     },
     political: {
       name: "Político / Social",
-      light: "#1E3A8A",
-      dark: "#3B82F6",
+      light: perspectiveVisuals.political.light,
+      dark: perspectiveVisuals.political.dark,
       bgLight: "rgba(30, 58, 138, 0.08)",
       bgDark: "rgba(59, 130, 246, 0.15)",
       borderLight: "rgba(30, 58, 138, 0.3)",
@@ -166,8 +167,8 @@ export const semanticColors = {
     },
     technical: {
       name: "Técnico / Operacional",
-      light: "#0F766E",
-      dark: "#14B8A6",
+      light: perspectiveVisuals.technical.light,
+      dark: perspectiveVisuals.technical.dark,
       bgLight: "rgba(15, 118, 110, 0.08)",
       bgDark: "rgba(20, 184, 166, 0.15)",
       borderLight: "rgba(15, 118, 110, 0.3)",

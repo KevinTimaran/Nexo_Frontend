@@ -13,8 +13,13 @@ import type {
   ProjectMemoryKind,
   ProjectMemoryState,
   ProjectMemoryOrigin,
+  PerspectiveId,
+  CognitiveAssistanceMode,
+  EvidenceValidationState,
+  ValidationStatus,
   RelationSemanticType,
 } from "./types";
+import { perspectiveVisuals } from "../theme/semanticVisuals";
 
 export type SpatialGroupId =
   | NodeCategory
@@ -64,6 +69,10 @@ export interface SpatialNode {
   semanticKind?: ProjectMemoryKind;
   semanticState?: ProjectMemoryState;
   provenanceOrigin?: ProjectMemoryOrigin;
+  perspectiveId?: PerspectiveId;
+  cognitiveMode?: CognitiveAssistanceMode;
+  evidenceValidationState?: EvidenceValidationState;
+  contextValidationStatus?: ValidationStatus;
   sourceFactIds?: string[];
   sourceMessageIds?: string[];
   definitionVersion?: string;
@@ -98,21 +107,21 @@ export interface SpatialProjectBrief {
 }
 
 export const SPATIAL_GROUPS: readonly SpatialGroupMeta[] = [
-  { id: "core", label: "Núcleo", color: "#E5C158" },
-  { id: "legal", label: "Legal", color: "#A855F7" },
-  { id: "economic", label: "Económico", color: "#10B981" },
-  { id: "political", label: "Político", color: "#3B82F6" },
-  { id: "technical", label: "Técnico", color: "#64748B" },
+  { id: "core", label: "Núcleo", color: perspectiveVisuals.general.dark },
+  { id: "legal", label: perspectiveVisuals.legal.label, color: perspectiveVisuals.legal.dark },
+  { id: "economic", label: perspectiveVisuals.economic.label, color: perspectiveVisuals.economic.dark },
+  { id: "political", label: perspectiveVisuals.political.label, color: perspectiveVisuals.political.dark },
+  { id: "technical", label: perspectiveVisuals.technical.label, color: perspectiveVisuals.technical.dark },
 ] as const;
 
 export const SPATIAL_GROUP_IDS: SpatialGroupId[] = SPATIAL_GROUPS.map((group) => group.id);
 
 export const DEFAULT_SPATIAL_GROUP_COLORS: Record<SpatialGroupId, string> = {
-  core: "#E5C158",
-  legal: "#A855F7",
-  economic: "#10B981",
-  political: "#3B82F6",
-  technical: "#64748B",
+  core: perspectiveVisuals.general.dark,
+  legal: perspectiveVisuals.legal.dark,
+  economic: perspectiveVisuals.economic.dark,
+  political: perspectiveVisuals.political.dark,
+  technical: perspectiveVisuals.technical.dark,
   // Legacy groups preserved for backward compatibility
   research: "#22d3ee",
   product: "#34d399",
@@ -125,12 +134,12 @@ const GROUP_INDEX: Record<string, SpatialGroupMeta> = Object.fromEntries(
 );
 
 export const getSpatialGroup = (id: string | null | undefined): SpatialGroupMeta => {
-  if (!id) return { id: "core", label: "General", color: "#E5C158" };
+  if (!id) return { id: "core", label: "General", color: perspectiveVisuals.general.dark };
   return (
     GROUP_INDEX[id] ?? {
       id: id as SpatialGroupId,
       label: id.charAt(0).toUpperCase() + id.slice(1),
-      color: DEFAULT_SPATIAL_GROUP_COLORS[id as SpatialGroupId] ?? "#E5C158",
+      color: DEFAULT_SPATIAL_GROUP_COLORS[id as SpatialGroupId] ?? perspectiveVisuals.general.dark,
     }
   );
 };

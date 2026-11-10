@@ -6,6 +6,7 @@ import { getSpatialGroup, type SpatialNode } from "../../domain/spatial";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { MarkdownShortcutEditor } from "./MarkdownShortcutEditor";
 import { exportToDocx } from "./exportToDocx";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
 
 interface DocSidebarProps {
   node: SpatialNode;
@@ -126,6 +127,7 @@ export const DocSidebar: React.FC<DocSidebarProps> = ({
             </button>
           </div>
         </div>
+        <SemanticNodeBadges node={node} showPerspective showOrigin compact max={4} />
       </motion.div>
 
       {/* Lienzo de Escritura Negro Sólido */}

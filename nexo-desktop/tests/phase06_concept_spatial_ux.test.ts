@@ -416,8 +416,8 @@ assert.strictEqual(countCodePoints(emojiTitle) <= MAX_NODE_NAME_CHARS, true);
 
 // 5.3 Real-time SpriteText synchronization in SpatialCanvas3D.tsx
 assert.ok(
-  spatialCanvas3DCode.includes("visual.label.text = node.name"),
-  "SpatialCanvas3D.tsx must update SpriteText visual.label.text when node name changes"
+  spatialCanvas3DCode.includes("visual.label.text !== nextLabel") && spatialCanvas3DCode.includes("visual.label.text = nextLabel"),
+  "SpatialCanvas3D.tsx must update SpriteText visual.label.text with its semantic glyph when node name changes"
 );
 
 assert.ok(
@@ -506,8 +506,8 @@ assert.ok(
 );
 
 assert.ok(
-  spatialCanvas3DCode.includes("visual.core.color.copy(color)"),
-  "SpatialCanvas3D.tsx must update core material color on group color change"
+  spatialCanvas3DCode.includes("visual.core.color.set(semanticColor(semantic.type"),
+  "SpatialCanvas3D.tsx must keep the core material tied to semantic type instead of overwriting it with perspective color"
 );
 
 assert.ok(

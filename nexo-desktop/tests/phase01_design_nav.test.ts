@@ -375,14 +375,14 @@ assert.strictEqual(useWorkspaceStore.getState().canvasMode, "notion", "Re-enteri
 // ─────────────────────────────────────────────────────────────────────────────
 console.log("\n[7/7] Verifying architectural edge cases (3D WebGL sync, settings, category shadows)...");
 
-// 7.1 ConceptCanvas Category Shadows
+// 7.1 ConceptCanvas semantic perspective accents
 assert.ok(
-  conceptCanvasSource.includes('bg-category-legal shadow-[0_0_8px_rgba(168,85,247,0.5)]'),
-  "Legal category must have purple dot shadow"
+  conceptCanvasSource.includes("perspectiveVisuals") && conceptCanvasSource.includes("SemanticIcon"),
+  "ConceptCanvas must derive perspective accents and icons from the shared semantic registry"
 );
 assert.ok(
-  conceptCanvasSource.includes('bg-category-political shadow-[0_0_8px_rgba(59,130,246,0.5)]'),
-  "Political category must have blue dot shadow"
+  !conceptCanvasSource.includes("rgba(168,85,247,0.5)") && !conceptCanvasSource.includes("rgba(59,130,246,0.5)"),
+  "ConceptCanvas must not duplicate legacy category color mappings"
 );
 
 // 7.2 SettingsModal Theme Persistence Key

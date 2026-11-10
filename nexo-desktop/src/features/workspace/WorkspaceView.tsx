@@ -506,6 +506,8 @@ export const WorkspaceView: React.FC = () => {
       provenanceOrigin: fact.origin,
       sourceFactIds: [...new Set([fact.key, ...block.linkedFactIds])],
       sourceMessageIds: [...new Set([...fact.sourceMessageIds, messageId])],
+      perspectiveId: block.perspectiveId,
+      cognitiveMode: block.mode,
     });
     if (node) {
       setArchitectureUnlocked(true);
@@ -587,6 +589,12 @@ export const WorkspaceView: React.FC = () => {
       status: "confirmed",
       x: node.x,
       y: node.y,
+      semanticKey: `evidence:${evidence.id}`,
+      semanticKind: "evidence",
+      semanticState: "confirmed",
+      provenanceOrigin: "research_evidence",
+      evidenceValidationState: evidence.validationState,
+      sourceFactIds: evidence.hypothesesLinkedIds,
     });
 
     if (anchorId && relations.length > 0) {
@@ -689,6 +697,11 @@ export const WorkspaceView: React.FC = () => {
       status: "confirmed",
       x: node.x,
       y: node.y,
+      semanticKey: `validation:${validation.id}`,
+      semanticState: "confirmed",
+      provenanceOrigin: "research_evidence",
+      contextValidationStatus: validation.validationStatus,
+      sourceFactIds: [validation.targetSemanticId, ...validation.supportingEvidenceIds, ...validation.challengingEvidenceIds],
     });
 
     if (anchorId && relations.length > 0) {

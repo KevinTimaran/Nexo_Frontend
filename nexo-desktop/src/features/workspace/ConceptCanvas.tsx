@@ -1,16 +1,21 @@
 import React, { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { Sparkles, FileText } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
+import { SemanticIcon } from "../../components/semantic/SemanticIcon";
+import { SemanticLegend } from "../../components/semantic/SemanticLegend";
 import type {
   ConceptMap,
   ConceptNode,
-  NodeCategory,
   NodePriority,
 } from "../../domain/types";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { playNodeSelectSound } from "../../services/audio/soundEffects";
-import { normalizeCategory } from "../../domain/constants";
+import {
+  perspectiveVisuals,
+  resolvePerspectiveVisual,
+  type PerspectiveVisualToken,
+} from "../../theme/semanticVisuals";
 
 interface ConceptCanvasProps {
   map: ConceptMap;
@@ -24,79 +29,33 @@ interface ConceptCanvasProps {
 /* ────────────────────────────────────────────────────────────────────────────
  * Categorías canónicas (orden fijo de columnas)
  * ──────────────────────────────────────────────────────────────────────────── */
-const CATEGORIES: Array<{
-  key: NodeCategory;
-  labelKey: string;
-  fallback: string;
-  dotClass: string;
-}> = [
-  {
-    key: "legal",
-    labelKey: "categories.legal",
-    fallback: "Legal",
-    dotClass: "bg-category-legal shadow-[0_0_8px_rgba(168,85,247,0.5)]",
-  },
-  {
-    key: "economic",
-    labelKey: "categories.economic",
-    fallback: "Económico",
-    dotClass: "bg-category-economic shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-  },
-  {
-    key: "political",
-    labelKey: "categories.political",
-    fallback: "Político",
-    dotClass: "bg-category-political shadow-[0_0_8px_rgba(59,130,246,0.5)]",
-  },
-  {
-    key: "technical",
-    labelKey: "categories.technical",
-    fallback: "Técnico",
-    dotClass: "bg-category-technical shadow-[0_0_8px_rgba(100,116,139,0.5)]",
-  },
+const BASE_PERSPECTIVES: PerspectiveVisualToken[] = [
+  perspectiveVisuals.legal,
+  perspectiveVisuals.economic,
+  perspectiveVisuals.political,
+  perspectiveVisuals.technical,
 ];
 
 export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   map,
   isChatOpen = false,
 }) => {
-  const { t } = useTranslation();
   const { canvasMode, setCanvasMode, setSelectedNode, setDocViewMode, isThinking } = useWorkspaceStore();
 
   const safeNodes = map?.nodes || [];
 
-  /* Agrupación por categoría (fallback seguro: technical) */
-  const nodesByCategory = useMemo(() => {
-    const grouped: Record<NodeCategory, ConceptNode[]> = {
-      legal: [],
-      economic: [],
-      political: [],
-      technical: [],
-    };
+  /* Agrupación por perspectiva usando el registro semántico compartido. */
+  const perspectiveGroups = useMemo(() => {
+    const grouped = new Map<string, { visual: PerspectiveVisualToken; nodes: ConceptNode[] }>();
+    BASE_PERSPECTIVES.forEach((visual) => grouped.set(visual.id, { visual, nodes: [] }));
     for (const n of safeNodes) {
-      const cat = normalizeCategory(n.category);
-      if (grouped[cat]) {
-        grouped[cat].push(n);
-      } else {
-        grouped.technical.push(n);
-      }
+      const visual = resolvePerspectiveVisual(n);
+      const current = grouped.get(visual.id) ?? { visual, nodes: [] };
+      current.nodes.push(n);
+      grouped.set(visual.id, current);
     }
-    return grouped;
+    return [...grouped.values()];
   }, [safeNodes]);
-
-  const getCategoryBorderClass = (category?: NodeCategory) => {
-    switch (category) {
-      case "legal":
-        return "border-l-4 border-l-category-legal";
-      case "economic":
-        return "border-l-4 border-l-category-economic";
-      case "political":
-        return "border-l-4 border-l-category-political";
-      case "technical":
-      default:
-        return "border-l-4 border-l-category-technical";
-    }
-  };
 
   const getPriorityGlowClass = (priority?: NodePriority) => {
     if (priority === "high") {
@@ -153,21 +112,25 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
               </div>
             )}
 
-            {/* Category Columns */}
+            <SemanticLegend perspectives={perspectiveGroups.map((group) => group.visual)} />
+
+            {/* Perspective Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
-              {CATEGORIES.map((cat) => {
-                const nodes = nodesByCategory[cat.key] || [];
+              {perspectiveGroups.map(({ visual, nodes }) => {
                 return (
                   <div
-                    key={cat.key}
+                    key={visual.id}
                     className="space-y-3 rounded-[24px] p-3.5 border border-line/80 dark:border-line/10 bg-surface/65 dark:bg-app/65 backdrop-blur-2xl shadow-xs"
+                    style={{ borderTopColor: `color-mix(in srgb, ${visual.dark} 62%, var(--line))` }}
                   >
                     {/* Column Header */}
                     <div className="flex items-center justify-between pb-2 border-b border-line/60 dark:border-line/10">
                       <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${cat.dotClass}`} />
+                        <span className="w-6 h-6 rounded-lg flex items-center justify-center border" style={{ color: visual.dark, borderColor: `color-mix(in srgb, ${visual.dark} 45%, var(--line))`, backgroundColor: `color-mix(in srgb, ${visual.dark} 10%, transparent)` }}>
+                          <SemanticIcon name={visual.icon} className="w-3.5 h-3.5" />
+                        </span>
                         <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
-                          {t(cat.labelKey, { defaultValue: cat.fallback })}
+                          {visual.label}
                         </h3>
                       </div>
                       <span className="text-[11px] font-semibold text-muted bg-surface/90 dark:bg-surface/[0.06] px-2 py-0.5 rounded-full border border-line-soft dark:border-line/10">
@@ -206,22 +169,35 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                               setCanvasMode("spatial");
                               setDocViewMode("fullscreen");
                             }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                playNodeSelectSound();
+                                setSelectedNode(node.id);
+                                setCanvasMode("spatial");
+                                setDocViewMode("fullscreen");
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${node.title}. ${resolvePerspectiveVisual(node).label}`}
                             className={`
                               p-3 rounded-xl border border-line/80 dark:border-line/10
                               bg-surface/85 dark:bg-surface/85 backdrop-blur-xl
                               hover:border-concept-fg/40 hover:-translate-y-0.5
                               transition-all duration-200 cursor-pointer group
-                              flex items-start justify-between gap-2
-                              ${getCategoryBorderClass(node.category)}
+                              space-y-2 border-l-4 focus-ring
                               ${getPriorityGlowClass(node.priority)}
                             `}
+                            style={{ borderLeftColor: resolvePerspectiveVisual(node).dark }}
                           >
-                            <h4 className="text-[12px] font-semibold text-fg group-hover:text-concept-fg transition-colors line-clamp-2 leading-snug flex-1 min-w-0">
-                              {node.title}
-                            </h4>
-                            {node.priority && (
-                              <Badge priority={node.priority} size="sm" />
-                            )}
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-[12px] font-semibold text-fg group-hover:text-concept-fg transition-colors line-clamp-2 leading-snug flex-1 min-w-0">
+                                {node.title}
+                              </h4>
+                              {node.priority && <Badge priority={node.priority} size="sm" />}
+                            </div>
+                            <SemanticNodeBadges node={node} showPerspective={false} showOrigin compact max={3} />
                           </div>
                         ))
                       )}

@@ -521,6 +521,12 @@ export function generateValidationConceptNode(
     x: 450 + Math.floor(Math.random() * 60),
     y: 350 + Math.floor(Math.random() * 60),
     metadata: `Estado: ${validation.validationStatus} · Confianza: ${validation.evidenceConfidence}`,
+    semanticKey: `validation:${validation.id}`,
+    semanticState: "confirmed",
+    provenanceOrigin: "research_evidence",
+    verification: "confirmed",
+    contextValidationStatus: validation.validationStatus,
+    sourceFactIds: [validation.targetSemanticId, ...validation.supportingEvidenceIds, ...validation.challengingEvidenceIds],
     details: [
       `### Validación de Contexto e Histórico`,
       `**Premisa Evaluada:** ${validation.targetClaim}`,

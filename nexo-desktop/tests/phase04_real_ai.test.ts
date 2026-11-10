@@ -398,10 +398,13 @@ console.log("✓ UI error banners and retry contracts verified.");
 // ─────────────────────────────────────────────────────────────────────────────
 console.log("\n[5/5] Verifying backend AIController alignment with Phase 04 requirements...");
 
-const backendControllerPath = path.resolve(
-  process.cwd(),
-  "../../../back/Nexo_Backend/nexo-api/src/main/java/com/example/nexo_api/controller/AIController.java"
-);
+const backendControllerPath = [
+  "../../Nexo_Backend/Nexo_Backend/nexo-api/src/main/java/com/example/nexo_api/controller/AIController.java",
+  "../../../back/Nexo_Backend/nexo-api/src/main/java/com/example/nexo_api/controller/AIController.java",
+]
+  .map((candidate) => path.resolve(process.cwd(), candidate))
+  .find((candidate) => fs.existsSync(candidate))
+  ?? path.resolve(process.cwd(), "../../Nexo_Backend/Nexo_Backend/nexo-api/src/main/java/com/example/nexo_api/controller/AIController.java");
 assert.ok(fs.existsSync(backendControllerPath), "AIController.java must exist on filesystem");
 const controllerJava = fs.readFileSync(backendControllerPath, "utf8");
 

@@ -17,6 +17,7 @@ import {
 } from "../src/domain/spatial";
 import type { ConceptNode, ConceptRelation, Workspace } from "../src/domain/types";
 import { useWorkspaceStore } from "../src/store/useWorkspaceStore";
+import { perspectiveVisuals } from "../src/theme/semanticVisuals";
 
 console.log("=== PHASE 05 AUTOMATED ACCEPTANCE TEST SUITE: UNIFIED AI, BOARD & NEURONAL 3D ===");
 
@@ -138,10 +139,10 @@ console.log("✓ Deduplication algorithms passed.");
 console.log("\n[2/5] Verifying Unified Entity Model, Categories and Color Mapping...");
 
 // 2.1 Canonical Color Invariants
-assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.legal, "#A855F7", "legal group must map to purple #A855F7");
-assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.economic, "#10B981", "economic group must map to emerald #10B981");
-assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.political, "#3B82F6", "political group must map to blue #3B82F6");
-assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.technical, "#64748B", "technical group must map to slate #64748B");
+assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.legal, perspectiveVisuals.legal.dark, "legal group must derive from the shared semantic registry");
+assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.economic, perspectiveVisuals.economic.dark, "economic group must derive from the shared semantic registry");
+assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.political, perspectiveVisuals.political.dark, "political group must derive from the shared semantic registry");
+assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.technical, perspectiveVisuals.technical.dark, "technical group must derive from the shared semantic registry");
 assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.core, "#E5C158", "core group must map to gold #E5C158");
 
 // 2.2 Backward Compatibility with Legacy Color Groups
@@ -152,9 +153,9 @@ assert.strictEqual(DEFAULT_SPATIAL_GROUP_COLORS.business, "#fbbf24");
 
 // 2.3 getSpatialGroup mappings
 assert.strictEqual(getSpatialGroup("legal").id, "legal");
-assert.strictEqual(getSpatialGroup("legal").color, "#A855F7");
+assert.strictEqual(getSpatialGroup("legal").color, perspectiveVisuals.legal.dark);
 assert.strictEqual(getSpatialGroup("economic").id, "economic");
-assert.strictEqual(getSpatialGroup("economic").color, "#10B981");
+assert.strictEqual(getSpatialGroup("economic").color, perspectiveVisuals.economic.dark);
 assert.strictEqual(getSpatialGroup("political").id, "political");
 assert.strictEqual(getSpatialGroup("technical").id, "technical");
 assert.strictEqual(getSpatialGroup("core").id, "core");

@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Sparkles,
-  CheckCircle2,
-  AlertTriangle,
   FileText,
   Trash2,
   Network,
@@ -15,6 +13,7 @@ import type { ConceptNode, ResearchPhase } from "../../domain/types";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { MarkdownRenderer } from "../../components/ui/MarkdownRenderer";
+import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
 
 export interface NotionModalViewerProps {
   node: ConceptNode | null;
@@ -77,12 +76,6 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
       default:
         return null;
     }
-  };
-
-  const kindIcons = {
-    concept: <Sparkles className="w-3.5 h-3.5 text-concept-fg" />,
-    viability: <CheckCircle2 className="w-3.5 h-3.5 text-positive-fg" />,
-    risk: <AlertTriangle className="w-3.5 h-3.5 text-risk-fg" />,
   };
 
   return (
@@ -160,14 +153,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           {/* Metadata Bar */}
           <div className="flex items-center gap-2 flex-wrap pb-4 border-b border-line/60 dark:border-line/10">
-            <Badge kind={node.kind} status={node.status} size="md">
-              <span className="flex items-center gap-1 text-xs">
-                {kindIcons[node.kind]}
-                {t(`kinds.${node.kind}`)}
-              </span>
-            </Badge>
-
-            {node.category && <Badge category={node.category} size="md" />}
+            <SemanticNodeBadges node={node} showPerspective showOrigin />
             {node.priority && <Badge priority={node.priority} size="md" />}
             {getPhaseBadge(node.phase)}
 
