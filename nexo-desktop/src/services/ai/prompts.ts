@@ -11,6 +11,8 @@ export interface PromptContext {
   existingNodesSummary?: string;
   userMessage: string;
   messageHistory?: Message[];
+  memorySummary?: string;
+  perspectiveSummary?: string;
 }
 
 /**
@@ -141,8 +143,18 @@ Los pesos y puntajes usan una escala de 0 a 10. Todos los puntajes expresan conv
 {"type":"idea_cards","title":"...","description":"...","items":[{"id":"idea-1","title":"...","description":"...","benefits":["..."],"resources":["..."],"relations":["..."],"status":"pending","category":"technical","priority":"medium","phase":"planning"}]}
 Usa IDs breves, únicos y estables. Todo el contenido visible de ui debe respetar el idioma del usuario.`;
 
+  const cognitiveGuidance = `
+ASISTENCIA COGNITIVA:
+- Antes de preguntar, decide si puedes aportar valor con el contexto existente mediante explicación, punto ciego, sugerencia, solución, riesgo, oportunidad, contradicción, alternativa, hipótesis, validación o comparación.
+- Pregunta únicamente cuando la información faltante bloquee progreso útil. No uses felicitaciones ni frases de relleno.
+- Devuelve como máximo UN bloque ui primario; el texto sin ui siempre es válido.
+- Para comparar usa decision_comparator. Para una propuesta cognitiva usa:
+{"type":"cognitive_insight","id":"estable","mode":"explanation|blind_spot|suggestion|solution|risk|opportunity|contradiction|alternative|hypothesis|validation_strategy","title":"...","statement":"...","rationale":"razón vinculada al contexto","whyItMatters":"...","nextAction":"...","mitigation":"...","validationOptions":["..."],"linkedFactIds":["id-real"],"linkedNodeIds":["id-real"],"perspectiveId":"id-opcional"}
+- Usa solo IDs suministrados. Una contradicción requiere dos hechos confirmados enlazados. No inventes cifras, leyes, demanda, competidores ni evidencia.
+- Todo bloque es una propuesta no confirmada. Nunca devuelvas estados de aceptación. Sugerir investigación no significa ejecutarla y no debes generar citas.`;
+
   if (phase === "PHASE_1_DISCOVERY") {
-    return `${baseHeader}
+    return `${baseHeader}${cognitiveGuidance}
 
 ==================================================
 ESTADO ACTUAL: FASE 1 — DESCUBRIMIENTO (ENRUTADOR JSON ESTRICTO)
@@ -189,20 +201,22 @@ Requisitos de calidad:
   }
 
   if (phase === "PHASE_2_STRUCTURING") {
-    return `${baseHeader}
+    return `${baseHeader}${cognitiveGuidance}
 
 ==================================================
-ESTADO ACTUAL: FASE 2 — ESTRUCTURACIÓN MULTIDIMENSIONAL (PHASE_2_STRUCTURING)
+ESTADO ACTUAL: FASE 2 — ESTRUCTURACIÓN FUNDACIONAL (PHASE_2_STRUCTURING)
 ==================================================
-Objetivo estricto: Sintetizar la arquitectura fundacional y sus 4 dimensiones estratégicas en el lienzo ("Concept Canvas") y espacio 3D ("Neuronal 3D").
+Objetivo estricto: sintetizar únicamente conceptos fundacionales respaldados por la conversación. No conviertas un catálogo de perspectivas en nodos.
+
+REGLA SUPERSEDENTE PARA EL MOTOR ADAPTATIVO:
+- Las perspectivas analíticas son opcionales, dinámicas y externas al grafo semántico.
+- NO es obligatorio cubrir categorías económica, social, técnica y legal. Ignora cualquier ejemplo fijo posterior cuando no sea pertinente al proyecto.
+- Genera entre 1 y 4 conceptos reales del proyecto. No crees nodos decorativos llamados "Dimensión ...", ni inventes hechos para completar una matriz.
+- Conserva hipótesis, sugerencias y desconocidos como contenido no confirmado; la certeza del modelo nunca equivale a confirmación del usuario.
 
 REGLAS DE FASE 2:
 1. La idea base ha alcanzado solidez y delimitación previa.
-2. Ahora debes estructurar la arquitectura del proyecto generando entre 4 y 5 conceptos clave que cubran las 4 dimensiones canónicas obligatorias:
-   a) Núcleo Técnico ("technical"): El concepto central y arquitectura fundacional (relevanceScore: 10, prioridad "high", phase: "planning").
-   b) Dimensión Económica ("economic"): Modelo de monetización, costos o viabilidad financiera (relevanceScore: 8-9, prioridad "high", phase: "planning").
-   c) Dimensión Social / Humana ("political"): Adopción de usuarios, bienestar, comunidad o gobernanza (relevanceScore: 8-9, prioridad "high", phase: "planning").
-   d) Dimensión Legal / Regulatoria ("legal"): Cumplimiento normativo, contratos, protección de datos o licencias (relevanceScore: 8-9, prioridad "high", phase: "planning").
+2. Estructura entre 1 y 4 conceptos realmente sustentados por la memoria. Usa la categoría técnica, económica, política o legal solo como clasificación visual del concepto, nunca como una cuota obligatoria.
 3. Cada concepto propuesto DEBE tener:
    - title: Nombre conciso y potente del concepto (máx. 4 palabras).
    - description: Declaración de valor clara y precisa de 1-2 oraciones.
@@ -217,9 +231,9 @@ REGLAS DE FASE 2:
      ### Análisis de Viabilidad e Impacto
      ### Plan de Acción y Próximos Pasos
 4. RELACIONES CAUSALES DIRECCIONALES:
-   Debes incluir en 'relationships' las conexiones entre el concepto central y cada una de las dimensiones:
+   Incluye en 'relationships' solo conexiones justificadas entre los conceptos seleccionados:
    - sourceTitle: Título del concepto origen (ej. concepto central técnico).
-   - targetTitle: Título del concepto destino (ej. dimensión económica, social o legal).
+   - targetTitle: Título del concepto destino real.
    - type: Uno de ["enables", "regulates", "funds", "requires", "depends_on"].
    - strength: Entero de 3 a 5 (densidad de partículas en 3D).
    - label: Breve explicación de la relación (ej. "Sustento del modelo de negocio").
@@ -229,8 +243,8 @@ REGLAS DE FASE 2:
 
 Formato de salida JSON obligatorio para FASE 2:
 {
-  "text": "Hemos consolidado la idea base. He estructurado la arquitectura de tu proyecto cubriendo sus dimensiones técnica, económica, social y legal en el Tablero y el Espacio Neuronal 3D.",
-  "simplifiedExplanation": "Se han estructurado los 4 pilares fundamentales de tu proyecto en el lienzo y espacio 3D.",
+  "text": "Hemos consolidado la idea base y estructurado únicamente los conceptos fundacionales respaldados por el contexto.",
+  "simplifiedExplanation": "La base del proyecto se estructuró sin imponer lentes universales.",
   "cardType": "idea",
   "readyForStructuring": true,
   "discoveryQuestions": [],
@@ -307,7 +321,7 @@ Formato de salida JSON obligatorio para FASE 2:
   }
 
   // PHASE_3_EXPANSION (Default / Advanced phase)
-  return `${baseHeader}
+  return `${baseHeader}${cognitiveGuidance}
 
 ==================================================
 ESTADO ACTUAL: FASE 3 — EXPANSIÓN Y EXPLORACIÓN CONTINUA DEL PROYECTO (PHASE_3_EXPANSION)
@@ -333,6 +347,14 @@ REGLAS DE CONVERSACIÓN POST-GENERACIÓN:
    - Si el usuario simplemente está conversando, debatiendo o haciendo preguntas conceptuales sin solicitar cambios en el lienzo, responde en 'text' y devuelve "nodes": [] y "relationships": [].
    - Mantén "readyForStructuring": true y "discoveryQuestions": []. No reinicies la fase de descubrimiento ni emitas cuestionarios.
 
+3. PERSPECTIVAS ADAPTATIVAS (OPCIONAL):
+   - Puedes proponer de 0 a 3 lentes en "perspectives" solo cuando aporten una pregunta de análisis genuina.
+   - IDs permitidos: economic, human, political, legal, ethical, technical, geographic, environmental, historical, market, cultural, operational, educational, institutional, methodological, privacy, accessibility.
+   - Cada propuesta usa {"perspectiveId":"...","relevance":"relevant|potentially_relevant|unexplored","rationale":"...","linkedFactIds":[],"linkedNodeIds":["id-real"]}.
+   - Usa únicamente IDs reales presentes en el contexto. La aplicación rechazará referencias inexistentes, duplicados y relevancias inválidas.
+   - Una perspectiva es una lente, no un hecho, una sugerencia aceptada ni un nodo. No promociones contenido semántico ni modifiques el grafo por proponerla.
+   - No repitas las cuatro categorías históricas por defecto y respeta perspectivas descartadas por el usuario.
+
 Formato de salida JSON obligatorio para FASE 3:
 {
   "text": "Analizando la viabilidad técnica y operacional de tu proyecto, recomiendo priorizar la arquitectura modular para los servicios centrales antes de integrar capas periféricas. Esto asegura estabilidad operativa y escalabilidad en los flujos críticos.",
@@ -340,6 +362,7 @@ Formato de salida JSON obligatorio para FASE 3:
   "cardType": "recommendation",
   "readyForStructuring": true,
   "discoveryQuestions": [],
+  "perspectives": [],
   "nodes": [
     {
       "title": "Marco de Privacidad y Normativa Legal",
@@ -397,7 +420,7 @@ export function sanitizeAssistantText(text: string, lang: Language = "es", conte
  * Builds the user prompt payload with context of the current canvas.
  */
 export function buildUserPrompt(ctx: PromptContext): string {
-  const { phase, existingNodesSummary, userMessage, lang, messageHistory } = ctx;
+  const { phase, existingNodesSummary, userMessage, lang, messageHistory, memorySummary, perspectiveSummary } = ctx;
 
   let phaseInstruction = "";
   if (phase === "PHASE_1_DISCOVERY") {
@@ -421,10 +444,10 @@ REGLAS DE DECISIÓN:
 
 Usa el historial y la memoria del proyecto. No repitas preguntas respondidas, aunque estén redactadas de otra manera. Acepta "no lo sé" como respuesta y registra lo desconocido. Cuando un cuestionario aporte valor, formula entre una y tres preguntas simples, con respuestas personalizadas. No pidas arquitectura técnica, presupuesto o requisitos legales salvo que sean esenciales para este proyecto.`;
   } else if (phase === "PHASE_2_STRUCTURING") {
-    phaseInstruction = `Instrucción de fase: Sintetiza lo conversado y genera la arquitectura multidimensional del proyecto cubriendo las 4 dimensiones canónicas ('technical', 'economic', 'political', 'legal') en 'nodes' y sus relaciones causales en 'relationships'.`;
+    phaseInstruction = `Instrucción de fase: sintetiza lo conversado y genera solo la estructura fundacional respaldada por el contexto. No completes una matriz fija de categorías ni conviertas perspectivas analíticas en nodos. Incluye relaciones causales únicamente entre conceptos reales del proyecto.`;
   } else {
     phaseInstruction = `Instrucción de fase: FASE 3 — EXPANSIÓN Y EXPLORACIÓN CONTINUA (PHASE_3_EXPANSION).
-Responde de forma directa, natural y contextualmente relevante al mensaje del usuario ("${userMessage}"), utilizando la memoria del proyecto y los nodos existentes. Continúa la conversación con criterio estratégico; sugiere follow-up questions solo cuando sean genuinamente útiles. Si el usuario solicita agregar nodos o explorar una dimensión, propón entre 1 y 3 conceptos estructurados en 'nodes'; si es una conversación consultiva o analítica, responde en 'text' con 'nodes': []. PROHIBIDO usar textos plantilla o placeholders genéricos.`;
+Responde de forma directa, natural y contextualmente relevante al mensaje del usuario ("${userMessage}"), utilizando la memoria del proyecto y los nodos existentes. Continúa la conversación con criterio estratégico; sugiere follow-up questions solo cuando sean genuinamente útiles. Si el usuario solicita agregar nodos explícitamente, propón entre 1 y 3 conceptos estructurados en 'nodes'; si es una conversación consultiva o analítica, responde en 'text' con 'nodes': []. Puedes proponer 0 a 3 lentes en 'perspectives', enlazados solo a IDs reales, pero nunca convertirlos en hechos o nodos. PROHIBIDO usar textos plantilla o placeholders genéricos.`;
   }
 
   const isEs = lang === "es";
@@ -446,6 +469,12 @@ Responde de forma directa, natural y contextualmente relevante al mensaje del us
 
   return `Nodos existentes en el lienzo:
 ${existingNodesSummary || "(Lienzo en blanco)"}
+
+MEMORIA SEMÁNTICA CANÓNICA (IDs y estado; no cambies su certeza):
+${memorySummary || "(Sin memoria estructurada disponible)"}
+
+PERSPECTIVAS ACTIVAS (orientan el análisis, no son hechos):
+${perspectiveSummary || "(Sin perspectivas evaluadas)"}
 
 Fase de interacción: ${phase}
 ${phaseInstruction}

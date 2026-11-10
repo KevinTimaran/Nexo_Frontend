@@ -31,9 +31,14 @@ import type {
   DocumentService,
   FolderService,
   ProjectService,
+  ResearchSearchRequest,
+  ResearchSearchResponse,
+  ResearchService,
   Services,
   WorkspaceService,
 } from "../contracts";
+import type { EvidenceRecord } from "../../domain/types";
+import { normalizeSource, buildLocalContextWarning } from "../ai/research";
 
 const CREATED_KEY = "nexo.mock.projects";
 const FOLDERS_KEY = "nexo.mock.folders";
@@ -532,6 +537,8 @@ function buildMultidimensionalNodes(text: string, lang: Language, history?: Mess
     !/m[eé]dic|doctor|cl[ií]nic|salud|paciente/i.test(fullContext) &&
     /cita(s)?(\s+rom[aá]ntica|\s+a\s+ciegas|\s+casual)?|dating|pareja|match/i.test(fullContext);
   const isMusic = !isTransport && !isRestaurant && !isDoctor && !isDating && /m[uú]sic|streaming|audio|creador|artista/i.test(fullContext);
+  const isResearch = !isTransport && !isRestaurant && !isDoctor && !isDating && !isMusic && /tesis|investigaci[oó]n|estudio acad[eé]mico|metodolog/i.test(fullContext);
+  const isStudentApp = !isResearch && /(?:app|aplicaci[oó]n|software|plataforma).{0,80}(?:estudiante|tarea|docente)|(?:estudiante|tarea|docente).{0,80}(?:app|aplicaci[oó]n|software|plataforma)/i.test(fullContext);
 
   let coreTitle = "";
   let coreDesc = "";
@@ -659,6 +666,41 @@ function buildMultidimensionalNodes(text: string, lang: Language, history?: Mess
     rel2Label = "Comunidad y descubrimiento de artistas";
     rel3Label = "Licenciamiento y derechos de autor";
     rel4Label = "Cumplimiento normativo y financiero";
+  } else if (isResearch) {
+    const topic = extractCleanTopic(fullContext, lang);
+    coreTitle = `Diseño Metodológico de ${topic}`;
+    coreDesc = `Pregunta, alcance y método de investigación para ${topic}, sujetos a validación académica.`;
+    coreDetails = `### Resumen Ejecutivo\nEstructura metodológica derivada del tema descrito.\n\n### Análisis de Viabilidad e Impacto\nPermite verificar coherencia entre pregunta, fuentes y método.\n\n### Plan de Acción y Próximos Pasos\n1. Validar la pregunta de investigación.\n2. Delimitar muestra y fuentes.`;
+    ecoTitle = `Recursos de ${topic}`;
+    ecoDesc = "Recursos por definir; no se incorpora como pilar hasta contar con información confirmada.";
+    ecoDetails = "### Estado\nAspecto aún no confirmado.";
+    socTitle = `Contexto Institucional de ${topic}`;
+    socDesc = "Actores académicos, población de estudio y contexto institucional relacionado con la tesis.";
+    socDetails = "### Resumen Ejecutivo\nContexto humano e institucional de la investigación.\n\n### Próximos Pasos\n1. Identificar participantes y criterios de selección.";
+    legTitle = `Consideraciones Éticas de ${topic}`;
+    legDesc = "Consentimiento y tratamiento responsable de información, solo si el método finalmente los requiere.";
+    legDetails = "### Estado\nRiesgo potencial por validar, no un requisito confirmado.";
+    rel1Label = "Requiere recursos por validar";
+    rel2Label = "Se aplica al contexto de estudio";
+    rel3Label = "Sujeto a revisión ética";
+    rel4Label = "Dependencia no confirmada";
+  } else if (isStudentApp) {
+    coreTitle = "Organización de Tareas Estudiantiles";
+    coreDesc = "Flujo central para registrar, priorizar y dar seguimiento a tareas y entregas académicas.";
+    coreDetails = "### Resumen Ejecutivo\nNúcleo funcional descrito por el usuario.\n\n### Próximos Pasos\n1. Validar el flujo con estudiantes.";
+    ecoTitle = "Modelo de Sostenibilidad";
+    ecoDesc = "Costos y sostenibilidad todavía por definir; no se asumen como requisito central.";
+    ecoDetails = "### Estado\nAspecto desconocido.";
+    socTitle = "Experiencia de Estudiantes y Docentes";
+    socDesc = "Interacción, carga cognitiva y accesibilidad para los actores académicos indicados.";
+    socDetails = "### Resumen Ejecutivo\nExperiencia humana asociada al flujo de tareas.";
+    legTitle = "Privacidad de Datos Académicos";
+    legDesc = "Acceso y protección de cuentas y entregas, como riesgo a validar antes de implementación.";
+    legDetails = "### Estado\nRiesgo propuesto, no hecho confirmado.";
+    rel1Label = "Sostenibilidad por validar";
+    rel2Label = "Sirve a estudiantes y docentes";
+    rel3Label = "Debe proteger datos académicos";
+    rel4Label = "Dependencia no confirmada";
   } else {
     const topic = extractCleanTopic(fullContext, lang);
     coreTitle = `Arquitectura Central de ${topic}`;
@@ -686,7 +728,7 @@ function buildMultidimensionalNodes(text: string, lang: Language, history?: Mess
   const core: ConceptNode = {
     id: uid("n"),
     kind: "concept",
-    status: "confirmed",
+    status: "exploring",
     phase: "planning",
     category: "technical",
     priority: "high",
@@ -803,8 +845,13 @@ function buildMultidimensionalNodes(text: string, lang: Language, history?: Mess
     label: rel4Label,
   };
 
-  const newNodes = [core, economicNode, socialNode, legalNode];
-  const newRelations = [rel1, rel2, rel3, rel4];
+  const newNodes = isResearch
+    ? [core, socialNode]
+    : isStudentApp
+      ? [core, socialNode, legalNode]
+      : [core, economicNode, socialNode, legalNode];
+  const includedNodeIds = new Set(newNodes.map((node) => node.id));
+  const newRelations = [rel1, rel2, rel3, rel4].filter((relation) => includedNodeIds.has(relation.from) && includedNodeIds.has(relation.to));
 
   return { core, economicNode, socialNode, legalNode, newNodes, newRelations };
 }
@@ -1311,7 +1358,6 @@ const ai: AIService = {
             chatPhase: map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY",
             action: map.nodes.length > 0 ? "chat" : "ready",
             readyForStructuring: map.nodes.length === 0,
-            dimensions: map.nodes.length > 0 ? undefined : ["economic", "social", "technical", "legal"],
             text: sanitizeAssistantText(dimText, lang, contextTopic),
             simplifiedExplanation:
               lang === "es"
@@ -1341,16 +1387,16 @@ const ai: AIService = {
         let readyText = "";
         if (isPartialQuestionnaireAnswer) {
           readyText = lang === "es"
-            ? `¡Excelente! He registrado tus decisiones y requerimientos técnicos:\n\n${acceptedAnswers.map((ans) => `• **${ans}**`).join("\n")}\n\nRespecto a la pregunta donde ninguna opción propuesta se ajustaba (${rejectedQuestions.map((q) => `"${q}"`).join(", ")}), mantendremos esa capa completamente flexible y abierta para adaptarla sobre la marcha.\n\nCon esta base clara, podemos examinar tu proyecto desde diferentes puntos de vista estratégicos (Económico, Social, Técnico y Legal) o pasar directamente a generar la arquitectura en el Tablero de Conceptos y la Vista Neuronal 3D.`
-            : `Great! I noted your technical decisions:\n\n${acceptedAnswers.map((ans) => `• **${ans}**`).join("\n")}\n\nRegarding the question where none of the options fit, we'll keep that layer open and tailored as we proceed. The core idea is ready to be structured into its strategic dimensions.`;
+            ? `¡Excelente! He registrado tus decisiones y requerimientos:\n\n${acceptedAnswers.map((ans) => `• **${ans}**`).join("\n")}\n\nRespecto a la pregunta donde ninguna opción propuesta se ajustaba (${rejectedQuestions.map((q) => `"${q}"`).join(", ")}), mantendremos esa capa flexible y abierta. Con esta base ya podemos generar la estructura fundacional; después verás solo las perspectivas que resulten pertinentes.`
+            : `Great! I noted your decisions and requirements. The core idea is ready for a grounded foundation; only relevant perspectives will be suggested afterwards.`;
         } else if (customDetail) {
           readyText = lang === "es"
-            ? `¡Excelente! He integrado tus requerimientos y enfoque personalizado ("${customDetail}"). La idea base está claramente delimitada y podemos analizarla desde diferentes puntos de vista estratégicos (Económico, Social, Técnico y Legal). Puedes explorar una perspectiva en detalle o generar la arquitectura multidimensional completa en el Tablero y Vista 3D.`
-            : `Great! I integrated your custom requirements ("${customDetail}"). The core idea is clearly defined and we can explore it through multiple strategic perspectives (Economic, Social, Technical, and Legal). You can explore a perspective in detail or generate the complete architecture for the Board and 3D Canvas.`;
+            ? `¡Excelente! He integrado tu enfoque personalizado ("${customDetail}"). La idea base está delimitada y lista para generar una estructura fundada en lo que definiste.`
+            : `Great! I integrated your custom requirements ("${customDetail}"). The core idea is ready for a grounded structure.`;
         } else {
           readyText = lang === "es"
-            ? "¡Excelente! Tenemos los requerimientos y el alcance bien definidos. La idea base está clara y podemos verla desde diferentes puntos de vista estratégicos (Económico, Social, Técnico y Legal). Puedes explorar una perspectiva en detalle o pulsar para generar la arquitectura multidimensional completa en el Tablero y Vista 3D."
-            : "Great! We have defined the scope and requirements. The core idea is clear and we can examine it from multiple strategic perspectives (Economic, Social, Technical, and Legal). You can explore a perspective in detail or generate the complete architecture for the Board and 3D Canvas.";
+            ? "¡Excelente! Tenemos el alcance definido. Nexo puede generar la estructura fundacional y, después, sugerir solo las perspectivas pertinentes al contexto."
+            : "Great! The scope is clear. Nexo can generate the grounded foundation and then suggest only contextually relevant perspectives.";
         }
 
         return {
@@ -1363,7 +1409,6 @@ const ai: AIService = {
             chatPhase: "PHASE_1_DISCOVERY",
             action: "ready",
             readyForStructuring: true,
-            dimensions: ["economic", "social", "technical", "legal"],
             text: readyText,
             simplifiedExplanation:
               lang === "es"
@@ -1773,14 +1818,14 @@ const ai: AIService = {
           readyForStructuring: true,
           text:
             lang === "es"
-              ? "Hemos consolidado la idea base y sus dimensiones estratégicas. He generado los conceptos clave en tu lienzo (Técnico, Económico, Social y Legal) para que el proyecto cobre vida de forma integral en el Tablero y la Vista Neuronal 3D."
-              : "We consolidated the core idea and its strategic dimensions. I generated the key concepts on your canvas (Technical, Economic, Social, and Legal) to bring the project to life in both the Board and 3D Neural View.",
+              ? "Hemos consolidado la idea base. He generado únicamente los conceptos fundacionales respaldados por el contexto para el Tablero y la Vista Neuronal 3D."
+              : "We consolidated the core idea and generated only context-grounded foundational concepts for the Board and 3D Neural View.",
           simplifiedExplanation:
             lang === "es"
-              ? "Se han estructurado los 4 pilares fundamentales de tu proyecto en el lienzo y espacio 3D."
-              : "The 4 fundamental pillars of your project have been structured in the canvas and 3D space.",
+              ? "Se ha estructurado una base contextual sin imponer categorías universales."
+              : "A contextual foundation was structured without imposing universal categories.",
           insight: {
-            title: lang === "es" ? "Arquitectura multidimensional establecida" : "Multidimensional architecture established",
+            title: lang === "es" ? "Estructura fundacional establecida" : "Foundational structure established",
             items: newNodes.map((n) => ({ nodeId: n.id, kind: n.kind, label: n.title })),
           },
           actionableNode: {
@@ -1966,4 +2011,414 @@ const documents: DocumentService = {
   },
 };
 
-export const mockServices: Services = { auth, projects, folders, workspace, ai, documents };
+export const mockResearchService: ResearchService = {
+  async search(request: ResearchSearchRequest): Promise<ResearchSearchResponse> {
+    await latency(300);
+    const query = request.query.toLowerCase().trim();
+
+    if (query === "__timeout__") {
+      throw new ServiceError("offline", "El servicio de investigación externa no respondió a tiempo (timeout).");
+    }
+    if (query === "__rate_limit__") {
+      throw new ServiceError("unknown", "Límite de solicitudes de investigación alcanzado. Intenta de nuevo más tarde.");
+    }
+
+    // Geographic Mismatch Fixture
+    if (query.includes("us_only_geo") || query.includes("solo_eeuu")) {
+      const srcUS = normalizeSource({
+        id: "src-us-bls",
+        title: "Bureau of Labor Statistics Hardware Store Data",
+        url: "https://www.bls.gov/hardware-retail",
+        organization: "U.S. Bureau of Labor Statistics",
+        publicationDate: "2023-01-15",
+        publicationYear: 2023,
+        rawExcerpt: "Hardware stores in the United States report stable consumer traffic.",
+      });
+      const evUS: EvidenceRecord = {
+        id: "ev-us-only",
+        query: request.query,
+        source: srcUS,
+        claimAddressed: "Condiciones de mercado en Estados Unidos.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "Datos provenientes exclusivamente de EE.UU.",
+        scope: "international",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+      return {
+        query: request.query,
+        sources: [srcUS],
+        evidenceRecords: [evUS],
+        overallSynthesis: "Datos recuperados exclusivamente de Estados Unidos.",
+        validationState: "supports",
+      };
+    }
+
+    // Time Mismatch Fixture (2010 study)
+    if (query.includes("stale_2010") || query.includes("antiguo_2010")) {
+      const src2010 = normalizeSource({
+        id: "src-study-2010",
+        title: "Estudio Retrospectivo de Hábitos de Reparación 2010",
+        url: "https://repositorio.unal.edu.co/handle/2010/estudio",
+        organization: "Universidad Nacional de Colombia",
+        publicationDate: "2010-03-20",
+        publicationYear: 2010,
+        rawExcerpt: "En 2010, los compradores locales dependían del mostrador físico para saber qué tornillo comprar.",
+      });
+      const ev2010: EvidenceRecord = {
+        id: "ev-stale-2010",
+        query: request.query,
+        source: src2010,
+        claimAddressed: "Comportamiento de compra documentado en 2010.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "Evidencia histórica valiosa pero con 16 años de antigüedad.",
+        scope: "national",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+      return {
+        query: request.query,
+        sources: [src2010],
+        evidenceRecords: [ev2010],
+        overallSynthesis: "Evidencia histórica del año 2010.",
+        validationState: "supports",
+      };
+    }
+
+    // Conflicting Evidence Fixture
+    if (query.includes("conflicting_fixture") || query.includes("fuentes_en_conflicto")) {
+      const srcA = normalizeSource({
+        id: "src-support-a",
+        title: "Estudio A: Respaldo a la Hipótesis",
+        url: "https://revista-a.edu.co/articulo-1",
+        organization: "Universidad A",
+        publicationDate: "2023-01-10",
+        publicationYear: 2023,
+        rawExcerpt: "Los resultados confirman una correlación positiva directa.",
+      });
+      const srcB = normalizeSource({
+        id: "src-challenge-b",
+        title: "Estudio B: Refutación de la Hipótesis",
+        url: "https://revista-b.edu.co/articulo-2",
+        organization: "Universidad B",
+        publicationDate: "2023-06-15",
+        publicationYear: 2023,
+        rawExcerpt: "El ensayo controlado no encontró efecto significativo en la variable analizada.",
+      });
+      const evA: EvidenceRecord = {
+        id: "ev-support-a",
+        query: request.query,
+        source: srcA,
+        claimAddressed: "Efecto positivo observado.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "La Fuente A respalda la hipótesis.",
+        scope: "national",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+      const evB: EvidenceRecord = {
+        id: "ev-challenge-b",
+        query: request.query,
+        source: srcB,
+        claimAddressed: "Falta de efecto comprobado.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "challenges",
+        aiInterpretation: "La Fuente B contradice directamente los hallazgos de la Fuente A.",
+        scope: "national",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+      return {
+        query: request.query,
+        sources: [srcA, srcB],
+        evidenceRecords: [evA, evB],
+        overallSynthesis: "Evidencia en conflicto: La Fuente A respalda la hipótesis mientras que la Fuente B la desafía con resultados divergentes.",
+        validationState: "mixed",
+      };
+    }
+
+    // Scenario A: Hardware Store / Ferretería local
+    if ((query.includes("ferreter") || query.includes("construcc") || query.includes("reparaci") || (query.includes("pueblo") && !query.includes("software")) || (query.includes("herramient") && !query.includes("planificaci") && !query.includes("deadline") && !query.includes("software"))) && !query.includes("planificaci")) {
+      const src1 = normalizeSource({
+        id: "src-dane-hardware",
+        title: "Censo Económico y Actividad Minorista de Ferreterías",
+        url: "https://www.dane.gov.co/estadisticas-ferreterias",
+        organization: "DANE - Departamento Administrativo Nacional de Estadística",
+        publicationDate: "2023-06-15",
+        publicationYear: 2023,
+        rawExcerpt: "El comercio minorista de ferreterías y materiales de construcción creció un 4.8% a nivel nacional, impulsado por remodelaciones habitacionales.",
+      });
+
+      const src2 = normalizeSource({
+        id: "src-camacol-repairs",
+        title: "Reporte de Demanda Sectorial de Insumos para la Construcción",
+        url: "https://camacol.co/informes/sector-ferretero-2023",
+        organization: "Cámara Colombiana de la Construcción (CAMACOL)",
+        publicationDate: "2023-11-20",
+        publicationYear: 2023,
+        rawExcerpt: "A nivel departamental, 6 de cada 10 proyectos de remodelación adquieren insumos en comercios tradicionales de proximidad.",
+      });
+
+      const evidence1: EvidenceRecord = {
+        id: "ev-hardware-national-1",
+        query: request.query,
+        source: src1,
+        claimAddressed: "Crecimiento del sector ferretero nacional y demanda agregada de materiales.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "Los datos nacionales evidencian crecimiento sostenido en el rubro ferretero y preferencia por comercio de cercanía.",
+        scope: "national",
+        localContextWarning: buildLocalContextWarning("national", "local", "demanda en ferretería local"),
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+        suggestedNextSteps: [
+          "Realizar sondeo directo con los 5 principales constructores y maestros de obra del municipio.",
+          "Verificar precios y tiempos de entrega de distribuidores mayoristas de la región.",
+        ],
+      };
+
+      const evidence2: EvidenceRecord = {
+        id: "ev-hardware-national-2",
+        query: request.query,
+        source: src2,
+        claimAddressed: "Preferencia de compra en comercios tradicionales de proximidad.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "La cercanía física y la disponibilidad inmediata son factores determinantes frente a grandes superficies.",
+        scope: "national",
+        localContextWarning: buildLocalContextWarning("national", "local", "demanda de proximidad"),
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      return {
+        query: request.query,
+        sources: [src1, src2],
+        evidenceRecords: [evidence1, evidence2],
+        overallSynthesis: "La evidencia nacional (DANE y Camacol) respalda la solidez del sector ferretero y la conveniencia de la cercanía; no obstante, debe validarse empíricamente la demanda y competencia en tu municipio específico.",
+        validationState: "supports",
+        suggestedEmpiricalSteps: [
+          "Entrevistar maestros de obra locales para conocer qué materiales compran fuera del pueblo.",
+          "Observar el tráfico de clientes en locales del centro durante un fin de semana.",
+        ],
+      };
+    }
+
+    // Scenario B: Academic Thesis / Deserción de estudiantes en software
+    if (query.includes("deserci") || query.includes("abandon") || query.includes("estudiant") || query.includes("software") || query.includes("programaci")) {
+      const srcUnesco = normalizeSource({
+        id: "src-unesco-stem",
+        title: "Factores Multidimensionales de Retención y Abandono en Educación Superior STEM",
+        url: "https://www.unesco.org/iesalc/desercion-stem",
+        organization: "UNESCO - IESALC",
+        publicationDate: "2022-09-10",
+        publicationYear: 2022,
+        isPeerReviewed: true,
+        rawExcerpt: "La deserción en ingenierías y ciencias de la computación es multicausal: factores socioeconómicos (42%), orientación vocacional e integración institucional (33%), y reprobación de asignaturas complejas (25%).",
+      });
+
+      const srcMinedu = normalizeSource({
+        id: "src-minedu-spadies",
+        title: "Determinantes de la Deserción Estudiantil en Programas de Computación",
+        url: "https://www.mineducacion.gov.co/spadies/estudio-ingenierias",
+        organization: "Ministerio de Educación Nacional - SPADIES",
+        publicationDate: "2023-04-18",
+        publicationYear: 2023,
+        rawExcerpt: "El seguimiento a cohortes muestra que la dificultad académica en programación inicial es un detonante relevante en los primeros tres semestres, fuertemente condicionado por la brecha de preparación previa.",
+      });
+
+      const srcBlog = normalizeSource({
+        id: "src-commercial-blog-coding",
+        title: "Por qué la mayoría renuncia a aprender a programar en 3 meses",
+        url: "https://aprendeprogramarfacil.blogspot.com/post-1",
+        organization: "Blog AprendeProgramar",
+        publicationDate: "2021-02-14",
+        publicationYear: 2021,
+        isPeerReviewed: false,
+        rawExcerpt: "Todo el mundo se rinde porque la programación es frustrante y no tienen disciplina.",
+      });
+
+      const evUnesco: EvidenceRecord = {
+        id: "ev-thesis-unesco",
+        query: request.query,
+        source: srcUnesco,
+        claimAddressed: "Multicausalidad en el abandono estudiantil en áreas de ingeniería y computación.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "mixed",
+        aiInterpretation: "La evidencia académica rigurosa demuestra que la dificultad en programación es solo uno de los factores; los aspectos socioeconómicos y la integración institucional tienen un peso estadístico igual o superior.",
+        scope: "academic",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      const evMinedu: EvidenceRecord = {
+        id: "ev-thesis-minedu",
+        query: request.query,
+        source: srcMinedu,
+        claimAddressed: "Dificultad inicial en materias de algoritmos y programación.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "Confirma que la curva de dificultad en programación temprana incide fuertemente en el desánimo estudiantil en los primeros semestres.",
+        scope: "national",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      const sources = [srcUnesco, srcMinedu, srcBlog].sort((a, b) => b.trustScore - a.trustScore);
+
+      return {
+        query: request.query,
+        sources,
+        evidenceRecords: [evUnesco, evMinedu],
+        overallSynthesis: "La literatura académica e institucional calificada evidencia que la dificultad técnica es un factor real, pero no único ni predominante por sí solo: los factores socioeconómicos e institucionales son igualmente determinantes.",
+        validationState: "mixed",
+        suggestedEmpiricalSteps: [
+          "Consultar las estadísticas oficiales de permanencia de la facultad o universidad objeto de estudio.",
+          "Aplicar un instrumento de encuesta a estudiantes que hayan cancelado la materia de algoritmos.",
+        ],
+      };
+    }
+
+    // Scenario C (Phase 6): Software Product Task Planning & Deadlines
+    if (query.includes("planificaci") || query.includes("entrega") || query.includes("plazos") || query.includes("deadline")) {
+      const srcUsability = normalizeSource({
+        id: "src-acm-planning-tools",
+        title: "Usability and Task Completion in Student Project Planning Software",
+        url: "https://dl.acm.org/doi/10.1145/student-planning-tools",
+        organization: "ACM Transactions on Computer-Human Interaction",
+        publicationDate: "2023-05-12",
+        publicationYear: 2023,
+        isPeerReviewed: true,
+        rawExcerpt: "La usabilidad de la interfaz explica solo el 14% de la varianza en entregas tardías. La procrastinación conductual, la sobrecarga simultánea de asignaturas y el subdimensionamiento del tiempo requerido son los determinantes principales.",
+      });
+
+      const srcInterventions = normalizeSource({
+        id: "src-ieee-past-interventions",
+        title: "Comparative Study of Digital Planners and Habit Formation in Undergraduates",
+        url: "https://ieeexplore.ieee.org/document/planner-interventions-2022",
+        organization: "IEEE Transactions on Learning Technologies",
+        publicationDate: "2022-10-04",
+        publicationYear: 2022,
+        isPeerReviewed: true,
+        rawExcerpt: "Herramientas previas tipo Trello, Notion y Google Calendar mostraron alta adopción en las primeras dos semanas (78%), pero sufrieron abandono masivo (65%) por fatiga de registro manual.",
+      });
+
+      const evUsability: EvidenceRecord = {
+        id: "ev-planning-usability",
+        query: request.query,
+        source: srcUsability,
+        claimAddressed: "La dificultad de las herramientas existentes como causa de incumplimiento de entregas.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "challenges",
+        aiInterpretation: "La evidencia experimental desafía la hipótesis: la fricción de interfaz es secundaria frente a factores conductuales como la procrastinación y la acumulación de entregas.",
+        scope: "academic",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      const evInterventions: EvidenceRecord = {
+        id: "ev-planning-interventions",
+        query: request.query,
+        source: srcInterventions,
+        claimAddressed: "Efectividad y limitaciones de soluciones previas de gestión de tareas.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "mixed",
+        aiInterpretation: "Las soluciones previas funcionan temporalmente pero colapsan por la fatiga del ingreso manual de datos. Una nueva herramienta debe resolver la automatización y los hábitos, no solo la estética.",
+        scope: "international",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      return {
+        query: request.query,
+        sources: [srcUsability, srcInterventions],
+        evidenceRecords: [evUsability, evInterventions],
+        overallSynthesis: "La investigación empírica en interacción humano-computador demuestra que el incumplimiento de plazos responde principalmente a factores conductuales y sobrecarga académica, no únicamente a la complejidad de las herramientas existentes.",
+        validationState: "mixed",
+        suggestedEmpiricalSteps: [
+          "Mapear las razones de entregas tardías en una muestra de 20 estudiantes de la facultad.",
+          "Medir la tasa de abandono de uso a la cuarta semana en un prototipo piloto.",
+        ],
+      };
+    }
+
+
+    // Scenario C: Software Product / Accesibilidad y Privacidad
+    if (query.includes("accesib") || query.includes("privacid") || query.includes("wcag") || query.includes("ley 1581") || query.includes("gdpr")) {
+      const srcWcag = normalizeSource({
+        id: "src-w3c-wcag",
+        title: "Web Content Accessibility Guidelines (WCAG) 2.1 AA",
+        url: "https://www.w3.org/TR/WCAG21/",
+        organization: "World Wide Web Consortium (W3C)",
+        publicationDate: "2023-01-01",
+        publicationYear: 2023,
+        isPeerReviewed: true,
+        rawExcerpt: "Los requisitos de contraste mínimo (4.5:1), navegación por teclado y etiquetas ARIA garantizan acceso a personas con diversidad funcional.",
+      });
+
+      const srcSic = normalizeSource({
+        id: "src-sic-habeas-data",
+        title: "Régimen General de Protección de Datos Personales (Ley 1581 de 2012)",
+        url: "https://www.sic.gov.co/proteccion-datos-personales",
+        organization: "Superintendencia de Industria y Comercio",
+        publicationDate: "2022-05-10",
+        publicationYear: 2022,
+        rawExcerpt: "Todo sistema que capture datos personales de usuarios debe contar con autorización expresa, finalidad informada y mecanismo de supresión.",
+      });
+
+      const ev1: EvidenceRecord = {
+        id: "ev-sw-wcag",
+        query: request.query,
+        source: srcWcag,
+        claimAddressed: "Estándares técnicos obligatorios de accesibilidad.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "La adopción de WCAG 2.1 AA previene barreras de uso y es requerida formalmente para software institucional.",
+        scope: "international",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      const ev2: EvidenceRecord = {
+        id: "ev-sw-privacy",
+        query: request.query,
+        source: srcSic,
+        claimAddressed: "Marco normativo de protección de datos personales.",
+        hypothesesLinkedIds: request.targetHypothesisId ? [request.targetHypothesisId] : [],
+        validationState: "supports",
+        aiInterpretation: "El proyecto debe contemplar un módulo de consentimiento explícito y política de tratamiento de datos desde la arquitectura inicial.",
+        scope: "national",
+        retrievedAt: new Date().toISOString(),
+        status: "suggested",
+      };
+
+      return {
+        query: request.query,
+        sources: [srcWcag, srcSic],
+        evidenceRecords: [ev1, ev2],
+        overallSynthesis: "Las directrices internacionales de W3C y las regulaciones de la SIC establecen parámetros mandatorios para la accesibilidad y la protección de datos personales en el producto.",
+        validationState: "supports",
+      };
+    }
+
+    // Default / No-Evidence Scenario: Very specific local claim or unknown query
+    return {
+      query: request.query,
+      sources: [],
+      evidenceRecords: [],
+      overallSynthesis: "Evidencia externa insuficiente: No se identificaron estudios estadísticos ni publicaciones oficiales con datos específicos para esta consulta puntual en fuentes públicas.",
+      validationState: "insufficient_evidence",
+      insufficientEvidenceReason: "La consulta aborda una condición local o un caso de nicho no indexado en bases de datos institucionales.",
+      suggestedEmpiricalSteps: [
+        "Realizar 5 a 10 entrevistas semiestructuradas con personas involucradas en el entorno local.",
+        "Diseñar una breve encuesta de muestreo rápido en la comunidad.",
+        "Efectuar observación de campo directa durante al menos 3 días hábiles.",
+      ],
+    };
+  },
+};
+
+export const mockServices: Services = { auth, projects, folders, workspace, ai, documents, research: mockResearchService };

@@ -10,24 +10,21 @@ import type { ConceptMap, Workspace } from "../src/domain/types";
 console.log("=== VERIFICACIÓN DE GENERACIÓN MULTIDIMENSIONAL 2D Y 3D ===");
 
 // 1. Verificación de Prompts de Fase 2 (Estructuración Multidimensional)
-console.log("\n[1/4] Verificando instrucciones de Fase 2 para arquitectura multidimensional...");
+console.log("\n[1/4] Verificando instrucciones de Fase 2 para arquitectura fundada en contexto...");
 const phase2Prompt = getSystemInstruction("PHASE_2_STRUCTURING", "es");
 assert.ok(
-  phase2Prompt.includes("ESTRUCTURACIÓN MULTIDIMENSIONAL"),
-  "El prompt de Fase 2 debe declarar explícitamente ESTRUCTURACIÓN MULTIDIMENSIONAL"
+  phase2Prompt.includes("ESTRUCTURACIÓN FUNDACIONAL"),
+  "El prompt de Fase 2 debe declarar una estructuración fundacional"
 );
 assert.ok(
-  phase2Prompt.includes("technical") &&
-    phase2Prompt.includes("economic") &&
-    phase2Prompt.includes("political") &&
-    phase2Prompt.includes("legal"),
-  "El prompt de Fase 2 debe exigir las 4 dimensiones canónicas"
+  phase2Prompt.includes("NO es obligatorio cubrir categorías") && phase2Prompt.includes("No crees nodos decorativos"),
+  "El prompt debe impedir una matriz universal y nodos decorativos de perspectivas"
 );
 assert.ok(
   phase2Prompt.includes("RELACIONES CAUSALES DIRECCIONALES"),
   "El prompt de Fase 2 debe exigir relaciones causales direccionales en 'relationships'"
 );
-console.log("✓ System Prompt de Fase 2 configurado con 4 dimensiones canónicas y relaciones causales.");
+console.log("✓ System Prompt de Fase 2 preserva relaciones causales sin forzar perspectivas universales.");
 
 // 2. Verificación de buildUserPrompt para Fase 2
 console.log("\n[2/4] Verificando buildUserPrompt para Fase 2...");
@@ -37,10 +34,10 @@ const userPrompt = buildUserPrompt({
   userMessage: "Estructura la arquitectura de mi proyecto",
 });
 assert.ok(
-  userPrompt.includes("arquitectura multidimensional") && userPrompt.includes("relaciones causales"),
-  "buildUserPrompt en Fase 2 debe solicitar la arquitectura multidimensional"
+  userPrompt.includes("estructura fundacional") && userPrompt.includes("No completes una matriz fija"),
+  "buildUserPrompt en Fase 2 debe solicitar conceptos fundados sin matriz fija"
 );
-console.log("✓ buildUserPrompt orienta al modelo a generar arquitectura multidimensional.");
+console.log("✓ buildUserPrompt orienta al modelo a generar una arquitectura contextual.");
 
 // 3. Verificación de Sincronización en Zustand Store (2D y 3D)
 console.log("\n[3/4] Verificando proyección atómica de nodos y enlaces en useWorkspaceStore...");

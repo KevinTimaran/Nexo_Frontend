@@ -39,6 +39,16 @@ if (!Module._extensions[".ts"]) {
     module._compile(transpiled.outputText, filename);
   };
 }
+if (!Module._extensions[".tsx"]) {
+  Module._extensions[".tsx"] = (module, filename) => {
+    const source = fs.readFileSync(filename, "utf8");
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+      fileName: filename,
+    });
+    module._compile(transpiled.outputText, filename);
+  };
+}
 
 const chatFilePath = path.resolve(
   process.cwd(),
@@ -673,7 +683,7 @@ assert.strictEqual(pizzeriaReply.message.action, "questionnaire");
 assert.strictEqual(pizzeriaReply.message.discoveryQuestions?.length, 3);
 
 // 8.3 Envío de respuestas al cuestionario de restaurante con palabras clave (cocina, meseros)
-// Verificar que NO cae en off-topic y emite dimensiones estratégicas
+// Verificar que NO cae en off-topic ni fuerza el catálogo histórico de cuatro dimensiones
 const restaurantAnswersReply = await mockServices.ai.reply({
   text: "Respuestas al cuestionario:\n1. ¿Cómo se estructurará la jerarquía de roles? -> Jerarquía entre Superadmin de franquicia, Gerente de sede, Meseros y Cocina\n2. ¿Qué arquitectura de datos requerirá? -> Sincronización multi-tenant en tiempo real entre sedes, salón y cocina\n3. ¿Cómo se integrará con el hardware? -> Integración con hardware POS e impresoras térmicas de barra y cocina",
   map: { nodes: [], relations: [] },
@@ -684,18 +694,7 @@ const restaurantAnswersReply = await mockServices.ai.reply({
 assert.strictEqual(restaurantAnswersReply.message.cardType, "idea", "Respuestas de restaurante no deben ser off-topic");
 assert.strictEqual(restaurantAnswersReply.message.action, "ready", "Debe cambiar a action: 'ready'");
 assert.strictEqual(restaurantAnswersReply.message.readyForStructuring, true);
-assert.ok(
-  Array.isArray(restaurantAnswersReply.message.dimensions) &&
-    restaurantAnswersReply.message.dimensions.length === 4,
-  "El mensaje ready debe incluir 4 dimensiones estratégicas"
-);
-assert.ok(
-  restaurantAnswersReply.message.dimensions.includes("economic") &&
-    restaurantAnswersReply.message.dimensions.includes("social") &&
-    restaurantAnswersReply.message.dimensions.includes("technical") &&
-    restaurantAnswersReply.message.dimensions.includes("legal"),
-  "Debe contener economic, social, technical y legal"
-);
+assert.strictEqual(restaurantAnswersReply.message.dimensions, undefined, "El mensaje ready no debe imponer cuatro perspectivas universales");
 
 // 8.4 Explorar dimensiones estratégicas individuales y poblar ventanas de Tablero 2D y 3D
 const exploreSocialReply = await mockServices.ai.reply({
@@ -744,14 +743,18 @@ assert.strictEqual(
   "Explorar dimensión económica debe estructurar los nodos en el mapa"
 );
 
-// 8.5 Renderizado de tarjeta ready con chips de dimensiones estratégicas y botones de navegación
+// 8.5 Renderizado adaptativo de perspectivas y botones de navegación
 const readyWithDimsMsg = {
   id: "msg-ready-dims",
   role: "assistant" as const,
   content: "La idea base está clara y podemos verla desde diferentes perspectivas:",
   type: "ready" as const,
-  dimensions: ["economic", "social", "technical", "legal"] as any,
 };
+
+const adaptivePerspectives = [
+  { perspectiveId: "operational", label: "Operativa", relevance: "relevant", rationale: "La memoria confirmada describe comandas y cocina. Esta perspectiva examina el flujo; no es un hecho nuevo.", focus: "procesos y continuidad", linkedFactIds: ["intent"], linkedNodeIds: [], explorationStatus: "suggested", evaluationVersion: "p3:test", source: "deterministic", rank: 12 },
+  { perspectiveId: "human", label: "Social / humana", relevance: "potentially_relevant", rationale: "La memoria menciona meseros. Esta perspectiva examina adopción; no es un hecho nuevo.", focus: "personas y adopción", linkedFactIds: ["users"], linkedNodeIds: [], explorationStatus: "suggested", evaluationVersion: "p3:test", source: "deterministic", rank: 9 },
+] as any;
 
 const renderedReadyDimsHtml = renderToStaticMarkup(
   React.createElement(FullScreenDiscoveryChat, {
@@ -759,15 +762,15 @@ const renderedReadyDimsHtml = renderToStaticMarkup(
     onGenerateArchitecture: () => {},
     onSendMessage: () => {},
     onNavigateToMode: () => {},
+    generationStatus: "generated",
+    perspectives: adaptivePerspectives,
   })
 );
 assert.ok(
-  renderedReadyDimsHtml.includes("Económico") &&
-    renderedReadyDimsHtml.includes("Social / Humano") &&
-    renderedReadyDimsHtml.includes("Técnico") &&
-    renderedReadyDimsHtml.includes("Legal"),
-  "Debe renderizar los botones de exploración de dimensiones estratégicas"
+  renderedReadyDimsHtml.includes("Operativa") && renderedReadyDimsHtml.includes("Social / humana"),
+  "Debe renderizar solo las perspectivas adaptativas seleccionadas"
 );
+assert.ok(!renderedReadyDimsHtml.includes("Económico") && !renderedReadyDimsHtml.includes("Técnico"), "No debe renderizar el catálogo universal histórico");
 assert.ok(
   renderedReadyDimsHtml.includes("Tablero de Conceptos") &&
     renderedReadyDimsHtml.includes("Espacio Neuronal 3D"),

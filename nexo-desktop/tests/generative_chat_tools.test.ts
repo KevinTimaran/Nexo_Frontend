@@ -21,6 +21,16 @@ if (!Module._extensions[".ts"]) {
     module._compile(transpiled.outputText, filename);
   };
 }
+if (!Module._extensions[".tsx"]) {
+  Module._extensions[".tsx"] = (module, filename) => {
+    const source = fs.readFileSync(filename, "utf8");
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+      fileName: filename,
+    });
+    module._compile(transpiled.outputText, filename);
+  };
+}
 
 function loadTsxComponent<T = Record<string, unknown>>(filePath: string): T {
   const source = fs.readFileSync(filePath, "utf8");
@@ -41,9 +51,16 @@ function loadTsxComponent<T = Record<string, unknown>>(filePath: string): T {
 }
 
 const chatPath = path.resolve(process.cwd(), "src/features/workspace/FullScreenDiscoveryChat.tsx");
-const { FullScreenDiscoveryChat } = loadTsxComponent<{
+const { FullScreenDiscoveryChat, getChatInputHeight, CHAT_INPUT_MIN_HEIGHT_PX, CHAT_INPUT_MAX_HEIGHT_PX } = loadTsxComponent<{
   FullScreenDiscoveryChat: React.FC<Record<string, unknown>>;
+  getChatInputHeight: (scrollHeight: number) => number;
+  CHAT_INPUT_MIN_HEIGHT_PX: number;
+  CHAT_INPUT_MAX_HEIGHT_PX: number;
 }>(chatPath);
+
+assert.strictEqual(getChatInputHeight(12), CHAT_INPUT_MIN_HEIGHT_PX);
+assert.strictEqual(getChatInputHeight(108), 108);
+assert.strictEqual(getChatInputHeight(600), CHAT_INPUT_MAX_HEIGHT_PX);
 
 const emptyMap = { nodes: [], relations: [] };
 
@@ -107,6 +124,44 @@ const unknownHtml = renderToStaticMarkup(React.createElement(FullScreenDiscovery
 }));
 assert.ok(unknownHtml.includes('data-memory-state="unknown"'));
 assert.ok(unknownHtml.includes("Por definir") && unknownHtml.includes("Completar") && unknownHtml.includes("Explorar"));
+
+const cognitiveHtml = renderToStaticMarkup(React.createElement(FullScreenDiscoveryChat, {
+  messages: [{
+    id: "assistant-cognitive",
+    role: "assistant",
+    content: "Hay un punto que conviene revisar.",
+    type: "text",
+    ui: {
+      type: "cognitive_insight",
+      id: "cognitive:hardware:validation",
+      mode: "blind_spot",
+      title: "Validación de la demanda local",
+      statement: "La demanda de los residentes aún no está validada.",
+      rationale: "La memoria contiene la oferta y el público, pero no una señal de demanda confirmada.",
+      linkedFactIds: ["audience", "offering"],
+      linkedNodeIds: [],
+      perspectiveIds: ["business"],
+      validationOptions: ["Entrevistar a residentes", "Probar una preventa pequeña"],
+      status: "proposed",
+      actionIds: [],
+    },
+  }],
+}));
+assert.ok(cognitiveHtml.includes("Punto ciego") && cognitiveHtml.includes("Por qué aparece"));
+assert.ok(cognitiveHtml.includes("Explorar") && cognitiveHtml.includes("Conservar como hipótesis"));
+assert.ok(!cognitiveHtml.includes("Enviar al tablero"), "Un hallazgo no aceptado no debe poder mapearse");
+
+const missingKeyHtml = renderToStaticMarkup(React.createElement(FullScreenDiscoveryChat, {
+  messages: [],
+  error: "No se ha configurado ninguna clave API de OpenAI para este dispositivo.",
+  onRetry: () => undefined,
+  onOpenSettings: () => undefined,
+}));
+assert.ok(missingKeyHtml.includes("Configura el motor de IA en este dispositivo"));
+assert.ok(missingKeyHtml.includes("Abrir Motor de IA"));
+assert.ok(!missingKeyHtml.includes("VITE_OPENAI_API_KEY") && !missingKeyHtml.includes(".env.local"));
+assert.ok(!missingKeyHtml.includes("Reintentar ahora"), "Reintentar sin una clave seguiría fallando");
+assert.ok(missingKeyHtml.includes("min-h-[44px]") && missingKeyHtml.includes("max-h-48"));
 
 if (!timelineReply.message.ui || timelineReply.message.ui.type !== "timeline") {
   throw new Error("Timeline mock inválido");

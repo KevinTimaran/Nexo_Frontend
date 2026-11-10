@@ -7,11 +7,13 @@
 import type {
   AIResponse,
   ChatPhase,
+  CognitiveAssistanceMode,
   ConceptKind,
   ConceptNode,
   ConceptRelation,
   DiscoveryQuestion,
   MemoryPatch,
+  PerspectiveProposal,
   NodeCategory,
   AICardType,
   NodePriority,
@@ -21,6 +23,7 @@ import type { AIReplyRequest, AIService, AITutorRequest } from "../contracts";
 import { getSystemInstruction, buildUserPrompt, detectMessageLanguage, sanitizeAssistantText } from "../ai/prompts";
 import { normalizeGenerativeUIBlock } from "../ai/generativeUi";
 import { normalizeAiMemoryPatches } from "../ai/semanticMemory";
+import { normalizePerspectiveProposals } from "../ai/perspectiveEngine";
 import { normalizeCategory } from "../../domain/constants";
 
 export type { AICardType };
@@ -41,7 +44,7 @@ export class GeminiError extends Error {
 
 export class APIKeyMissingError extends GeminiError {
   constructor(
-    message: string = "No se ha configurado ninguna clave API de Google Gemini. Configura VITE_GEMINI_API_KEY en .env.local o accede a Ajustes."
+    message: string = "No se ha configurado ninguna API key de Google Gemini para este dispositivo. Abre Ajustes > Motor de IA para guardar una clave propia."
   ) {
     super(message, "API_KEY_MISSING", 401);
     this.name = "APIKeyMissingError";
@@ -348,6 +351,8 @@ interface GeminiStructuredReply {
   action?: "chat" | "questionnaire" | "ready";
   message?: string;
   memoryPatches?: MemoryPatch[];
+  perspectives?: PerspectiveProposal[];
+  assistanceMode?: CognitiveAssistanceMode;
   questions?: Array<{
     id?: string;
     question: string;
@@ -388,7 +393,7 @@ export const geminiAiService: AIService = {
     const apiKey = getGeminiApiKey();
     const model = getGeminiModel();
 
-    const { text, map, lang, replyTo, chatPhase } = request;
+    const { text, map, lang, replyTo, chatPhase, discovery } = request;
     const now = new Date().toISOString();
 
     const effectiveLang = detectMessageLanguage(text, lang);
@@ -402,14 +407,18 @@ export const geminiAiService: AIService = {
       chatPhase || (map.nodes.length > 0 ? "PHASE_3_EXPANSION" : "PHASE_1_DISCOVERY");
 
     const existingSummary = (map?.nodes || [])
-      .map((n) => `- [${n.kind.toUpperCase()} | ${n.phase || "planning"} | ${n.category || "technical"}] ${n.title}: ${n.description}`)
+      .map((n) => `- [id=${n.id} | ${n.kind.toUpperCase()} | ${n.phase || "planning"} | ${n.category || "technical"}] ${n.title}: ${n.description}`)
       .join("\n");
+    const memorySummary = discovery?.facts.map((fact) => `- [id=${fact.key} | ${fact.kind ?? "legacy_unknown"} | ${fact.memoryState ?? fact.status}] ${fact.value}`).join("\n");
+    const perspectiveSummary = discovery?.perspectives?.filter((item) => item.explorationStatus !== "dismissed" && item.explorationStatus !== "not_relevant").slice(0, 5).map((item) => `- [${item.perspectiveId} | ${item.relevance}] ${item.rationale}`).join("\n");
 
     const systemInstruction = getSystemInstruction(activePhase, effectiveLang);
     const promptText = buildUserPrompt({
       phase: activePhase,
       lang: effectiveLang,
       existingNodesSummary: existingSummary,
+      memorySummary,
+      perspectiveSummary,
       userMessage: text,
       messageHistory: request.messageHistory,
     });
@@ -599,11 +608,11 @@ export const geminiAiService: AIService = {
             contextTopic
           ),
           chatPhase: activePhase,
+          assistanceMode: generativeUI?.type === "cognitive_insight" ? generativeUI.mode : parsed.assistanceMode,
           action: action,
           ui: generativeUI,
           memoryPatches: normalizeAiMemoryPatches(parsed.memoryPatches),
           readyForStructuring: isReadyStructuring,
-          dimensions: (parsed as any).dimensions || (isReadyAction ? ["economic", "social", "technical", "legal"] : undefined),
           discoveryQuestions: mappedQuestions,
           insight:
             insightItems.length > 0
@@ -630,6 +639,7 @@ export const geminiAiService: AIService = {
         },
         newNodes,
         newRelations,
+        perspectiveProposals: normalizePerspectiveProposals(parsed.perspectives, undefined, map),
       };
     } catch (parseErr) {
       // Fallback 3 Replacement (JSON parse / structured response failure)

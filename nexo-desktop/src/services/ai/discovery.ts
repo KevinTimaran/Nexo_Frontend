@@ -1,5 +1,6 @@
 import type { AssistantMessage, DiscoveryQuestion, DiscoveryState, GenerativeUIBlock, MemoryPatch, Message, ProjectArchetype, ProjectFact, UserMessage } from "../../domain/types";
 import { applyAiMemoryPatches, memoryOriginForUserMessage, transitionMemoryFact } from "./semanticMemory";
+import { syncCognitiveFact } from "./cognitiveAssistance";
 
 const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 export const questionKey = (text: string) => normalize(text).split(" ").filter((word) => word.length > 3).slice(0, 8).join("-");
@@ -125,6 +126,10 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
 }
 
 export function syncIdeaFacts(state: DiscoveryState, ui: GenerativeUIBlock | undefined, messageId: string, patches?: MemoryPatch[], stableTurnId = messageId): DiscoveryState {
+  if (ui?.type === "cognitive_insight") {
+    const cognitiveState = syncCognitiveFact(state, ui, messageId);
+    return { ...cognitiveState, facts: applyAiMemoryPatches(cognitiveState.facts, patches, messageId, stableTurnId) };
+  }
   if (ui?.type !== "idea_cards") return { ...state, facts: applyAiMemoryPatches(state.facts, patches, messageId, stableTurnId) };
   const facts = [...state.facts];
   for (const idea of ui.items) {

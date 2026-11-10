@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   User,
   Bot,
@@ -20,9 +20,13 @@ import {
   Trash2,
   Network,
   Trophy,
+  Compass,
 } from "lucide-react";
-import type { ActionableIdea, GenerativeUIBlock, MemoryPatch, ProjectFact } from "../../domain/types";
+import type { ActionableIdea, CognitiveInsightUIBlock, ContextValidationRecord, EvidenceCardUIBlock, EvidenceRecord, GenerativeUIBlock, MemoryPatch, PerspectiveActionEvent, PerspectiveEvaluation, ProjectFact } from "../../domain/types";
 import { memoryPresentationForFact, type MemoryAction } from "../../services/ai/semanticMemory";
+import { cognitiveMemoryKind, transitionCognitiveBlock } from "../../services/ai/cognitiveAssistance";
+import { isValidExternalUrl } from "../../services/ai/research";
+import { PerspectivePanel } from "./PerspectivePanel";
 
 export type QuestionnaireSelectionType = "single" | "multiple";
 export type StrategicDimension = "economic" | "social" | "technical" | "legal";
@@ -61,27 +65,29 @@ export interface FullScreenDiscoveryChatProps {
   isThinking?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  onOpenSettings?: () => void;
   onGenerativeUIChange?: (messageId: string, ui: GenerativeUIBlock) => void;
   onAddIdeaToBoard?: (messageId: string, idea: ActionableIdea) => void;
+  onAddCognitiveToBoard?: (messageId: string, block: CognitiveInsightUIBlock) => void;
   memoryFacts?: ProjectFact[];
   onMemoryAction?: (memoryKey: string, action: MemoryAction, value?: string) => void;
+  perspectives?: PerspectiveEvaluation[];
+  onPerspectiveAction?: (event: PerspectiveActionEvent) => void;
+  onAddEvidenceToBoard?: (evidence: EvidenceRecord) => void;
+  onSaveEvidenceToProject?: (evidence: EvidenceRecord) => void;
+  onTriggerResearch?: (intent: { query: string; targetHypothesisId?: string; rationale?: string }) => void;
+  onAddValidationToBoard?: (validation: ContextValidationRecord) => void;
+  onTriggerValidation?: (target: { targetSemanticId: string; targetClaim: string; targetKind: "hypothesis" | "problem" | "assumption" }) => void;
 }
-
-export const STRATEGIC_DIMENSIONS: Array<{
-  id: StrategicDimension;
-  label: string;
-  icon: string;
-  desc: string;
-}> = [
-  { id: "economic", label: "Económico", icon: "💼", desc: "Monetización, viabilidad y estructura de costos" },
-  { id: "social", label: "Social / Humano", icon: "👥", desc: "Impacto social, usuarios y comunidad" },
-  { id: "technical", label: "Técnico", icon: "⚙️", desc: "Arquitectura, infraestructura y desarrollo" },
-  { id: "legal", label: "Legal", icon: "⚖️", desc: "Normativa, licencias y marco regulatorio" },
-];
 
 export const MAX_AI_PROMPT_CHARS = 20000;
 export const AI_PROMPT_WARNING_THRESHOLD = 18000;
+export const CHAT_INPUT_MIN_HEIGHT_PX = 44;
+export const CHAT_INPUT_MAX_HEIGHT_PX = 192;
 export const IMAGE_REJECTION_MESSAGE = "Nexo solo procesa texto; no se admiten imágenes";
+
+export const getChatInputHeight = (scrollHeight: number): number =>
+  Math.min(CHAT_INPUT_MAX_HEIGHT_PX, Math.max(CHAT_INPUT_MIN_HEIGHT_PX, scrollHeight));
 
 export const countCodePoints = (str: string): number => Array.from(str || "").length;
 
@@ -108,6 +114,12 @@ interface GenerativeChatBlockProps {
   disabled?: boolean;
   onChange: (block: GenerativeUIBlock) => void;
   onAddIdeaToBoard?: (idea: ActionableIdea) => void;
+  onAddCognitiveToBoard?: (block: CognitiveInsightUIBlock) => void;
+  onAddEvidenceToBoard?: (evidence: EvidenceRecord) => void;
+  onSaveEvidenceToProject?: (evidence: EvidenceRecord) => void;
+  onTriggerResearch?: (intent: { query: string; targetHypothesisId?: string; rationale?: string }) => void;
+  onAddValidationToBoard?: (validation: ContextValidationRecord) => void;
+  onTriggerValidation?: (target: { targetSemanticId: string; targetClaim: string; targetKind: "hypothesis" | "problem" | "assumption" }) => void;
 }
 
 const splitList = (value: string): string[] =>
@@ -121,8 +133,16 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
   disabled = false,
   onChange,
   onAddIdeaToBoard,
+  onAddCognitiveToBoard,
+  onAddEvidenceToBoard,
+  onSaveEvidenceToProject,
+  onTriggerResearch,
+  onAddValidationToBoard,
+  onTriggerValidation,
 }) => {
   const [editingIdeaId, setEditingIdeaId] = useState<string | null>(null);
+  const [editingCognitive, setEditingCognitive] = useState(false);
+  const [cognitiveDraft, setCognitiveDraft] = useState("");
 
   if (block.type === "timeline") {
     const updateItem = (itemId: string, patch: Partial<(typeof block.items)[number]>) => {
@@ -275,12 +295,542 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
     );
   }
 
+  if (block.type === "cognitive_insight") {
+    const labels: Record<CognitiveInsightUIBlock["mode"], string> = {
+      explanation: "Explicación", blind_spot: "Punto ciego", suggestion: "Sugerencia", solution: "Posible solución",
+      risk: "Riesgo", opportunity: "Oportunidad", contradiction: "Tensión detectada", alternative: "Alternativa",
+      hypothesis: "Hipótesis", validation_strategy: "Estrategia de validación", comparison: "Comparación", question: "Pregunta clave",
+    };
+    const proposalKind = cognitiveMemoryKind(block.mode);
+    const canModify = proposalKind === "suggestion" && (block.status === "proposed" || block.status === "modified");
+    const canDecide = proposalKind !== null && (block.status === "proposed" || block.status === "modified");
+    const applyAction = (type: "accept" | "reject" | "explore" | "map") => {
+      const next = transitionCognitiveBlock(block, { type, blockId: block.id, actionId: crypto.randomUUID() });
+      if (next !== block) onChange(next);
+    };
+    const saveModification = () => {
+      const next = transitionCognitiveBlock(block, { type: "modify", blockId: block.id, actionId: crypto.randomUUID(), value: cognitiveDraft });
+      if (next !== block) onChange(next);
+      setEditingCognitive(false);
+    };
+    const statusLabel = block.status === "accepted"
+      ? (proposalKind === "hypothesis" ? "Conservada como hipótesis" : "Aceptada")
+      : block.status === "rejected" ? "Rechazada" : block.status === "mapped" ? "En el tablero" : block.status === "modified" ? "Modificada" : "Propuesta de Nexo";
+    return (
+      <section className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${block.status === "rejected" ? "opacity-60" : ""}`} aria-label={block.title}>
+        <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">{block.mode === "risk" || block.mode === "contradiction" ? <AlertTriangle className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}</div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2"><span className="text-[9px] uppercase tracking-wider font-bold text-primary">{labels[block.mode]}</span><span className="text-[9px] text-muted">{statusLabel}</span></div>
+            <h3 className="text-sm font-bold text-fg mt-1">{block.title}</h3>
+          </div>
+        </div>
+        <div className="p-4 space-y-3">
+          {editingCognitive ? (
+            <div className="space-y-2">
+              <textarea value={cognitiveDraft} onChange={(event) => setCognitiveDraft(event.target.value)} maxLength={1000} rows={4} className="w-full rounded-xl border border-line bg-app px-3 py-2 text-xs text-fg outline-none resize-none focus:border-primary" />
+              <div className="flex gap-2"><button type="button" onClick={saveModification} className="px-3 py-1.5 rounded-lg bg-primary text-[var(--on-primary)] text-[10px] font-bold">Guardar cambio</button><button type="button" onClick={() => setEditingCognitive(false)} className="px-3 py-1.5 rounded-lg border border-line text-[10px] text-muted">Cancelar</button></div>
+            </div>
+          ) : <p className="text-xs text-fg leading-relaxed">{block.statement}</p>}
+          <div className="rounded-xl border border-line bg-surface p-3"><p className="text-[10px] font-bold text-fg">Por qué aparece</p><p className="text-[11px] text-muted mt-1 leading-relaxed">{block.rationale}</p></div>
+          {block.explorationStatus === "explored" && (
+            <div className="space-y-2" aria-label={`Detalle de ${block.title}`}>
+              {block.whyItMatters && <p className="text-[11px] text-muted"><span className="font-bold text-fg">Por qué importa:</span> {block.whyItMatters}</p>}
+              {block.mitigation && <p className="text-[11px] text-muted"><span className="font-bold text-fg">Mitigación posible:</span> {block.mitigation}</p>}
+              {block.nextAction && <p className="text-[11px] text-muted"><span className="font-bold text-fg">Siguiente acción:</span> {block.nextAction}</p>}
+              {block.validationOptions.length > 0 && <div><p className="text-[10px] font-bold text-fg">Cómo podría validarse</p><ul className="mt-1 space-y-1">{block.validationOptions.map((option) => <li key={option} className="text-[11px] text-muted">• {option}</li>)}</ul><p className="text-[9px] text-muted mt-2">Nexo solo propone estos métodos; no ejecutó investigación externa.</p></div>}
+            </div>
+          )}
+          <div className="pt-2 border-t border-line flex flex-wrap gap-1.5">
+            {block.status !== "rejected" && <button type="button" disabled={disabled || block.explorationStatus === "explored"} onClick={() => applyAction("explore")} className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-fg hover:bg-[var(--hover)] disabled:opacity-50">{block.explorationStatus === "explored" ? "Detalle abierto" : "Explorar"}</button>}
+            {canModify && <button type="button" disabled={disabled} onClick={() => { setCognitiveDraft(block.statement); setEditingCognitive(true); }} className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-fg hover:bg-[var(--hover)] flex items-center gap-1"><Pencil className="w-3 h-3" />Modificar</button>}
+            {canDecide && onTriggerResearch && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() =>
+                  onTriggerResearch({
+                    query: block.title,
+                    targetHypothesisId: block.id,
+                    rationale: block.rationale,
+                  })
+                }
+                className="px-2.5 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 text-[10px] font-semibold flex items-center gap-1"
+              >
+                <Compass className="w-3 h-3" />
+                Investigar esto
+              </button>
+            )}
+            {canDecide && onTriggerValidation && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() =>
+                  onTriggerValidation({
+                    targetSemanticId: block.id,
+                    targetClaim: block.statement,
+                    targetKind: "hypothesis",
+                  })
+                }
+                className="px-2.5 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 text-[10px] font-semibold flex items-center gap-1"
+              >
+                <CalendarDays className="w-3 h-3" />
+                Validar contexto
+              </button>
+            )}
+            {canDecide && <button type="button" disabled={disabled} onClick={() => applyAction("accept")} className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-fg hover:bg-[var(--hover)] flex items-center gap-1"><Check className="w-3 h-3" />{proposalKind === "hypothesis" ? "Conservar como hipótesis" : "Aceptar"}</button>}
+            {canDecide && <button type="button" disabled={disabled} onClick={() => applyAction("reject")} className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-muted hover:text-fg hover:bg-[var(--hover)] flex items-center gap-1"><Trash2 className="w-3 h-3" />Rechazar</button>}
+            {block.status === "accepted" && <button type="button" disabled={disabled} onClick={() => { onAddCognitiveToBoard?.(block); applyAction("map"); }} className="ml-auto px-2.5 py-1.5 rounded-lg bg-primary text-[var(--on-primary)] text-[10px] font-bold flex items-center gap-1"><Network className="w-3 h-3" />Enviar al tablero</button>}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (block.type === "evidence_card") {
+    const { evidence } = block;
+    const isInactive = evidence.status === "discarded";
+    const statusLabel =
+      evidence.status === "accepted"
+        ? "Guardada en proyecto"
+        : evidence.status === "mapped"
+        ? "En el lienzo"
+        : evidence.status === "discarded"
+        ? "Descartada"
+        : "Evidencia externa recuperada";
+
+    const badgeColor =
+      evidence.validationState === "supports"
+        ? "text-positive bg-positive/10 border-positive/20"
+        : evidence.validationState === "challenges"
+        ? "text-negative bg-negative/10 border-negative/20"
+        : evidence.validationState === "mixed"
+        ? "text-warning bg-warning/10 border-warning/20"
+        : "text-primary bg-primary/10 border-primary/20";
+
+    const badgeText =
+      evidence.validationState === "supports"
+        ? "Respalda hipótesis"
+        : evidence.validationState === "challenges"
+        ? "Desafía hipótesis"
+        : evidence.validationState === "mixed"
+        ? "Evidencia mixta / multifactorial"
+        : "Evidencia insuficiente";
+
+    const safeUrl = isValidExternalUrl(evidence.source.url) ? evidence.source.url : null;
+
+    return (
+      <section
+        className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${
+          isInactive ? "opacity-60" : ""
+        }`}
+        aria-label={`Evidencia: ${evidence.source.title}`}
+      >
+        <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Compass className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] uppercase tracking-wider font-bold text-primary">
+                  EVIDENCIA EXTERNA
+                </span>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                  {badgeText}
+                </span>
+                <span className="text-[9px] text-muted">{statusLabel}</span>
+              </div>
+              <h3 className="text-sm font-bold text-fg mt-1">{evidence.source.title}</h3>
+              <p className="text-[11px] text-muted">
+                {evidence.source.organization || evidence.source.domain} · Confiabilidad:{" "}
+                <span className="font-bold text-fg">{evidence.source.trustScore}/100</span>
+                {evidence.source.publicationDate && ` · ${evidence.source.publicationDate}`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div className="rounded-xl border border-line bg-surface p-3">
+            <p className="text-[10px] font-bold text-fg">Afirmación / Hallazgo investigado</p>
+            <p className="text-xs text-fg mt-1 leading-relaxed">{evidence.claimAddressed}</p>
+          </div>
+
+          {evidence.source.sanitizedExcerpt && (
+            <div className="rounded-xl border border-line/60 bg-surface/40 p-3 text-[11px] text-muted italic">
+              "{evidence.source.sanitizedExcerpt}"
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-fg">Interpretación analítica de Nexo</p>
+            <p className="text-xs text-fg leading-relaxed">{evidence.aiInterpretation}</p>
+          </div>
+
+          <div className="text-[10px] text-muted flex items-start gap-1">
+            <span className="font-bold text-fg shrink-0">Criterio de confianza:</span>
+            <span>{evidence.source.trustRationale}</span>
+          </div>
+
+          {evidence.localContextWarning && (
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2 text-warning">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">{evidence.localContextWarning}</p>
+            </div>
+          )}
+
+          {evidence.suggestedNextSteps && evidence.suggestedNextSteps.length > 0 && (
+            <div className="pt-2">
+              <p className="text-[10px] font-bold text-fg">Pasos empíricos sugeridos</p>
+              <ul className="mt-1 space-y-1">
+                {evidence.suggestedNextSteps.map((step) => (
+                  <li key={step} className="text-[11px] text-muted">
+                    • {step}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-line flex flex-wrap gap-1.5 items-center">
+            {safeUrl && (
+              <a
+                href={safeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-fg hover:bg-[var(--hover)] flex items-center gap-1"
+              >
+                Abrir fuente
+              </a>
+            )}
+            <button
+              type="button"
+              disabled={disabled || evidence.status === "mapped"}
+              onClick={() => {
+                const nextStatus = evidence.status === "accepted" ? "suggested" : "accepted";
+                const updated: EvidenceCardUIBlock = {
+                  ...block,
+                  evidence: { ...evidence, status: nextStatus },
+                };
+                onChange(updated);
+                if (nextStatus === "accepted") {
+                  onSaveEvidenceToProject?.(updated.evidence);
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-fg hover:bg-[var(--hover)] flex items-center gap-1"
+            >
+              <Check className="w-3 h-3" />
+              {evidence.status === "accepted" ? "Guardada" : "Guardar en proyecto"}
+            </button>
+            <button
+              type="button"
+              disabled={disabled || evidence.status === "mapped"}
+              onClick={() => {
+                const nextStatus = evidence.status === "discarded" ? "suggested" : "discarded";
+                onChange({
+                  ...block,
+                  evidence: { ...evidence, status: nextStatus },
+                });
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-line text-[10px] font-semibold text-muted hover:text-fg hover:bg-[var(--hover)] flex items-center gap-1"
+            >
+              <Trash2 className="w-3 h-3" />
+              {evidence.status === "discarded" ? "Restaurar" : "Descartar"}
+            </button>
+            <button
+              type="button"
+              disabled={disabled || evidence.status === "mapped" || isInactive}
+              onClick={() => {
+                onAddEvidenceToBoard?.(evidence);
+                onChange({
+                  ...block,
+                  evidence: { ...evidence, status: "mapped" },
+                });
+              }}
+              className="ml-auto px-2.5 py-1.5 rounded-lg bg-primary text-[var(--on-primary)] text-[10px] font-bold flex items-center gap-1 disabled:opacity-40"
+            >
+              <Network className="w-3 h-3" />
+              {evidence.status === "mapped" ? "En el tablero" : "Enviar al tablero"}
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (block.type === "research_summary") {
+    const badgeColor =
+      block.validationState === "supports"
+        ? "text-positive bg-positive/10 border-positive/20"
+        : block.validationState === "challenges"
+        ? "text-negative bg-negative/10 border-negative/20"
+        : block.validationState === "mixed"
+        ? "text-warning bg-warning/10 border-warning/20"
+        : "text-primary bg-primary/10 border-primary/20";
+
+    const badgeText =
+      block.validationState === "supports"
+        ? "Respalda hipótesis"
+        : block.validationState === "challenges"
+        ? "Desafía hipótesis"
+        : block.validationState === "mixed"
+        ? "Evidencia mixta / multifactorial"
+        : "Evidencia insuficiente";
+
+    return (
+      <section
+        className="mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden"
+        aria-label={`Síntesis de investigación: ${block.query}`}
+      >
+        <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Compass className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] uppercase tracking-wider font-bold text-primary">
+                  SÍNTESIS DE INVESTIGACIÓN
+                </span>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                  {badgeText}
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-fg mt-1">«{block.query}»</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-fg leading-relaxed">{block.overallSynthesis}</p>
+
+          {block.validationState === "insufficient_evidence" && (
+            <div className="space-y-2 rounded-xl border border-line bg-surface p-3">
+              <p className="text-[10px] font-bold text-fg">Estado de la búsqueda externa</p>
+              <p className="text-[11px] text-muted">
+                {block.insufficientEvidenceReason ||
+                  "No se hallaron fuentes públicas confiables sobre esta consulta específica."}
+              </p>
+              {block.suggestedEmpiricalSteps && block.suggestedEmpiricalSteps.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-[10px] font-bold text-fg">Validación de campo recomendada</p>
+                  <ul className="mt-1 space-y-1">
+                    {block.suggestedEmpiricalSteps.map((step) => (
+                      <li key={step} className="text-[11px] text-muted">
+                        • {step}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {block.records && block.records.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <p className="text-[10px] font-bold text-fg">
+                Fuentes y evidencias analizadas ({block.records.length})
+              </p>
+              <div className="space-y-2">
+                {block.records.map((rec) => (
+                  <article
+                    key={rec.id}
+                    className="rounded-xl border border-line bg-surface p-3 flex flex-col gap-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-xs font-bold text-fg">{rec.source.title}</h4>
+                      <span className="text-[9px] font-bold text-muted">
+                        {rec.source.trustScore}/100
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted leading-relaxed">{rec.claimAddressed}</p>
+                    {rec.localContextWarning && (
+                      <p className="text-[10px] text-warning">{rec.localContextWarning}</p>
+                    )}
+                    <div className="flex items-center justify-between pt-1 text-[10px]">
+                      <span className="text-muted">{rec.source.domain}</span>
+                      {isValidExternalUrl(rec.source.url) && (
+                        <a
+                          href={rec.source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          Ver fuente
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.type === "validation_summary") {
+    const { validation } = block;
+    const isInactive = validation.status === "archived";
+
+    const badgeColor =
+      validation.validationStatus === "supported"
+        ? "text-positive bg-positive/10 border-positive/20"
+        : validation.validationStatus === "partially_supported"
+        ? "text-primary bg-primary/10 border-primary/20"
+        : validation.validationStatus === "challenged"
+        ? "text-negative bg-negative/10 border-negative/20"
+        : validation.validationStatus === "mixed"
+        ? "text-warning bg-warning/10 border-warning/20"
+        : "text-muted bg-surface border-line";
+
+    const badgeText =
+      validation.validationStatus === "supported"
+        ? "Respaldo empírico"
+        : validation.validationStatus === "partially_supported"
+        ? "Respaldo parcial"
+        : validation.validationStatus === "challenged"
+        ? "Evidencia en contra"
+        : validation.validationStatus === "mixed"
+        ? "Evidencia mixta / multicausal"
+        : validation.validationStatus === "insufficient_evidence"
+        ? "Evidencia insuficiente"
+        : "No aplicable";
+
+    return (
+      <section
+        className={`mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden ${
+          isInactive ? "opacity-60" : ""
+        }`}
+        aria-label={`Validación de contexto: ${validation.targetClaim}`}
+      >
+        <div className="p-4 border-b border-line bg-surface-elevated/40 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <CalendarDays className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] uppercase tracking-wider font-bold text-primary">
+                  VALIDACIÓN DE CONTEXTO E HISTÓRICO
+                </span>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                  {badgeText}
+                </span>
+                <span className="text-[9px] text-muted">
+                  Confianza: <span className="font-semibold text-fg">{validation.evidenceConfidence}</span>
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-fg mt-1">«{validation.targetClaim}»</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div className="rounded-xl border border-line bg-surface p-3">
+            <p className="text-[10px] font-bold text-fg">Síntesis de Validación</p>
+            <p className="text-xs text-fg mt-1 leading-relaxed">{validation.synthesis}</p>
+          </div>
+
+          {validation.scope.geographicWarning && (
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2 text-warning">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">{validation.scope.geographicWarning}</p>
+            </div>
+          )}
+
+          {validation.scope.temporal.temporalWarning && (
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2 text-warning">
+              <CalendarDays className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">{validation.scope.temporal.temporalWarning}</p>
+            </div>
+          )}
+
+          {validation.scope.populationWarning && (
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2 text-warning">
+              <User className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">{validation.scope.populationWarning}</p>
+            </div>
+          )}
+
+          {validation.alternativeExplanations && validation.alternativeExplanations.length > 0 && (
+            <div className="rounded-xl border border-line bg-surface p-3">
+              <p className="text-[10px] font-bold text-fg">Factores y Explicaciones Alternativas</p>
+              <ul className="mt-1 space-y-1">
+                {validation.alternativeExplanations.map((alt) => (
+                  <li key={alt} className="text-[11px] text-muted">
+                    • {alt}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {validation.previousSolutions && validation.previousSolutions.length > 0 && (
+            <div className="rounded-xl border border-line bg-surface p-3 space-y-2">
+              <p className="text-[10px] font-bold text-fg">Intentos y Soluciones Previas</p>
+              {validation.previousSolutions.map((sol, idx) => (
+                <div key={idx} className="text-[11px] text-muted border-t border-line/40 pt-1.5 first:border-0 first:pt-0">
+                  <span className="font-bold text-fg">{sol.solution}</span> ({sol.context}): {sol.outcome}
+                  <div className="text-[10px] text-warning mt-0.5">Limitación reportada: {sol.limitations}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {validation.trendAnalysis && (
+            <div className="text-[11px] text-muted flex items-start gap-1">
+              <span className="font-bold text-fg shrink-0">Tendencia histórica:</span>
+              <span>{validation.trendAnalysis.explanation}</span>
+            </div>
+          )}
+
+          {validation.unresolvedQuestions && validation.unresolvedQuestions.length > 0 && (
+            <div className="pt-1">
+              <p className="text-[10px] font-bold text-fg">Interrogantes aún no resueltos por la evidencia</p>
+              <ul className="mt-1 space-y-1">
+                {validation.unresolvedQuestions.map((q) => (
+                  <li key={q} className="text-[11px] text-muted">
+                    ? {q}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-line flex flex-wrap gap-1.5 items-center">
+            <button
+              type="button"
+              disabled={disabled || validation.status === "mapped"}
+              onClick={() => {
+                onAddValidationToBoard?.(validation);
+                onChange({
+                  ...block,
+                  validation: { ...validation, status: "mapped" },
+                });
+              }}
+              className="ml-auto px-2.5 py-1.5 rounded-lg bg-primary text-[var(--on-primary)] text-[10px] font-bold flex items-center gap-1 disabled:opacity-40"
+            >
+              <Network className="w-3 h-3" />
+              {validation.status === "mapped" ? "En el tablero" : "Enviar validación al tablero"}
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const updateIdea = (ideaId: string, patch: Partial<ActionableIdea>) => {
+    if (block.type !== "idea_cards") return;
     onChange({
       ...block,
       items: block.items.map((idea) => (idea.id === ideaId ? { ...idea, ...patch } : idea)),
     });
   };
+
+  if (block.type !== "idea_cards") return null;
 
   return (
     <section className="mt-4 rounded-2xl border border-line bg-surface/60 overflow-hidden" aria-label={block.title}>
@@ -346,10 +896,19 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
   isThinking = false,
   error = null,
   onRetry,
+  onOpenSettings,
   onGenerativeUIChange,
   onAddIdeaToBoard,
+  onAddCognitiveToBoard,
   memoryFacts = [],
   onMemoryAction,
+  perspectives = [],
+  onPerspectiveAction,
+  onAddEvidenceToBoard,
+  onSaveEvidenceToProject,
+  onTriggerResearch,
+  onAddValidationToBoard,
+  onTriggerValidation,
 }) => {
   const [internalMessages, setInternalMessages] = useState<ChatMessage[]>(initialMessages);
   const messages = controlledMessages ?? internalMessages;
@@ -368,7 +927,18 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const prevMessagesLengthRef = useRef<number>(messages.length);
+
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    input.style.height = "0px";
+    const nextHeight = getChatInputHeight(input.scrollHeight);
+    input.style.height = `${nextHeight}px`;
+    input.style.overflowY = input.scrollHeight > CHAT_INPUT_MAX_HEIGHT_PX ? "auto" : "hidden";
+  }, [inputValue]);
 
   useEffect(() => {
     if (!controlledMessages && initialMessages) {
@@ -727,34 +1297,6 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
                       </p>
                     </div>
 
-                    {/* Selector de Puntos de Vista Estratégicos */}
-                    <div className="pt-2 text-left space-y-2">
-                      <p className="text-[11px] font-semibold text-muted uppercase tracking-wider text-center">
-                        Puntos de vista estratégicos a explorar
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {STRATEGIC_DIMENSIONS.map((dim) => (
-                          <button
-                            key={dim.id}
-                            type="button"
-                            disabled={isThinking}
-                            onClick={() => {
-                              onSendMessage?.(`Explorar punto de vista ${dim.label}: ${dim.desc}`);
-                            }}
-                            className="glass-card hover:bg-[var(--hover)] transition-all p-2.5 rounded-xl text-left border border-line flex flex-col gap-0.5 cursor-pointer disabled:opacity-50"
-                          >
-                            <span className="text-xs font-bold text-fg flex items-center gap-1.5">
-                              <span>{dim.icon}</span>
-                              <span>{dim.label}</span>
-                            </span>
-                            <span className="text-[11px] text-muted">
-                              {dim.desc}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     <button
                       type="button"
                       disabled={isThinking || (generationStatus !== "generated" && generationStatus !== "generation_error")}
@@ -1022,6 +1564,12 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
                         disabled={isThinking}
                         onChange={(nextBlock) => onGenerativeUIChange?.(msg.id, nextBlock)}
                         onAddIdeaToBoard={(idea) => onAddIdeaToBoard?.(msg.id, idea)}
+                        onAddCognitiveToBoard={(block) => onAddCognitiveToBoard?.(msg.id, block)}
+                        onAddEvidenceToBoard={onAddEvidenceToBoard}
+                        onSaveEvidenceToProject={onSaveEvidenceToProject}
+                        onTriggerResearch={onTriggerResearch}
+                        onAddValidationToBoard={onAddValidationToBoard}
+                        onTriggerValidation={onTriggerValidation}
                       />
                     )}
                   </div>
@@ -1036,6 +1584,15 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
               </div>
             );
           })}
+
+          {perspectives.length > 0 && (
+            <div className="flex items-start gap-3 w-full justify-start">
+              <div className="w-9 h-9 rounded-2xl glass-card flex items-center justify-center shrink-0 text-fg">
+                <Compass className="w-4 h-4 text-fg" />
+              </div>
+              <PerspectivePanel perspectives={perspectives} disabled={isThinking} onAction={onPerspectiveAction} />
+            </div>
+          )}
 
           {/* Thinking Indicator */}
           {isThinking && (
@@ -1055,6 +1612,7 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
             const isQuota = /429|cuota|quota|token|resource_exhausted/i.test(error);
             const isNetwork = /red|network|conexi[oó]n|offline|fetch|failed to fetch/i.test(error);
             const isKey = /clave|api_key|key|autoriz|401|403|unauthorized/i.test(error);
+            const isMissingKey = /no se ha configurado|api_key_missing/i.test(error);
 
             const badgeLabel = isQuota
               ? "Cuota de Tokens Excedida (HTTP 429)"
@@ -1069,12 +1627,16 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
               : isNetwork
                 ? "Sin conexión con los servidores de Google Gemini"
                 : isKey
-                  ? "Clave API no configurada o inválida"
+                  ? isMissingKey
+                    ? "Configura el motor de IA en este dispositivo"
+                    : "La clave API no es válida"
                   : "No se pudo procesar la respuesta de la IA";
 
             const description = isQuota
               ? "Google Gemini ha alcanzado temporalmente el límite de solicitudes por minuto o cuota de tokens. Se restablecerá automáticamente en unos momentos."
-              : error;
+              : isMissingKey
+                ? "Por seguridad, Nexo no carga claves incluidas en archivos .env dentro de la aplicación. Abre Ajustes > Motor de IA y guarda una clave propia para este dispositivo."
+                : error;
 
             return (
               <div className="flex items-start gap-3 w-full justify-start animate-fade-in my-2">
@@ -1144,16 +1706,28 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
                     )}
                   </div>
 
-                  {onRetry && (
+                  {(onRetry || (isKey && onOpenSettings)) && (
                     <div className="pt-1 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={onRetry}
-                        className="px-3.5 py-1.5 rounded-xl btn-primary text-xs font-semibold inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Reintentar ahora</span>
-                      </button>
+                      {isKey && onOpenSettings && (
+                        <button
+                          type="button"
+                          onClick={onOpenSettings}
+                          className="px-3.5 py-1.5 rounded-xl btn-primary text-xs font-semibold inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                          <span>Abrir Motor de IA</span>
+                        </button>
+                      )}
+                      {onRetry && !isMissingKey && (
+                        <button
+                          type="button"
+                          onClick={onRetry}
+                          className="px-3.5 py-1.5 rounded-xl border border-line text-xs font-semibold inline-flex items-center gap-2 cursor-pointer transition-all hover:bg-[var(--hover)]"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Reintentar ahora</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1192,13 +1766,14 @@ export const FullScreenDiscoveryChat: React.FC<FullScreenDiscoveryChatProps> = (
         <div className="glass-card p-4 m-6 mt-0 flex flex-col gap-2">
           <div className="flex items-end gap-3">
             <textarea
+              ref={inputRef}
               value={inputValue}
               onChange={handleInputChange}
               onPaste={handlePaste}
               onKeyDown={handleKeyDown}
               placeholder="Escribe tu respuesta o describe tu idea..."
-              rows={2}
-              className="flex-1 bg-transparent border-0 outline-none focus:ring-0 text-sm text-fg placeholder:text-muted resize-none"
+              rows={1}
+              className="flex-1 min-h-[44px] max-h-48 overflow-y-hidden bg-transparent border-0 outline-none focus:ring-0 text-sm leading-5 text-fg placeholder:text-muted resize-none"
             />
             <button
               type="button"

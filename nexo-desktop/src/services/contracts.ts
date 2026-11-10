@@ -17,6 +17,11 @@ import type {
   User,
   Workspace,
   DiscoveryState,
+  EvidenceRecord,
+  EvidenceSourceType,
+  EvidenceValidationState,
+  NormalizedSource,
+  ResearchScope,
 } from "../domain/types";
 
 export interface AuthService {
@@ -53,6 +58,8 @@ export interface AIReplyRequest {
   replyTo: string;
   chatPhase?: ChatPhase;
   messageHistory?: Message[];
+  /** Canonical memory context used to ground cognitive assistance. */
+  discovery?: DiscoveryState;
 }
 
 export interface AITutorRequest {
@@ -71,6 +78,30 @@ export interface DocumentService {
   generate(projectId: string, projectName: string, lang: Language): Promise<GeneratedDocument>;
 }
 
+export interface ResearchSearchRequest {
+  query: string;
+  scope?: ResearchScope;
+  preferredTypes?: EvidenceSourceType[];
+  targetHypothesisId?: string;
+  maxResults?: number;
+  lang?: Language;
+}
+
+export interface ResearchSearchResponse {
+  query: string;
+  sources: NormalizedSource[];
+  evidenceRecords: EvidenceRecord[];
+  overallSynthesis: string;
+  validationState: EvidenceValidationState;
+  insufficientEvidenceReason?: string;
+  suggestedEmpiricalSteps?: string[];
+}
+
+export interface ResearchService {
+  search(request: ResearchSearchRequest): Promise<ResearchSearchResponse>;
+  fetchSource?(url: string): Promise<NormalizedSource | null>;
+}
+
 export interface Services {
   auth: AuthService;
   projects: ProjectService;
@@ -78,4 +109,5 @@ export interface Services {
   workspace: WorkspaceService;
   ai: AIService;
   documents: DocumentService;
+  research: ResearchService;
 }

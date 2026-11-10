@@ -36,13 +36,15 @@ assert.equal(server.revision, 1);
 assert.equal(server.map.nodes.length, 1);
 
 server = { ...server, revision: 2, map: { nodes: [node("deleted-ai", "ai:deleted"), node("other-user")], relations: [] } };
-const discovery = { lifecycle: "generated", archetype: "business", facts: [{ key: "suggestion:a:idea", value: "Proposal", status: "unconfirmed", sourceMessageIds: ["assistant-a"], kind: "suggestion", memoryState: "rejected", origin: "ai_suggestion", decisionEventId: "reject-a" }], requiredTopics: [], askedQuestionKeys: [], answeredQuestionKeys: [], generationLedger: {}, tombstones: ["ai:deleted"] } as const;
+const discovery = { lifecycle: "generated", archetype: "business", facts: [{ key: "suggestion:a:idea", value: "Proposal", status: "unconfirmed", sourceMessageIds: ["assistant-a"], kind: "suggestion", memoryState: "rejected", origin: "ai_suggestion", decisionEventId: "reject-a" }], requiredTopics: [], askedQuestionKeys: [], answeredQuestionKeys: [], generationLedger: {}, tombstones: ["ai:deleted"], perspectiveEvaluationVersion: "p3:persisted", perspectives: [{ perspectiveId: "market", label: "Mercado", relevance: "relevant", rationale: "Grounded market question", focus: "demand", linkedFactIds: ["suggestion:a:idea"], linkedNodeIds: [], explorationStatus: "dismissed", evaluationVersion: "p3:persisted", source: "deterministic", rank: 9, actionIds: ["dismiss:market"] }] } as const;
 await httpServices.workspace.save(project.id, { nodes: [node("my-edit")], relations: [] }, [], discovery as never);
 assert.equal(server.revision, 3);
 assert.deepEqual(server.map.nodes.map((item) => item.id).sort(), ["my-edit", "other-user"]);
 assert.deepEqual(attempts.slice(-2).map((item) => item.expectedRevision), [1, 2]);
 assert.equal((server.discovery as typeof discovery).facts[0].memoryState, "rejected");
 assert.deepEqual((server.discovery as typeof discovery).facts[0].sourceMessageIds, ["assistant-a"]);
+assert.equal((server.discovery as typeof discovery).perspectives[0].explorationStatus, "dismissed");
+assert.deepEqual((server.discovery as typeof discovery).perspectives[0].actionIds, ["dismiss:market"]);
 
 const pendingKey = `nexo.pending.workspace.${project.id}`;
 storage.set(pendingKey, JSON.stringify({ map: server.map, messages: server.messages, discovery, operationId: "recover-same-operation", baseRevision: 3 }));
@@ -53,6 +55,7 @@ assert.equal(storage.has(pendingKey), false);
 await httpServices.workspace.load(project.id, "es");
 assert.equal(server.revision, 4);
 assert.equal((server.discovery as typeof discovery).facts[0].decisionEventId, "reject-a");
+assert.equal((server.discovery as typeof discovery).perspectiveEvaluationVersion, "p3:persisted");
 
 const canonicalNode = {
   ...node("fact-intent", "intent"),

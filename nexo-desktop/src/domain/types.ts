@@ -173,7 +173,61 @@ export interface UserMessage extends BaseMessage {
 export type ChatPhase = "PHASE_1_DISCOVERY" | "PHASE_2_STRUCTURING" | "PHASE_3_EXPANSION";
 
 export type QuestionnaireSelectionType = "single" | "multiple";
+/** @deprecated Kept only so legacy chat payloads remain readable. */
 export type StrategicDimension = "economic" | "social" | "technical" | "legal";
+
+export type PerspectiveId =
+  | "economic"
+  | "human"
+  | "political"
+  | "legal"
+  | "ethical"
+  | "technical"
+  | "geographic"
+  | "environmental"
+  | "historical"
+  | "market"
+  | "cultural"
+  | "operational"
+  | "educational"
+  | "institutional"
+  | "methodological"
+  | "privacy"
+  | "accessibility";
+
+export type PerspectiveRelevance = "relevant" | "potentially_relevant" | "unexplored" | "not_applicable";
+export type PerspectiveExplorationStatus = "suggested" | "explored" | "dismissed" | "not_relevant";
+export type PerspectiveSource = "deterministic" | "ai_assisted";
+
+export interface PerspectiveEvaluation {
+  perspectiveId: PerspectiveId;
+  label: string;
+  relevance: PerspectiveRelevance;
+  rationale: string;
+  focus: string;
+  linkedFactIds: string[];
+  linkedNodeIds: string[];
+  explorationStatus: PerspectiveExplorationStatus;
+  evaluationVersion: string;
+  source: PerspectiveSource;
+  rank: number;
+  actionIds?: string[];
+  relevanceBeforeDismissal?: Exclude<PerspectiveRelevance, "not_applicable">;
+}
+
+export interface PerspectiveProposal {
+  perspectiveId: PerspectiveId;
+  relevance: Exclude<PerspectiveRelevance, "not_applicable">;
+  rationale: string;
+  linkedFactIds?: string[];
+  linkedNodeIds?: string[];
+}
+
+export interface PerspectiveActionEvent {
+  type: "explore" | "dismiss" | "mark_not_relevant" | "restore";
+  perspectiveId: PerspectiveId;
+  actionId: string;
+}
 
 export interface DiscoveryQuestion {
   id: string;
@@ -185,7 +239,251 @@ export interface DiscoveryQuestion {
 
 export type AICardType = "idea" | "explanation" | "recommendation" | "warning";
 
-export type GenerativeUIType = "timeline" | "decision_comparator" | "idea_cards";
+export type GenerativeUIType =
+  | "timeline"
+  | "decision_comparator"
+  | "idea_cards"
+  | "cognitive_insight"
+  | "evidence_card"
+  | "research_summary"
+  | "validation_summary";
+
+/* ----------------------- Phase 5: Research & Evidence Types ----------------------- */
+
+export type EvidenceSourceType =
+  | "academic_paper"
+  | "government_statistic"
+  | "official_regulation"
+  | "institutional_report"
+  | "industry_report"
+  | "news_media"
+  | "web_article"
+  | "other";
+
+export type EvidenceValidationState =
+  | "supports"
+  | "challenges"
+  | "mixed"
+  | "insufficient_evidence";
+
+export type ResearchScope =
+  | "national"
+  | "local"
+  | "regional"
+  | "international"
+  | "academic"
+  | "general";
+
+export interface NormalizedSource {
+  id: string;
+  title: string;
+  url: string;
+  domain: string;
+  author?: string;
+  organization?: string;
+  publicationDate?: string;
+  retrievedAt: string;
+  sourceType: EvidenceSourceType;
+  trustScore: number; // 0 - 100
+  trustRationale: string;
+  isPeerReviewed?: boolean;
+  isPrimarySource?: boolean;
+  rawExcerpt: string;
+  sanitizedExcerpt: string;
+}
+
+export interface EvidenceRecord {
+  id: string;
+  query: string;
+  source: NormalizedSource;
+  claimAddressed: string;
+  hypothesesLinkedIds: string[];
+  validationState: EvidenceValidationState;
+  aiInterpretation: string;
+  scope: ResearchScope;
+  limitations?: string;
+  localContextWarning?: string;
+  retrievedAt: string;
+  status: "suggested" | "accepted" | "discarded" | "mapped";
+  suggestedNextSteps?: string[];
+}
+
+export interface ResearchIntent {
+  id: string;
+  query: string;
+  targetHypothesisId?: string;
+  targetPerspectiveId?: PerspectiveId;
+  rationale: string;
+  preferredSourceTypes?: EvidenceSourceType[];
+  geographicScope?: ResearchScope;
+  status: "idle" | "in_progress" | "completed" | "failed";
+}
+
+export interface EvidenceCardUIBlock {
+  type: "evidence_card";
+  id: string;
+  version: 1;
+  evidence: EvidenceRecord;
+  actionIds: string[];
+}
+
+export interface ResearchSummaryUIBlock {
+  type: "research_summary";
+  id: string;
+  version: 1;
+  query: string;
+  overallSynthesis: string;
+  validationState: EvidenceValidationState;
+  records: EvidenceRecord[];
+  insufficientEvidenceReason?: string;
+  suggestedEmpiricalSteps?: string[];
+  actionIds: string[];
+}
+
+export interface ResearchActionEvent {
+  type: "investigate" | "open_source" | "save_to_project" | "link_hypothesis" | "discard" | "map";
+  evidenceId?: string;
+  intentId?: string;
+  actionId: string;
+  hypothesisId?: string;
+}
+
+/* ----------------------- Phase 6: Historical & Context Validation Types ----------------------- */
+
+export type ValidationStatus =
+  | "supported"
+  | "partially_supported"
+  | "challenged"
+  | "mixed"
+  | "insufficient_evidence"
+  | "not_applicable";
+
+export type EvidenceRelationType =
+  | "supports"
+  | "challenges"
+  | "contextualizes"
+  | "inconclusive";
+
+export interface ValidationEvidenceLink {
+  evidenceId: string;
+  sourceId: string;
+  relationType: EvidenceRelationType;
+  rationale: string;
+}
+
+export interface ValidationScope {
+  geographic: string;
+  geographicMismatch?: boolean;
+  geographicWarning?: string;
+  temporal: {
+    earliestYear?: number;
+    latestYear?: number;
+    isRecent: boolean;
+    temporalWarning?: string;
+    timeRangeDescription?: string;
+  };
+  population?: string;
+  populationMismatch?: boolean;
+  populationWarning?: string;
+}
+
+export interface ValidationTrend {
+  hasComparableDataPoints: boolean;
+  direction?: "increasing" | "decreasing" | "stable" | "inconclusive";
+  dataPointsCount: number;
+  explanation: string;
+}
+
+export interface PreviousSolution {
+  solution: string;
+  context: string;
+  outcome: string;
+  limitations: string;
+  keyDifferenceFromTarget?: string;
+}
+
+export interface ContextValidationRecord {
+  id: string;
+  targetSemanticId: string;
+  targetClaim: string;
+  targetKind: "hypothesis" | "problem" | "assumption" | "opportunity" | "risk" | "claim";
+  validationStatus: ValidationStatus;
+  scope: ValidationScope;
+  supportingEvidenceIds: string[];
+  challengingEvidenceIds: string[];
+  contextualEvidenceIds: string[];
+  evidenceLinks: ValidationEvidenceLink[];
+  alternativeExplanations?: string[];
+  previousSolutions?: PreviousSolution[];
+  trendAnalysis?: ValidationTrend;
+  unresolvedQuestions: string[];
+  synthesis: string;
+  limitations: string[];
+  evidenceConfidence: "high" | "medium" | "low" | "insufficient";
+  createdAt: string;
+  updatedAt: string;
+  evaluationVersion: string;
+  status: "active" | "archived" | "mapped";
+}
+
+export interface ValidationSummaryUIBlock {
+  type: "validation_summary";
+  id: string;
+  version: 1;
+  validation: ContextValidationRecord;
+  actionIds: string[];
+}
+
+export interface ValidationActionEvent {
+  type: "view_evidence" | "investigate_further" | "keep_hypothesis" | "update_assumption" | "map_to_canvas" | "dismiss";
+  validationId: string;
+  actionId: string;
+  targetSemanticId?: string;
+}
+
+export type CognitiveAssistanceMode =
+  | "explanation"
+  | "blind_spot"
+  | "suggestion"
+  | "solution"
+  | "risk"
+  | "opportunity"
+  | "contradiction"
+  | "alternative"
+  | "hypothesis"
+  | "validation_strategy"
+  | "comparison"
+  | "question";
+
+export type CognitiveProposalStatus = "proposed" | "modified" | "accepted" | "rejected" | "mapped";
+
+export interface CognitiveInsightUIBlock {
+  type: "cognitive_insight";
+  id: string;
+  version: 1;
+  mode: CognitiveAssistanceMode;
+  title: string;
+  statement: string;
+  rationale: string;
+  whyItMatters?: string;
+  nextAction?: string;
+  mitigation?: string;
+  validationOptions: string[];
+  linkedFactIds: string[];
+  linkedNodeIds: string[];
+  perspectiveId?: PerspectiveId;
+  status: CognitiveProposalStatus;
+  explorationStatus: "idle" | "explored";
+  modifiedFrom?: string;
+  actionIds: string[];
+}
+
+export interface CognitiveActionEvent {
+  type: "accept" | "reject" | "modify" | "explore" | "map";
+  blockId: string;
+  actionId: string;
+  value?: string;
+}
 
 export interface TimelineItem {
   id: string;
@@ -250,7 +548,11 @@ export interface IdeaCardsUIBlock {
 export type GenerativeUIBlock =
   | TimelineUIBlock
   | DecisionComparatorUIBlock
-  | IdeaCardsUIBlock;
+  | IdeaCardsUIBlock
+  | CognitiveInsightUIBlock
+  | EvidenceCardUIBlock
+  | ResearchSummaryUIBlock
+  | ValidationSummaryUIBlock;
 
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
@@ -270,6 +572,8 @@ export interface AssistantMessage extends BaseMessage {
   explanationError?: string | null;
   /** Phase in which this message was generated */
   chatPhase?: ChatPhase;
+  /** Primary assistance behavior selected for this turn. */
+  assistanceMode?: CognitiveAssistanceMode;
   /** Socratic multiple-choice questions for Phase 1 Discovery */
   discoveryQuestions?: DiscoveryQuestion[];
   /** Strategic dimensions suggested by AI */
@@ -331,10 +635,12 @@ export interface AIResponse {
   message: AssistantMessage;
   newNodes: ConceptNode[];
   newRelations: ConceptRelation[];
+  /** Optional, untrusted analytical-lens proposals. The application validates all references. */
+  perspectiveProposals?: PerspectiveProposal[];
 }
 
 export type ProjectArchetype = "business" | "research" | "software" | "creative" | "operational" | "general";
-export type ProjectMemoryKind = "user_fact" | "suggestion" | "hypothesis" | "unknown" | "decision_candidate" | "decision" | "evidence_placeholder" | "legacy_unknown";
+export type ProjectMemoryKind = "user_fact" | "suggestion" | "hypothesis" | "unknown" | "decision_candidate" | "decision" | "evidence_placeholder" | "evidence" | "legacy_unknown";
 export type ProjectMemoryState = "confirmed" | "proposed" | "accepted" | "rejected" | "unknown" | "modified" | "legacy_unknown";
 export type ProjectMemoryOrigin = "user_message" | "questionnaire_answer" | "ai_suggestion" | "accepted_suggestion" | "decision_event" | "research_evidence" | "unknown";
 export interface MemoryPatch {
@@ -373,6 +679,12 @@ export interface DiscoveryState {
   completionAnchorMessageId?: string;
   generationLedger: Record<string, { status: "pending" | "applied" | "failed"; requestId: string }>;
   tombstones: string[];
+  /** Additive Phase 3 state. Missing on legacy workspaces and never treated as project truth. */
+  perspectives?: PerspectiveEvaluation[];
+  perspectiveEvaluationVersion?: string;
+  evidence?: EvidenceRecord[];
+  researchIntents?: ResearchIntent[];
+  validations?: ContextValidationRecord[];
 }
 
 export interface Workspace {

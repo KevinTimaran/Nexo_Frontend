@@ -27,6 +27,9 @@ import type {
   DocumentService,
   FolderService,
   ProjectService,
+  ResearchSearchRequest,
+  ResearchSearchResponse,
+  ResearchService,
   Services,
   WorkspaceService,
 } from "../contracts";
@@ -410,6 +413,15 @@ const httpDocuments: DocumentService = {
   },
 };
 
+const httpResearch: ResearchService = {
+  async search(request: ResearchSearchRequest): Promise<ResearchSearchResponse> {
+    return httpFetch<ResearchSearchResponse>(`/research/search`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  },
+};
+
 export const httpServices: Services = {
   auth: httpAuth,
   projects: httpProjects,
@@ -417,4 +429,5 @@ export const httpServices: Services = {
   workspace: httpWorkspace,
   ai: httpAI,
   documents: httpDocuments,
+  research: httpResearch,
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import {
   ChevronLeft,
   Check,
@@ -19,6 +19,11 @@ import { detectMessageLanguage, isPlaceholderResponse, sanitizeAssistantText } f
 import { filterRepeatedQuestions, nextDiscoveryQuestion, questionKey, recordUserInput, syncIdeaFacts } from "../../services/ai/discovery";
 import { hydrateWorkspaceMemory, transitionMemoryFact, type MemoryAction } from "../../services/ai/semanticMemory";
 import { applyGraphOperations, buildGroundedGraph, reconcileGraph } from "../../services/ai/reconcileGraph";
+import { ensurePerspectiveState, transitionPerspective } from "../../services/ai/perspectiveEngine";
+import { selectCognitiveAssistance, validateCognitiveGrounding } from "../../services/ai/cognitiveAssistance";
+import { buildResearchSummaryUIBlock, generateEvidenceConceptNode, syncEvidenceToDiscovery } from "../../services/ai/research";
+import { buildValidationSummaryUIBlock, generateValidationConceptNode, syncValidationToDiscovery, synthesizeValidation } from "../../services/ai/contextValidation";
+import type { ContextValidationRecord, EvidenceRecord } from "../../domain/types";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
@@ -34,11 +39,14 @@ import { NexoLogo } from "../../components/brand/NexoLogo";
 import type {
   ActionableIdea,
   AssistantMessage,
+  CognitiveInsightUIBlock,
   ConceptMap,
   ConceptNode,
   GenerativeUIBlock,
   Message,
   ChatPhase,
+  DiscoveryState,
+  PerspectiveActionEvent,
   ProjectIcon,
   UserMessage,
 } from "../../domain/types";
@@ -56,6 +64,7 @@ export const WorkspaceView: React.FC = () => {
   const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const outlet = useOutletContext<{ onOpenSettings?: () => void }>() || {};
   const lang = currentLanguage();
   const { showToast } = useToast();
 
@@ -107,7 +116,18 @@ export const WorkspaceView: React.FC = () => {
     services.workspace
       .load(projectId, lang)
       .then((data) => {
-        setWorkspace(data ? hydrateWorkspaceMemory(data) : null);
+        if (!data) {
+          setWorkspace(null);
+          return;
+        }
+        const hydrated = hydrateWorkspaceMemory(data);
+        const legacyDiscovery: DiscoveryState | undefined = !hydrated.discovery && hydrated.map.nodes.length > 0
+          ? { lifecycle: "legacy_unknown", archetype: "general", facts: [], requiredTopics: [], askedQuestionKeys: [], answeredQuestionKeys: [], generationLedger: {}, tombstones: [] }
+          : hydrated.discovery;
+        const discovery = legacyDiscovery && (legacyDiscovery.lifecycle === "generated" || hydrated.map.nodes.length > 0)
+          ? ensurePerspectiveState(legacyDiscovery, hydrated.map, hydrated.project.name)
+          : legacyDiscovery;
+        setWorkspace({ ...hydrated, discovery });
       })
       .catch(() => {
         showToast(t("workspace.notFound.title"), "error");
@@ -163,9 +183,25 @@ export const WorkspaceView: React.FC = () => {
         replyTo: userMessage.id,
         chatPhase: activePhase,
         messageHistory: history,
+        discovery: activeWorkspace.discovery,
       });
       const latest = useWorkspaceStore.getState().workspace;
       if (!latest || latest.project.id !== projectId) return;
+      if (response.message.action === "questionnaire" && latest.discovery) {
+        const usefulAlternative = selectCognitiveAssistance(latest.discovery, latest.map);
+        if (usefulAlternative) {
+          response.message.action = "chat";
+          response.message.assistanceMode = usefulAlternative.mode;
+          response.message.discoveryQuestions = [];
+          response.message.ui = usefulAlternative;
+          response.message.text = `Antes de pedirte otro dato, hay algo útil que podemos examinar: ${usefulAlternative.statement}`;
+        }
+      }
+      if (response.message.ui?.type === "cognitive_insight" && latest.discovery) {
+        const grounded = validateCognitiveGrounding(response.message.ui, latest.discovery, latest.map);
+        response.message.ui = grounded;
+        response.message.assistanceMode = grounded?.mode ?? response.message.assistanceMode;
+      }
       if (activePhase === "PHASE_1_DISCOVERY" && latest.discovery && response.message.action === "questionnaire") {
         const aiQuestions = response.message.discoveryQuestions && response.message.discoveryQuestions.length > 0
           ? response.message.discoveryQuestions
@@ -202,7 +238,7 @@ export const WorkspaceView: React.FC = () => {
       const discoveryWithQuestions = latest.discovery && askedKeys.length
         ? { ...latest.discovery, askedQuestionKeys: [...new Set([...latest.discovery.askedQuestionKeys, ...askedKeys])] }
         : latest.discovery;
-      const discovery = discoveryWithQuestions ? syncIdeaFacts(discoveryWithQuestions, response.message.ui, response.message.id, response.message.memoryPatches, userMessage.id) : undefined;
+      const syncedDiscovery = discoveryWithQuestions ? syncIdeaFacts(discoveryWithQuestions, response.message.ui, response.message.id, response.message.memoryPatches, userMessage.id) : undefined;
       const requestedGraphChange = activePhase === "PHASE_2_STRUCTURING" || (activePhase === "PHASE_3_EXPANSION" && /^explorar punto de vista/i.test(text)) || /\b(agrega|añade|anade|incorpora|crea|mapear|add)\b.{0,40}\b(nodo|concepto|tablero|mapa|node)\b/i.test(text);
       const proposedNodes = requestedGraphChange ? response.newNodes || [] : [];
       const nextMap: ConceptMap = applyGraphOperations(
@@ -214,6 +250,9 @@ export const WorkspaceView: React.FC = () => {
         latest.discovery?.candidateDefinitionVersion,
         [userMessage.id, response.message.id],
       );
+      const discovery = syncedDiscovery && (syncedDiscovery.lifecycle === "generated" || nextMap.nodes.length > 0)
+        ? ensurePerspectiveState(syncedDiscovery, nextMap, latest.project.name, response.perspectiveProposals)
+        : syncedDiscovery;
       const nextMessages = [...latest.messages.filter((m) => !(m.role === "assistant" && m.replyTo === userMessage.id)), { ...response.message, replyTo: userMessage.id, requestId: userMessage.id }];
       useWorkspaceStore.getState().setWorkspace({
         ...latest,
@@ -262,13 +301,14 @@ export const WorkspaceView: React.FC = () => {
         const latest = useWorkspaceStore.getState().workspace;
         if (!latest || latest.project.id !== projectId || latest.discovery?.candidateDefinitionVersion !== version) return;
         const map = reconcileGraph(latest.map, generated, pending, version);
-        const applied = {
+        const appliedBase = {
           ...pending,
           lifecycle: "generated" as const,
           generatedDefinitionVersion: version,
           completionAnchorMessageId: pending.completionAnchorMessageId ?? latest.messages[latest.messages.length - 1]?.id,
           generationLedger: { ...pending.generationLedger, [version]: { status: "applied" as const, requestId } },
         };
+        const applied = ensurePerspectiveState(appliedBase, map, latest.project.name);
         state.setWorkspace({ ...latest, map, discovery: applied });
         state.setChatPhase("PHASE_3_EXPANSION");
         await services.workspace.save(projectId, map, latest.messages, applied);
@@ -296,8 +336,19 @@ export const WorkspaceView: React.FC = () => {
   };
 
   const handleChatSendMessage = async (text: string, questionnaireId?: string, answers?: Record<string, string | string[]>) => {
-    const isDimensionExplore = /(explorar punto de vista|punto de vista|dimensi[oó]n)\s*(econ[oó]mic|social|t[eé]cnic|legal|humano|mesero|pasajer)/i.test(text);
-    await handleSendMessage(text, isDimensionExplore && workspace?.map?.nodes?.length ? "PHASE_3_EXPANSION" : undefined, questionnaireId, answers);
+    await handleSendMessage(text, undefined, questionnaireId, answers);
+  };
+
+  const handlePerspectiveAction = (event: PerspectiveActionEvent) => {
+    const state = useWorkspaceStore.getState();
+    const current = state.workspace;
+    if (!current?.discovery) return;
+    const nextDiscovery = transitionPerspective(current.discovery, event);
+    if (nextDiscovery === current.discovery) return;
+    state.setWorkspace({ ...current, discovery: nextDiscovery });
+    void services.workspace.save(current.project.id, current.map, current.messages, nextDiscovery).catch((error) => {
+      console.error("Could not save perspective action", error);
+    });
   };
 
   const handleGenerativeUIChange = (messageId: string, ui: GenerativeUIBlock) => {
@@ -351,7 +402,10 @@ export const WorkspaceView: React.FC = () => {
       const nextFact = transitionMemoryFact(fact, event);
       if (nextFact === fact) return;
       const messages = sourceMessage ? [...current.messages, sourceMessage] : current.messages;
-      const nextDiscovery = { ...discovery, facts: discovery.facts.map((item) => item.key === memoryKey ? nextFact : item) };
+      const changedDiscovery = { ...discovery, facts: discovery.facts.map((item) => item.key === memoryKey ? nextFact : item) };
+      const nextDiscovery = current.map.nodes.length > 0
+        ? ensurePerspectiveState(changedDiscovery, current.map, current.project.name)
+        : changedDiscovery;
       const nextWorkspace = { ...current, messages, discovery: nextDiscovery };
       state.setWorkspace(nextWorkspace);
       void services.workspace.save(current.project.id, current.map, messages, nextDiscovery).catch((error) => {
@@ -419,6 +473,238 @@ export const WorkspaceView: React.FC = () => {
       setArchitectureUnlocked(true);
       showToast(`“${idea.title}” se añadió al Tablero de Conceptos.`, "success");
     }
+  };
+
+  const handleAddCognitiveToBoard = (messageId: string, block: CognitiveInsightUIBlock) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    if (!latest?.discovery || block.status !== "accepted") return;
+    const fact = latest.discovery.facts.find((item) => item.key === `cognitive:${block.id}`);
+    if (!fact || fact.memoryState === "rejected") return;
+    const category = block.perspectiveId === "economic" || block.perspectiveId === "market"
+      ? "economic"
+      : block.perspectiveId === "legal" || block.perspectiveId === "privacy"
+        ? "legal"
+        : block.perspectiveId === "political" || block.perspectiveId === "institutional"
+          ? "political"
+          : "technical";
+    const kind = ["risk", "contradiction", "blind_spot", "hypothesis"].includes(block.mode)
+      ? "risk"
+      : ["opportunity", "validation_strategy"].includes(block.mode) ? "viability" : "concept";
+    const node = addNodeFromChat({
+      title: block.title,
+      description: block.statement,
+      kind,
+      category,
+      priority: block.mode === "risk" || block.mode === "contradiction" ? "high" : "medium",
+      phase: block.mode === "validation_strategy" ? "validation" : "planning",
+      metadata: `${block.mode} · ${fact.memoryState === "accepted" ? "aceptado" : "por validar"}`,
+      details: [`### Análisis`, block.statement, "", `### Por qué aparece`, block.rationale, "", block.whyItMatters ? `### Por qué importa\n${block.whyItMatters}` : "", block.nextAction ? `### Próxima acción\n${block.nextAction}` : ""].filter(Boolean).join("\n"),
+      relevanceScore: block.mode === "risk" || block.mode === "opportunity" ? 8 : 7,
+      semanticKey: fact.semanticKey ?? fact.key,
+      semanticKind: fact.kind,
+      semanticState: fact.memoryState,
+      provenanceOrigin: fact.origin,
+      sourceFactIds: [...new Set([fact.key, ...block.linkedFactIds])],
+      sourceMessageIds: [...new Set([...fact.sourceMessageIds, messageId])],
+    });
+    if (node) {
+      setArchitectureUnlocked(true);
+      showToast(`“${block.title}” se añadió al tablero con su estado semántico.`, "success");
+    }
+  };
+
+  const handleTriggerResearch = async (intent: { query: string; targetHypothesisId?: string; rationale?: string }) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    if (!latest) return;
+    useWorkspaceStore.getState().setThinking(true);
+    try {
+      const response = await services.research.search({
+        query: intent.query,
+        targetHypothesisId: intent.targetHypothesisId,
+        lang,
+      });
+
+      const summaryBlock = buildResearchSummaryUIBlock(
+        response.query,
+        response.overallSynthesis,
+        response.validationState,
+        response.evidenceRecords,
+        {
+          insufficientEvidenceReason: response.insufficientEvidenceReason,
+          suggestedEmpiricalSteps: response.suggestedEmpiricalSteps,
+        }
+      );
+
+      const assistantMessage: AssistantMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: response.overallSynthesis,
+        createdAt: new Date().toISOString(),
+        cardType: "recommendation",
+        ui: summaryBlock,
+      };
+
+      let nextDiscovery = latest.discovery;
+      if (nextDiscovery) {
+        for (const ev of response.evidenceRecords) {
+          nextDiscovery = syncEvidenceToDiscovery(nextDiscovery, ev);
+        }
+      }
+
+      const nextMessages = [...latest.messages, assistantMessage];
+      const nextWorkspace = {
+        ...latest,
+        messages: nextMessages,
+        discovery: nextDiscovery,
+      };
+      useWorkspaceStore.getState().setWorkspace(nextWorkspace);
+      void services.workspace.save(latest.project.id, latest.map, nextMessages, nextDiscovery).catch(console.error);
+      showToast(`Investigación completada: ${response.evidenceRecords.length} evidencias obtenidas.`, "info");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error durante la investigación externa.";
+      showToast(msg, "error");
+    } finally {
+      useWorkspaceStore.getState().setThinking(false);
+    }
+  };
+
+  const handleAddEvidenceToBoard = (evidence: EvidenceRecord) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    if (!latest) return;
+    const anchorId = latest.map.nodes[0]?.id;
+    const { node, relations } = generateEvidenceConceptNode(evidence, anchorId);
+    const state = useWorkspaceStore.getState();
+
+    const created = state.addNode({
+      title: node.title,
+      description: node.description,
+      kind: node.kind,
+      category: node.category,
+      priority: node.priority,
+      phase: node.phase,
+      metadata: node.metadata,
+      details: node.details,
+      status: "confirmed",
+      x: node.x,
+      y: node.y,
+    });
+
+    if (anchorId && relations.length > 0) {
+      const nextRelations = [...latest.map.relations, ...relations.map((r) => ({ ...r, from: created.id }))];
+      state.setWorkspace({
+        ...latest,
+        map: {
+          ...latest.map,
+          nodes: [...latest.map.nodes, created],
+          relations: nextRelations,
+        },
+      });
+    }
+
+    setArchitectureUnlocked(true);
+    showToast(`Evidencia «${evidence.source.title}» añadida al Tablero.`, "success");
+  };
+
+  const handleSaveEvidenceToProject = (evidence: EvidenceRecord) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    if (!latest?.discovery) return;
+    const nextDiscovery = syncEvidenceToDiscovery(latest.discovery, { ...evidence, status: "accepted" });
+    useWorkspaceStore.getState().setWorkspace({ ...latest, discovery: nextDiscovery });
+    void services.workspace.save(latest.project.id, latest.map, latest.messages, nextDiscovery).catch(console.error);
+    showToast("Evidencia guardada en el proyecto.", "success");
+  };
+
+  const handleTriggerValidation = async (target: {
+    targetSemanticId: string;
+    targetClaim: string;
+    targetKind: "hypothesis" | "problem" | "assumption";
+  }) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    if (!latest) return;
+    useWorkspaceStore.getState().setThinking(true);
+    try {
+      const searchRes = await services.research.search({
+        query: target.targetClaim,
+        targetHypothesisId: target.targetSemanticId,
+        lang,
+      });
+
+      const validation = synthesizeValidation({
+        targetSemanticId: target.targetSemanticId,
+        targetClaim: target.targetClaim,
+        targetKind: target.targetKind,
+        targetGeography: latest.project.name.toLowerCase().includes("pasto") ? "Pasto" : "Colombia",
+        evidence: searchRes.evidenceRecords,
+      });
+
+      const summaryBlock = buildValidationSummaryUIBlock(validation);
+
+      const assistantMessage: AssistantMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: validation.synthesis,
+        createdAt: new Date().toISOString(),
+        cardType: "recommendation",
+        ui: summaryBlock,
+      };
+
+      const nextDiscovery = latest.discovery
+        ? syncValidationToDiscovery(latest.discovery, validation)
+        : undefined;
+
+      const nextMessages = [...latest.messages, assistantMessage];
+      const nextWorkspace = {
+        ...latest,
+        messages: nextMessages,
+        discovery: nextDiscovery,
+      };
+
+      useWorkspaceStore.getState().setWorkspace(nextWorkspace);
+      void services.workspace.save(latest.project.id, latest.map, nextMessages, nextDiscovery).catch(console.error);
+      showToast(`Validación completada: «${validation.validationStatus}».`, "info");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error durante la validación de contexto.";
+      showToast(msg, "error");
+    } finally {
+      useWorkspaceStore.getState().setThinking(false);
+    }
+  };
+
+  const handleAddValidationToBoard = (validation: ContextValidationRecord) => {
+    const latest = useWorkspaceStore.getState().workspace;
+    if (!latest) return;
+    const anchorId = latest.map.nodes[0]?.id;
+    const { node, relations } = generateValidationConceptNode(validation, anchorId);
+    const state = useWorkspaceStore.getState();
+
+    const created = state.addNode({
+      title: node.title,
+      description: node.description,
+      kind: node.kind,
+      category: node.category,
+      priority: node.priority,
+      phase: node.phase,
+      metadata: node.metadata,
+      details: node.details,
+      status: "confirmed",
+      x: node.x,
+      y: node.y,
+    });
+
+    if (anchorId && relations.length > 0) {
+      const nextRelations = [...latest.map.relations, ...relations.map((r) => ({ ...r, from: created.id }))];
+      state.setWorkspace({
+        ...latest,
+        map: {
+          ...latest.map,
+          nodes: [...latest.map.nodes, created],
+          relations: nextRelations,
+        },
+      });
+    }
+
+    setArchitectureUnlocked(true);
+    showToast("Tarjeta de validación añadida al Tablero.", "success");
   };
 
   const handleNodeMove = (nodeId: string, x: number, y: number) => {
@@ -625,6 +911,7 @@ export const WorkspaceView: React.FC = () => {
               }}
               isThinking={isThinking}
               error={chatError}
+              onOpenSettings={outlet.onOpenSettings}
               onRetry={() => {
                 setChatError(null);
                 const lastUserMsg = useWorkspaceStore.getState().workspace?.messages.find((m) => m.id === failedMessageIdRef.current);
@@ -632,8 +919,16 @@ export const WorkspaceView: React.FC = () => {
               }}
               onGenerativeUIChange={handleGenerativeUIChange}
               onAddIdeaToBoard={handleAddIdeaToBoard}
+              onAddCognitiveToBoard={handleAddCognitiveToBoard}
               memoryFacts={workspace.discovery?.facts}
               onMemoryAction={handleMemoryAction}
+              perspectives={workspace.discovery?.perspectives}
+              onPerspectiveAction={handlePerspectiveAction}
+              onAddEvidenceToBoard={handleAddEvidenceToBoard}
+              onSaveEvidenceToProject={handleSaveEvidenceToProject}
+              onTriggerResearch={handleTriggerResearch}
+              onAddValidationToBoard={handleAddValidationToBoard}
+              onTriggerValidation={handleTriggerValidation}
             />
           ) : (
             <ConceptCanvas

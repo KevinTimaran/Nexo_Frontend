@@ -1023,10 +1023,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const priority =
       nodeDraft.priority ?? (score >= 8 ? "high" : score >= 5 ? "medium" : "low");
 
+    const semanticallyConfirmed = nodeDraft.semanticState === "accepted" || nodeDraft.semanticState === "confirmed";
     const newNode: ConceptNode = {
       id,
       origin: "approved",
-      verification: "confirmed",
+      verification: semanticallyConfirmed ? "confirmed" : "unconfirmed",
       semanticKey: nodeDraft.semanticKey,
       semanticKind: nodeDraft.semanticKind,
       semanticState: nodeDraft.semanticState,
@@ -1040,7 +1041,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       name: nodeDraft.title,
       description: nodeDraft.description,
       desc: nodeDraft.description,
-      status: "confirmed",
+      status: semanticallyConfirmed ? "confirmed" : nodeDraft.kind === "risk" ? "review" : "exploring",
       phase: nodeDraft.phase ?? "planning",
       relevanceScore: score,
       metadata: nodeDraft.metadata || `Relevancia ${score}/10 • ${category.charAt(0).toUpperCase() + category.slice(1)}`,
