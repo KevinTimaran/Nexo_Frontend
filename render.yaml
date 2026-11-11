@@ -1,0 +1,23 @@
+# Render Blueprint for the Nexo web app (static site). Values are public configuration, not secrets.
+services:
+  - type: web
+    name: nexo-web
+    runtime: static
+    rootDir: nexo-desktop
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Hosted API, ending in /api/v1 (the Render web service of the backend).
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_DEFAULT_MODE
+        value: server
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    routes:
+      # Single-page app: every path serves index.html so refreshing /login or /workspace/... works.
+      - type: rewrite
+        source: /*
+        destination: /index.html
