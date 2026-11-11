@@ -111,6 +111,7 @@
   --border-primary: #E8DFD5; /* Warm parchment line */
   --border-secondary: #E6DFD6; /* Subtle separator lines */
   --border-base: #E8DFD5;
+  --border-strong: #C9B8AB; /* Clearly separates interactive cards */
 
   /* Accents & Illuminations (10% Focal Accents) */
   --accent-primary: #9E2A2B; /* Crimson Terracotta */
@@ -248,6 +249,7 @@
   --border-base: #594836;
   --border-primary: rgba(89, 72, 54, 0.5); /* Opacity 0.4–0.6 strictly */
   --border-secondary: rgba(89, 72, 54, 0.4);
+  --border-strong: #8A735E;
 
   /* Accents & Illuminations (10% Focal Accents) */
   --accent-primary: #E5C158; /* Champagne Gold — buttons, active tab indicators, primary badges */
@@ -525,6 +527,22 @@
   font-weight: 500;
 }
 
+/* ─── Chat reading scale (larger than the app body text on purpose) ─── */
+@utility text-chat {
+  font-size: 1.0625rem; /* 17px */
+  line-height: 1.65;
+}
+
+@utility text-chat-sm {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.55;
+}
+
+@utility text-chat-xs {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.45;
+}
+
 /* ─── Creative Glass Utilities ─── */
 
 @utility glass {
@@ -685,6 +703,10 @@
   }
   button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
     cursor: default;
+  }
+  :where(button, a[href], input, textarea, select, summary, [role="button"], [role="radio"], [tabindex]):focus-visible {
+    outline: 2px solid var(--focus) !important;
+    outline-offset: 3px !important;
   }
   ::selection {
     background-color: color-mix(in oklab, var(--color-focus) 30%, transparent);
