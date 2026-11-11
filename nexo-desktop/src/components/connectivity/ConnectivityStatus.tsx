@@ -10,7 +10,7 @@ export const ConnectivityStatus: React.FC = () => {
   const getStatusDisplay = () => {
     if (mode === "mock") {
       return {
-        label: "Mock Mode",
+        label: "Simulación local",
         dotClass: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]",
         pillClass:
           "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/15",
