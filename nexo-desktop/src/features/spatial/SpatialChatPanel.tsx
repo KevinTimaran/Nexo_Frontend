@@ -14,7 +14,11 @@ import {
 } from "../../domain/constants";
 import { getSpatialGroup } from "../../domain/spatial";
 import { useToast } from "../../context/ToastContext";
-import type { Message, ConceptMap, Language } from "../../domain/types";
+import type { AssistantMessage, Message, ConceptMap, Language } from "../../domain/types";
+import { appendUserMessageOnce, orchestrateAssistantTurn, planChatTurn, upsertAssistantTurn } from "../../services/ai/chatOrchestration";
+import { classifyTurnIntent } from "../../services/ai/intent";
+import { replyWithValidation } from "../../services/ai/responseValidation";
+import { userFacingError } from "../../services/uxFeedback";
 import { currentLanguage } from "../../i18n";
 
 export const SpatialChatPanel: React.FC = () => {
@@ -168,35 +172,58 @@ export const SpatialChatPanel: React.FC = () => {
       ? `[Contexto del nodo enfocado en 3D: "${selectedNode.name}" (Clúster: ${selectedNode.group})]: ${trimmed}`
       : trimmed;
 
-    const currentMessages = workspace?.messages || localMessages;
-    const requestDefinitionVersion = workspace?.discovery?.candidateDefinitionVersion;
-    const updatedMessages = [...currentMessages, userMessage];
+    // Always read the live workspace: the closure value may belong to a previous project or be stale.
+    const active = useWorkspaceStore.getState().workspace;
+    const activeProjectId = active?.project.id;
+    const history = active?.messages ?? localMessages;
+    const requestDefinitionVersion = active?.discovery?.candidateDefinitionVersion;
+    const updatedMessages = appendUserMessageOnce(history, userMessage);
 
-    if (workspace) {
-      setWorkspace({
-        ...workspace,
-        messages: updatedMessages,
-      });
+    if (active) {
+      setWorkspace({ ...active, messages: updatedMessages });
     } else {
       setLocalMessages(updatedMessages);
     }
 
     try {
-      const response = await services.ai.reply({
-        text: promptText,
-        map: workspace?.map || { nodes: [], relations: [] },
-        lang: (currentLanguage() as Language) || "es",
-        replyTo: userMsgId,
-        chatPhase: chatPhase,
-        messageHistory: updatedMessages,
-      });
+      const requestLang = (currentLanguage() as Language) || "es";
+      const map = active?.map || { nodes: [], relations: [] };
+      const hasPriorIntent = Boolean(active?.discovery?.facts.some((fact) => fact.key === "intent"));
+      const turnIntent = classifyTurnIntent(trimmed, hasPriorIntent);
+      const plan = active?.discovery ? planChatTurn({ text: trimmed, discovery: active.discovery, map, history }) : undefined;
+      const { response } = await replyWithValidation(
+        (correctionNote) => services.ai.reply({
+          text: promptText,
+          map,
+          lang: requestLang,
+          replyTo: userMsgId,
+          chatPhase: chatPhase,
+          messageHistory: updatedMessages,
+          discovery: active?.discovery,
+          projectName: active?.project.name,
+          projectDescription: active?.project.description,
+          turnIntent,
+          correctionNote,
+        }),
+        {
+          projectName: active?.project.name ?? "",
+          projectDescription: active?.project.description,
+          discovery: active?.discovery,
+          map,
+          history,
+          userText: trimmed,
+          intent: turnIntent,
+          lang: requestLang,
+        },
+      );
+      if (plan) response.message = orchestrateAssistantTurn(response.message, plan, history);
 
-      const aiMessage: Message = { ...response.message, replyTo: userMsgId, requestId: userMsgId };
+      const aiMessage: AssistantMessage = { ...response.message, replyTo: userMsgId, requestId: userMsgId };
 
-      if (workspace) {
+      if (active && activeProjectId) {
         const latest = useWorkspaceStore.getState().workspace;
-        if (!latest || latest.project.id !== workspace.project.id) return;
-        const nextMessages = [...latest.messages.filter((message) => !(message.role === "assistant" && message.replyTo === userMsgId)), aiMessage];
+        if (!latest || latest.project.id !== activeProjectId) return;
+        const nextMessages = upsertAssistantTurn(latest.messages, aiMessage);
         const nextMap: ConceptMap = applyGraphOperations(
           latest.map,
           response.newNodes ?? [],
@@ -213,16 +240,13 @@ export const SpatialChatPanel: React.FC = () => {
           messages: nextMessages,
         });
 
-        if (latest.project?.id) {
-          void services.workspace.save(latest.project.id, nextMap, nextMessages, latest.discovery).catch(console.error);
-        }
+        void services.workspace.save(latest.project.id, nextMap, nextMessages, latest.discovery).catch(console.error);
       } else {
-        const nextMessages = [...updatedMessages, aiMessage];
-        setLocalMessages(nextMessages);
+        setLocalMessages(upsertAssistantTurn(updatedMessages, aiMessage));
       }
     } catch (err: any) {
       console.error("Error invoking real AI in SpatialChatPanel:", err);
-      setError(err?.message || "Error al comunicarse con el asistente de IA");
+      setError(userFacingError(err, (currentLanguage() as Language) || "es"));
     } finally {
       setIsThinking(false);
     }
