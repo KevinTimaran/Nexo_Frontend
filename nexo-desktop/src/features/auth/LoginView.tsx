@@ -1,3 +1,4 @@
+import { ServiceError } from "../../domain/types";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -82,7 +83,12 @@ export const LoginView: React.FC = () => {
       const user = await signUp(data.name.trim(), data.email.trim(), data.password);
       showToast(`${t("app.name")} — Cuenta creada con éxito. Bienvenido, ${user.name}`, "info");
       navigate(fromPath, { replace: true });
-    } catch {
+    } catch (error) {
+      if (error instanceof ServiceError && error.code === "email-confirmation") {
+        showToast("Revisa tu correo para confirmar la cuenta y luego inicia sesión.", "info");
+        setMode("login");
+        return;
+      }
       setSubmitError(
         t("auth.errors.registerFailed", {
           defaultValue: "No se pudo crear la cuenta. Intenta nuevamente.",
