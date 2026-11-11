@@ -1,0 +1,50 @@
+name: Release desktop app
+
+# Publishes the Windows installer to GitHub Releases when a version tag is pushed (git tag v0.1.0 && git push --tags).
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: nexo-desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: nexo-desktop/src-tauri
+
+      - name: Install dependencies
+        working-directory: nexo-desktop
+        run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Public build configuration, set in Settings > Secrets and variables > Actions > Variables.
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_DEFAULT_MODE: server
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        with:
+          projectPath: nexo-desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Nexo ${{ github.ref_name }}"
+          releaseBody: "Instalador de Nexo para Windows. Ejecuta el archivo .exe y sigue el asistente."
+          releaseDraft: false
+          prerelease: false
+          args: --bundles nsis
