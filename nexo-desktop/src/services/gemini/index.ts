@@ -412,10 +412,14 @@ export const geminiAiService: AIService = {
     const memorySummary = discovery?.facts.map((fact) => `- [id=${fact.key} | ${fact.kind ?? "legacy_unknown"} | ${fact.memoryState ?? fact.status}] ${fact.value}`).join("\n");
     const perspectiveSummary = discovery?.perspectives?.filter((item) => item.explorationStatus !== "dismissed" && item.explorationStatus !== "not_relevant").slice(0, 5).map((item) => `- [${item.perspectiveId} | ${item.relevance}] ${item.rationale}`).join("\n");
 
-    const systemInstruction = getSystemInstruction(activePhase, effectiveLang);
+    const systemInstruction = getSystemInstruction(activePhase, effectiveLang, request.projectName);
     const promptText = buildUserPrompt({
       phase: activePhase,
       lang: effectiveLang,
+      projectName: request.projectName,
+      projectDescription: request.projectDescription,
+      turnIntent: request.turnIntent,
+      correctionNote: request.correctionNote,
       existingNodesSummary: existingSummary,
       memorySummary,
       perspectiveSummary,
