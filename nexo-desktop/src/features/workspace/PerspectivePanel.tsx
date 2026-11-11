@@ -18,6 +18,11 @@ const createAction = (type: PerspectiveActionEvent["type"], perspectiveId: Persp
   actionId: crypto.randomUUID(),
 });
 
+const naturalRationale = (value: string): string => value
+  .replace(/La memoria confirmada indica/gi, "A partir de lo que comentaste")
+  .replace(/La memoria del proyecto plantea/gi, "En lo que has planteado aparece")
+  .replace(/El mapa incluye/gi, "La estructura actual incluye");
+
 export const PerspectivePanel: React.FC<PerspectivePanelProps> = ({ perspectives = [], disabled = false, onAction }) => {
   const [expanded, setExpanded] = useState<Set<PerspectiveId>>(new Set());
   const visible = visiblePerspectives(perspectives);
@@ -35,7 +40,7 @@ export const PerspectivePanel: React.FC<PerspectivePanelProps> = ({ perspectives
         <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Compass className="w-4 h-4" /></div>
         <div>
           <h3 id="perspective-panel-title" className="text-sm font-bold text-fg">Perspectivas relevantes</h3>
-          <p className="text-xs text-muted mt-0.5">Lentes sugeridos a partir de la memoria y el grafo actuales. No son hechos confirmados.</p>
+          <p className="text-xs text-muted mt-0.5">Lentes solicitados para examinar la idea. Son análisis, no hechos confirmados.</p>
         </div>
       </div>
       <div className="space-y-2">
@@ -53,7 +58,7 @@ export const PerspectivePanel: React.FC<PerspectivePanelProps> = ({ perspectives
                     <SemanticBadge token={visual} compact />
                     <SemanticBadge token={statusVisual} label={item.explorationStatus === "explored" ? "Explorada" : item.relevance === "relevant" ? "Relevante" : "Por explorar"} borderStyle={statusVisual.borderStyle} compact />
                   </div>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{item.rationale}</p>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">{naturalRationale(item.rationale)}</p>
                 </div>
               </div>
               {isExpanded && <div className="rounded-lg bg-surface-elevated/50 px-3 py-2 text-xs text-fg" role="region" aria-label={`Enfoque ${item.label}`}><span className="font-semibold">Enfoque:</span> {item.focus}</div>}
