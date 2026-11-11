@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Flower2, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Flower2, Sparkles, Network } from "lucide-react";
 import { SpatialCanvas3D } from "./SpatialCanvas3D";
 import { SpatialDock } from "./SpatialDock";
 import { ColorSettingsPanel } from "./ColorSettingsPanel";
@@ -12,6 +13,7 @@ import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { type SpatialNode } from "../../domain/spatial";
 
 export const SpaceWorkspace: React.FC = () => {
+  const { t } = useTranslation();
   const spatialNodes = useWorkspaceStore((s) => s.spatialNodes);
   const isThinking = useWorkspaceStore((s) => s.isThinking);
   const activeLeftPanel = useWorkspaceStore((s) => s.activeLeftPanel);
@@ -25,6 +27,7 @@ export const SpaceWorkspace: React.FC = () => {
   const spatialDocs = useWorkspaceStore((s) => s.spatialDocs);
   const setSpatialDoc = useWorkspaceStore((s) => s.setSpatialDoc);
   const updateSpatialNode = useWorkspaceStore((s) => s.updateSpatialNode);
+  const setCanvasMode = useWorkspaceStore((s) => s.setCanvasMode);
 
   // Selected node entity
   const selectedNode: SpatialNode | undefined = useMemo(
@@ -88,13 +91,30 @@ export const SpaceWorkspace: React.FC = () => {
 
       {/* 3D Structuring Loading Overlay */}
       {isThinking && spatialNodes.length === 0 && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none" role="status" aria-live="polite">
           <div className="p-6 rounded-2xl glass-card border border-primary/30 max-w-sm text-center space-y-3 pointer-events-auto animate-pulse">
             <Sparkles className="w-8 h-8 animate-spin text-primary mx-auto" />
-            <h3 className="text-sm font-bold text-fg">Generando Espacio Neuronal 3D...</h3>
-            <p className="text-xs text-muted">Estructurando conceptos, órbitas y enlaces direccionales con IA.</p>
+            <h3 className="text-sm font-bold text-fg">{t("ux.spatialLoading.title", { defaultValue: "Preparando la vista Neuronal 3D…" })}</h3>
+            <p className="text-xs text-muted">{t("ux.spatialLoading.description", { defaultValue: "Organizando los conceptos y sus relaciones sin interrumpir tu trabajo." })}</p>
           </div>
         </div>
+      )}
+
+      {!isThinking && spatialNodes.length === 0 && (
+        <section className="absolute inset-0 z-30 flex items-center justify-center p-6" aria-labelledby="empty-spatial-title">
+          <div className="max-w-md rounded-3xl glass-card border border-line p-7 text-center shadow-xl">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
+              <Network className="w-5 h-5" />
+            </div>
+            <h3 id="empty-spatial-title" className="mt-4 text-base font-bold text-fg">{t("ux.spatialEmpty.title", { defaultValue: "Las relaciones aparecerán aquí" })}</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              {t("ux.spatialEmpty.description", { defaultValue: "Cuando el proyecto tenga conceptos conectados, podrás recorrerlos en 3D. Es la misma información del Tablero de Conceptos, vista desde otra perspectiva." })}
+            </p>
+            <button type="button" onClick={() => setCanvasMode("discovery")} className="mt-5 btn-primary rounded-xl px-4 py-2 text-xs font-semibold focus-ring">
+              {t("ux.continueIdeation", { defaultValue: "Continuar en Ideación IA" })}
+            </button>
+          </div>
+        </section>
       )}
 
       {/* Vertical Dock on Left */}
