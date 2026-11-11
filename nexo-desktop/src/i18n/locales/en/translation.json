@@ -44,8 +44,18 @@
       "emailInvalid": "Enter a valid email address, like name@example.com.",
       "passwordShort": "Use at least 6 characters.",
       "offline": "Can't reach Nexo. Check your connection and try again.",
-      "unknown": "Something went wrong. Try again."
-    }
+      "unknown": "Something went wrong. Try again.",
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotConfirmed": "You haven't confirmed your email yet. Open the link we sent you, then sign in.",
+      "alreadyRegistered": "An account with this email already exists. Sign in.",
+      "weakPassword": "That password is too weak. Use a stronger one.",
+      "rateLimited": "Too many attempts in a row. Wait a few minutes and try again.",
+      "signupDisabled": "Creating new accounts is turned off.",
+      "registerFailed": "Couldn't create the account. Try again."
+    },
+    "confirmEmailSent": "Check your email to confirm the account, then sign in.",
+    "demoLogin": "Sign in with demo account",
+    "demoWelcome": "You're in with the demo account"
   },
   "home": {
     "greeting": {

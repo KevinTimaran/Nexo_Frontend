@@ -44,8 +44,18 @@
       "emailInvalid": "Escribe un correo válido, como nombre@ejemplo.com.",
       "passwordShort": "Usa al menos 6 caracteres.",
       "offline": "No se pudo conectar con Nexo. Revisa tu conexión e inténtalo de nuevo.",
-      "unknown": "Algo salió mal. Inténtalo de nuevo."
-    }
+      "unknown": "Algo salió mal. Inténtalo de nuevo.",
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "emailNotConfirmed": "Aún no confirmas tu correo. Abre el enlace que te enviamos y luego inicia sesión.",
+      "alreadyRegistered": "Ya existe una cuenta con este correo. Inicia sesión.",
+      "weakPassword": "La contraseña es demasiado débil. Usa una más segura.",
+      "rateLimited": "Demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo.",
+      "signupDisabled": "El registro de cuentas nuevas está desactivado.",
+      "registerFailed": "No se pudo crear la cuenta. Intenta nuevamente."
+    },
+    "confirmEmailSent": "Revisa tu correo para confirmar la cuenta y luego inicia sesión.",
+    "demoLogin": "Entrar con cuenta demo",
+    "demoWelcome": "Entraste con la cuenta demo"
   },
   "home": {
     "greeting": {

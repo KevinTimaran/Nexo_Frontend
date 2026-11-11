@@ -29,7 +29,7 @@ const DeepDiveModal: React.FC = () => {
             <button
               onClick={closeDeepDive}
               className="absolute top-2 right-2 text-muted hover:text-fg"
-              aria-label="Close Deep Dive Modal"
+              aria-label="Cerrar análisis a fondo"
             >
               ✕
             </button>

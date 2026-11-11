@@ -34,6 +34,7 @@ import {
 import { buildResearchSummaryUIBlock, generateEvidenceConceptNode, syncEvidenceToDiscovery } from "../../services/ai/research";
 import { buildValidationSummaryUIBlock, generateValidationConceptNode, syncValidationToDiscovery, synthesizeValidation } from "../../services/ai/contextValidation";
 import type { ContextValidationRecord, EvidenceRecord } from "../../domain/types";
+import { COGNITIVE_MODE_LABELS } from "../../domain/constants";
 import { currentLanguage } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
@@ -569,7 +570,7 @@ export const WorkspaceView: React.FC = () => {
       category,
       priority: block.mode === "risk" || block.mode === "contradiction" ? "high" : "medium",
       phase: block.mode === "validation_strategy" ? "validation" : "planning",
-      metadata: `${block.mode} · ${fact.memoryState === "accepted" ? "aceptado" : "por validar"}`,
+      metadata: `${COGNITIVE_MODE_LABELS[block.mode] ?? block.mode} · ${fact.memoryState === "accepted" ? "aceptado" : "por validar"}`,
       details: [`### Análisis`, block.statement, "", visibleRationale(block.rationale) ? `### Por qué aparece
 ${visibleRationale(block.rationale)}` : "", block.whyItMatters ? `### Por qué importa\n${block.whyItMatters}` : "", block.nextAction ? `### Próxima acción\n${block.nextAction}` : ""].filter(Boolean).join("\n"),
       relevanceScore: block.mode === "risk" || block.mode === "opportunity" ? 8 : 7,

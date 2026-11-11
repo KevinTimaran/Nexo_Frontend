@@ -8,4 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_RELEASES_URL?: string;
+  /** Public demo account for the "Entrar con cuenta demo" button (demo data only). */
+  readonly VITE_DEMO_EMAIL?: string;
+  readonly VITE_DEMO_PASSWORD?: string;
 }

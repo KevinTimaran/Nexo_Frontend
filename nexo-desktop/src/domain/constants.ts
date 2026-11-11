@@ -77,3 +77,10 @@ export function normalizeCategory(category?: string | null): NodeCategory {
   }
   return "technical";
 }
+
+/** Spanish labels for the cognitive assistance modes (never show the internal ids to people). */
+export const COGNITIVE_MODE_LABELS: Record<import("./types").CognitiveAssistanceMode, string> = {
+  explanation: "Explicación", blind_spot: "Punto ciego", suggestion: "Sugerencia", solution: "Posible solución",
+  risk: "Riesgo", opportunity: "Oportunidad", contradiction: "Tensión detectada", alternative: "Alternativa",
+  hypothesis: "Hipótesis", validation_strategy: "Estrategia de validación", comparison: "Comparación", question: "Pregunta clave",
+};

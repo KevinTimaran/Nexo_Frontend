@@ -133,7 +133,7 @@ export const LandingPage: React.FC = () => {
                 defaultValue: "Descarga Nexo para Windows y entra directo a tus proyectos. Usa la misma cuenta que en la web.",
               })}
             </p>
-            <a href={buildReleasesUrl()} target="_blank" rel="noopener noreferrer" className={`${ctaSecondary} mt-6`}>
+            <a href={buildReleasesUrl()} download="Nexo-Setup-x64.exe" className={`${ctaSecondary} mt-6`}>
               <Download className="w-4 h-4" />
               {t("landing.download.button", { defaultValue: "Descargar para Windows" })}
             </a>

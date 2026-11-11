@@ -23,6 +23,7 @@ import {
   Trophy,
   Compass,
 } from "lucide-react";
+import { COGNITIVE_MODE_LABELS } from "../../domain/constants";
 import type { ActionableIdea, CognitiveInsightUIBlock, ContextValidationRecord, EvidenceCardUIBlock, EvidenceRecord, GenerativeUIBlock, MemoryPatch, PerspectiveActionEvent, PerspectiveEvaluation, ProjectFact } from "../../domain/types";
 import { memoryPresentationForFact, type MemoryAction } from "../../services/ai/semanticMemory";
 import { cognitiveMemoryKind, transitionCognitiveBlock } from "../../services/ai/cognitiveAssistance";
@@ -313,11 +314,7 @@ export const GenerativeChatBlock: React.FC<GenerativeChatBlockProps> = ({
   }
 
   if (block.type === "cognitive_insight") {
-    const labels: Record<CognitiveInsightUIBlock["mode"], string> = {
-      explanation: "Explicación", blind_spot: "Punto ciego", suggestion: "Sugerencia", solution: "Posible solución",
-      risk: "Riesgo", opportunity: "Oportunidad", contradiction: "Tensión detectada", alternative: "Alternativa",
-      hypothesis: "Hipótesis", validation_strategy: "Estrategia de validación", comparison: "Comparación", question: "Pregunta clave",
-    };
+    const labels = COGNITIVE_MODE_LABELS;
     const proposalKind = cognitiveMemoryKind(block.mode);
     const canModify = proposalKind === "suggestion" && (block.status === "proposed" || block.status === "modified");
     const canDecide = proposalKind !== null && (block.status === "proposed" || block.status === "modified");

@@ -68,7 +68,7 @@ assert.equal(env.buildApiUrl(), undefined);
 assert.equal(env.buildSupabaseUrl(), undefined);
 assert.equal(env.buildSupabaseAnonKey(), undefined);
 assert.equal(env.buildDefaultMode(), undefined);
-assert.ok(env.buildReleasesUrl().startsWith("https://github.com/"));
+assert.equal(env.buildReleasesUrl(), "/downloads/Nexo-Setup-x64.exe", "The web serves the Windows installer itself");
 assert.equal(getActiveServiceMode(), "mock", "Without VITE_DEFAULT_MODE the local default is unchanged");
 const envSource = read("src/config/env.ts");
 assert.ok(!/import\.meta\.env\s*[;,)]/.test(envSource.replace(/import\.meta\.env\.VITE_/g, "")), "Only static VITE_ accesses: never the whole env object (it could contain API keys)");
@@ -116,7 +116,7 @@ for (const text of ["Iniciar sesión", "Registrarse", "Descargar para Windows", 
   assert.ok(html.includes(text), `Landing must show "${text}"`);
 }
 assert.ok(html.includes('href="/login"') && html.includes('href="/register"'), "Login and register buttons navigate to the auth pages");
-assert.ok(html.includes('target="_blank"') && html.includes("releases"), "Download links to the published installer");
+assert.ok(html.includes('href="/downloads/Nexo-Setup-x64.exe"') && html.includes("download="), "Download links to the installer served by the web");
 assert.ok(!/(?:text|bg|border)-(?:gray|slate|zinc|neutral|red|green|blue)-\d{2,3}/.test(landingSource), "Design tokens only");
 assert.ok(!/#[0-9a-fA-F]{6}\b/.test(landingSource), "No hardcoded hex colors");
 

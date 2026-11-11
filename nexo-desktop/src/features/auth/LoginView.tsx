@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Lock, Mail, User as UserIcon } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles, User as UserIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { Input } from "../../components/ui/Input";
@@ -17,6 +17,10 @@ import {
   type LoginFormData,
   type RegisterFormData,
 } from "./authValidations";
+import { authErrorMessage } from "./authErrors";
+import { buildDemoAccount } from "../../config/env";
+
+const demoAccount = buildDemoAccount();
 
 export const LoginView: React.FC = () => {
   const { t } = useTranslation();
@@ -30,18 +34,20 @@ export const LoginView: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const fromPath = (location.state as { from?: { pathname?: string } })?.from?.pathname || "/";
+  const routeState = location.state as { from?: { pathname?: string }; email?: string } | null;
+  const fromPath = routeState?.from?.pathname || "/";
 
   // Form for Login
   const {
     register: loginRegister,
     handleSubmit: handleLoginSubmit,
+    reset: resetLogin,
     formState: { errors: loginErrors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: "onTouched",
     defaultValues: {
-      email: "",
+      email: routeState?.email ?? "",
       password: "",
     },
   });
@@ -68,12 +74,21 @@ export const LoginView: React.FC = () => {
       const user = await signIn(data.email.trim(), data.password);
       showToast(`${t("app.name")} — Bienvenido, ${user.name}`, "info");
       navigate(fromPath, { replace: true });
-    } catch {
-      setSubmitError(
-        t("auth.errors.unknown", {
-          defaultValue: "Credenciales inválidas o error de conexión.",
-        })
-      );
+    } catch (error) {
+      setSubmitError(authErrorMessage(error, t, "login"));
+    }
+  };
+
+  /** One click into the shared demo account (for reviewers), without typing credentials. */
+  const onDemoLogin = async () => {
+    if (!demoAccount) return;
+    setSubmitError(null);
+    try {
+      await signIn(demoAccount.email, demoAccount.password);
+      showToast(`${t("app.name")} — ${t("auth.demoWelcome", { defaultValue: "Entraste con la cuenta demo" })}`, "info");
+      navigate(fromPath, { replace: true });
+    } catch (error) {
+      setSubmitError(authErrorMessage(error, t, "login"));
     }
   };
 
@@ -84,16 +99,20 @@ export const LoginView: React.FC = () => {
       showToast(`${t("app.name")} — Cuenta creada con éxito. Bienvenido, ${user.name}`, "info");
       navigate(fromPath, { replace: true });
     } catch (error) {
-      if (error instanceof ServiceError && error.code === "email-confirmation") {
-        showToast("Revisa tu correo para confirmar la cuenta y luego inicia sesión.", "info");
+      if (error instanceof ServiceError && (error.code === "email-confirmation" || error.code === "already-registered")) {
+        showToast(
+          error.code === "email-confirmation"
+            ? t("auth.confirmEmailSent", { defaultValue: "Revisa tu correo para confirmar la cuenta y luego inicia sesión." })
+            : authErrorMessage(error, t, "register"),
+          "info"
+        );
+        // Land on the login form with the email already written in the email field.
+        resetLogin({ email: data.email.trim(), password: "" });
+        setSubmitError(null);
         setMode("login");
         return;
       }
-      setSubmitError(
-        t("auth.errors.registerFailed", {
-          defaultValue: "No se pudo crear la cuenta. Intenta nuevamente.",
-        })
-      );
+      setSubmitError(authErrorMessage(error, t, "register"));
     }
   };
 
@@ -200,7 +219,8 @@ export const LoginView: React.FC = () => {
 
             {/* Mode: Login */}
             {mode === "login" ? (
-              <form onSubmit={handleLoginSubmit(onLogin)} className="space-y-4" noValidate>
+              // Distinct keys: without them React reuses the register inputs and their values shift fields.
+              <form key="login" onSubmit={handleLoginSubmit(onLogin)} className="space-y-4" noValidate>
                 <div className="space-y-1">
                   <Input
                     label={t("auth.email")}
@@ -291,7 +311,7 @@ export const LoginView: React.FC = () => {
               </form>
             ) : (
               /* Mode: Register */
-              <form onSubmit={handleRegisterSubmit(onRegister)} className="space-y-3.5" noValidate>
+              <form key="register" onSubmit={handleRegisterSubmit(onRegister)} className="space-y-3.5" noValidate>
                 <div className="space-y-1">
                   <Input
                     label={t("auth.name", { defaultValue: "Nombre completo" })}
@@ -425,6 +445,21 @@ export const LoginView: React.FC = () => {
               </span>
               <span className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-200 dark:via-white/10 to-transparent" />
             </div>
+
+            {/* Demo account: only when the build ships one */}
+            {demoAccount && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                onClick={onDemoLogin}
+                disabled={isLoading}
+                className="w-full mt-3.5 !rounded-xl cursor-pointer"
+                icon={<Sparkles className="w-4 h-4" />}
+              >
+                {t("auth.demoLogin", { defaultValue: "Entrar con cuenta demo" })}
+              </Button>
+            )}
 
             {/* Bottom Toggle Prompt */}
             <p className="mt-3.5 text-center text-xs text-muted dark:text-muted">

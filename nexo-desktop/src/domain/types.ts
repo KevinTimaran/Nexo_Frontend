@@ -717,7 +717,17 @@ export interface Preferences {
 }
 
 /** Errors the UI knows how to explain. */
-export type ServiceErrorCode = "offline" | "invalid-credentials" | "email-confirmation" | "unknown";
+export type ServiceErrorCode =
+  | "offline"
+  | "invalid-credentials"
+  | "email-confirmation"
+  | "email-not-confirmed"
+  | "already-registered"
+  | "weak-password"
+  | "invalid-email"
+  | "rate-limited"
+  | "signup-disabled"
+  | "unknown";
 
 export class ServiceError extends Error {
   readonly code: ServiceErrorCode;

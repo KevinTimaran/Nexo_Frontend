@@ -544,7 +544,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       key={st} onClick={() => setStatusFilter(st)}
                       className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${statusFilter === st ? "bg-[var(--selected)] text-[var(--floral-50)] border border-[var(--floral-50)]/30 font-semibold shadow-sm" : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--hover)] border border-transparent"}`}
                     >
-                      {st === "all" ? "Todos" : st}
+                      {t(`projects.filters.${st}`)}
                     </button>
                   ))}
                 </div>

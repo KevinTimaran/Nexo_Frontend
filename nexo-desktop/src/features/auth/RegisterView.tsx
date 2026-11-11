@@ -12,6 +12,7 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { NexoLogo } from "../../components/brand/NexoLogo";
 import { registerSchema, type RegisterFormData } from "./authValidations";
+import { authErrorMessage } from "./authErrors";
 
 export const RegisterView: React.FC = () => {
   const { t } = useTranslation();
@@ -48,16 +49,18 @@ export const RegisterView: React.FC = () => {
       showToast(`${t("app.name")} — Cuenta creada con éxito. Bienvenido, ${user.name}`, "info");
       navigate(fromPath, { replace: true });
     } catch (error) {
-      if (error instanceof ServiceError && error.code === "email-confirmation") {
-        showToast("Revisa tu correo para confirmar la cuenta y luego inicia sesión.", "info");
-        navigate("/login", { replace: true });
+      if (error instanceof ServiceError && (error.code === "email-confirmation" || error.code === "already-registered")) {
+        showToast(
+          error.code === "email-confirmation"
+            ? t("auth.confirmEmailSent", { defaultValue: "Revisa tu correo para confirmar la cuenta y luego inicia sesión." })
+            : authErrorMessage(error, t, "register"),
+          "info"
+        );
+        // The login form opens with this email already in the email field.
+        navigate("/login", { replace: true, state: { ...(location.state as object | null), email: data.email.trim() } });
         return;
       }
-      setSubmitError(
-        t("auth.errors.registerFailed", {
-          defaultValue: "No se pudo registrar la cuenta. Intenta de nuevo.",
-        })
-      );
+      setSubmitError(authErrorMessage(error, t, "register"));
     }
   };
 

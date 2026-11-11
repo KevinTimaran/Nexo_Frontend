@@ -8,6 +8,7 @@ import { isTauri } from "../../utils/platform";
 import { getAccessToken, getSupabase, toUser } from "../supabase";
 import {
   ServiceError,
+  type ServiceErrorCode,
   type AIResponse,
   type BackendStatus,
   type ConceptMap,
@@ -249,14 +250,19 @@ export const httpAuth: AuthService = {
     const supabase = getSupabase();
     if (!supabase) return localUser(email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) throw new ServiceError("invalid-credentials", error?.message ?? "Credenciales inválidas.");
+    if (error) throw toAuthServiceError(error, "invalid-credentials");
+    if (!data.user) throw new ServiceError("invalid-credentials", "Credenciales inválidas.");
     return toUser(data.user);
   },
   async signUp(name: string, email: string, password: string): Promise<User> {
     const supabase = getSupabase();
     if (!supabase) return localUser(email, name);
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
-    if (error) throw new ServiceError("unknown", error.message);
+    if (error) throw toAuthServiceError(error, "unknown");
+    // With email confirmation on, an already registered email comes back as a user without identities.
+    if (data.user && !data.session && data.user.identities?.length === 0) {
+      throw new ServiceError("already-registered", "Ya existe una cuenta con este correo.");
+    }
     // With email confirmation enabled Supabase creates the account but returns no session yet.
     if (!data.session || !data.user) throw new ServiceError("email-confirmation", "Revisa tu correo para confirmar la cuenta.");
     return toUser(data.user);
@@ -269,6 +275,31 @@ export const httpAuth: AuthService = {
     }
   },
 };
+
+/** Maps Supabase Auth errors (by their stable `code`, falling back to the status) to app error codes. */
+function toAuthServiceError(
+  error: { code?: string; status?: number; message: string; name?: string },
+  fallback: ServiceErrorCode,
+): ServiceError {
+  const byCode: Record<string, ServiceErrorCode> = {
+    invalid_credentials: "invalid-credentials",
+    email_not_confirmed: "email-not-confirmed",
+    user_already_exists: "already-registered",
+    email_exists: "already-registered",
+    weak_password: "weak-password",
+    email_address_invalid: "invalid-email",
+    validation_failed: "invalid-email",
+    over_email_send_rate_limit: "rate-limited",
+    over_request_rate_limit: "rate-limited",
+    signup_disabled: "signup-disabled",
+    email_provider_disabled: "signup-disabled",
+  };
+  const mapped = error.code ? byCode[error.code] : undefined;
+  if (mapped) return new ServiceError(mapped, error.message);
+  if (error.status === 429) return new ServiceError("rate-limited", error.message);
+  if (error.name === "AuthRetryableFetchError" || error.status === 0) return new ServiceError("offline", error.message);
+  return new ServiceError(fallback, error.message);
+}
 
 /** Only used when the build has no Supabase settings (local development against NEXO_AUTH_DISABLED=true). */
 function localUser(email: string, name?: string): User {
