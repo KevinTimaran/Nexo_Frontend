@@ -18,24 +18,33 @@ export function cognitiveMemoryKind(mode: CognitiveAssistanceMode): ProjectFact[
   return null;
 }
 
+/** Facts that describe the project: excludes rejected, legacy and still-unconfirmed AI proposals. */
+export const isGroundedProjectFact = (fact: ProjectFact): boolean =>
+  fact.memoryState !== "rejected"
+  && fact.kind !== "legacy_unknown"
+  && !(fact.origin === "ai_suggestion" && (fact.memoryState === "proposed" || fact.memoryState === "modified"));
+
 export function canProvideCognitiveValue(discovery: DiscoveryState): boolean {
-  const usable = discovery.facts.filter((fact) => fact.memoryState !== "rejected" && fact.kind !== "legacy_unknown");
+  const usable = discovery.facts.filter(isGroundedProjectFact);
   const unresolvedBlocking = discovery.requiredTopics.some((topic) => topic.importance === "blocking" && !usable.some((fact) => fact.semanticKey === topic.key || fact.key === topic.key));
   return !unresolvedBlocking && usable.length >= 2;
 }
 
 const firstGrounding = (discovery: DiscoveryState): ProjectFact | undefined =>
-  discovery.facts.find((fact) => fact.memoryState === "confirmed" || fact.memoryState === "accepted")
-  ?? discovery.facts.find((fact) => fact.memoryState !== "rejected" && fact.kind !== "legacy_unknown");
+  [...discovery.facts].reverse().find((fact) => fact.memoryState === "confirmed" || fact.memoryState === "accepted")
+  ?? [...discovery.facts].reverse().find(isGroundedProjectFact);
 
 const firstPerspective = (perspectives: PerspectiveEvaluation[] = []): PerspectiveEvaluation | undefined =>
   perspectives.find((item) => item.relevance === "relevant" && item.explorationStatus !== "dismissed" && item.explorationStatus !== "not_relevant")
   ?? perspectives.find((item) => item.relevance === "potentially_relevant" && item.explorationStatus !== "dismissed" && item.explorationStatus !== "not_relevant");
 
-/** Deterministic fallback for question avoidance and controlled scenario verification. */
+/** Conservative deterministic insight, only for archetypes where the content is derived from stated facts. Never invents domain content. */
 export function selectCognitiveAssistance(discovery: DiscoveryState, map: ConceptMap): CognitiveInsightUIBlock | undefined {
   if (!canProvideCognitiveValue(discovery)) return undefined;
-  const grounding = firstGrounding(discovery);
+  const intentGrounding = discovery.facts.find((fact) => fact.key === "intent" && (fact.memoryState === "confirmed" || fact.memoryState === "accepted"));
+  const grounding = discovery.archetype === "research" || discovery.archetype === "software"
+    ? intentGrounding ?? firstGrounding(discovery)
+    : firstGrounding(discovery);
   if (!grounding) return undefined;
   const perspective = firstPerspective(discovery.perspectives);
   const candidateId = `cognitive:${discovery.candidateDefinitionVersion ?? discovery.archetype}:${discovery.archetype}`;
@@ -57,65 +66,62 @@ export function selectCognitiveAssistance(discovery: DiscoveryState, map: Concep
       ...base,
       mode: "risk",
       title: "Supuesto inicial del estudio",
-      statement: "El diseño podría privilegiar una causa antes de contrastar explicaciones alternativas.",
-      rationale: `La memoria del proyecto plantea «${grounding.value}». Conviene tratar cualquier causa sugerida como hipótesis, no como conclusión.`,
+      statement: "El planteamiento podría privilegiar una explicación antes de contrastar otras posibles.",
+      rationale: "Conviene tratar cualquier causa que se sugiera como hipótesis, no como conclusión.",
       whyItMatters: "Partir de una explicación única puede sesgar las preguntas, la muestra y la interpretación.",
-      nextAction: "Contrastar factores académicos, económicos, motivacionales e institucionales.",
-      validationOptions: ["Revisar datos institucionales existentes", "Entrevistar estudiantes", "Diseñar una encuesta", "Revisar literatura académica"],
-    };
-  }
-
-  if (discovery.archetype === "software") {
-    return {
-      ...base,
-      mode: "blind_spot",
-      title: "El problema puede no ser la falta de herramientas",
-      statement: "Los usuarios podrían disponer ya de calendarios o gestores de tareas; la dificultad puede estar en convertir requisitos académicos en acciones claras.",
-      rationale: `La memoria confirma «${grounding.value}». La existencia y suficiencia de herramientas actuales todavía no están confirmadas.`,
-      whyItMatters: "Distinguir ambos problemas cambia el alcance del producto y evita duplicar soluciones existentes.",
-      nextAction: "Observar cómo los estudiantes transforman hoy una guía de curso en tareas y fechas.",
-      validationOptions: ["Probar un prototipo pequeño", "Entrevistar estudiantes", "Comparar el flujo con calendarios existentes"],
+      nextAction: "Contrastar explicaciones alternativas antes de fijar el diseño.",
+      validationOptions: ["Revisar datos existentes", "Consultar a la población de interés", "Diseñar una encuesta", "Revisar literatura académica"],
     };
   }
 
   if (discovery.archetype === "business") {
-    const allFactsText = discovery.facts.map((f) => f.value).join(" ");
-    const mentionsGuidanceOrConfusion = /orientaci|confusi|asesor|guiar|materiales equivocados|no saben|desconoc/i.test(allFactsText);
-    if (mentionsGuidanceOrConfusion) {
+    const contextualFacts = discovery.facts.filter((fact) => fact.key !== "intent" && isGroundedProjectFact(fact));
+    const contextualFactsText = contextualFacts.map((fact) => fact.value).join(" ");
+    const guidanceFact = discovery.facts.filter(isGroundedProjectFact).find((fact) => /orient|confusi|asesor|guiar|materiales equivocados|no saben|desconoc/i.test(fact.value));
+    if (guidanceFact) {
       return {
         ...base,
+        linkedFactIds: [guidanceFact.key],
         mode: "blind_spot",
         title: "La causa observada puede no ser la única",
         statement: "La confusión al comprar podría relacionarse con orientación insuficiente, pero también con precio, disponibilidad o conveniencia.",
-        rationale: `La memoria confirma «${grounding.value}». Las causas alternativas aún no se han validado y se presentan solo como posibilidades.`,
+        rationale: "Lo que comentaste sobre la orientación admite otras explicaciones que todavía no se han descartado.",
         whyItMatters: "La causa principal determina si conviene priorizar asesoría, surtido, ubicación o precio.",
         nextAction: "Contrastar la explicación con residentes antes de ampliar inventario.",
         validationOptions: ["Entrevistar residentes", "Observar problemas de compra frecuentes", "Solicitar cotizaciones de proveedores"],
       };
     }
 
+    const accessPattern = /viaj|otro pueblo|lejos|distancia|acceso|disponib|no hay|falta/i;
+    if (accessPattern.test(contextualFactsText)) {
+      const accessFact = [...contextualFacts].reverse().find((fact) => accessPattern.test(fact.value)) ?? grounding;
+      return {
+        ...base,
+        linkedFactIds: [accessFact.key],
+        mode: "hypothesis",
+        title: "Posible problema de acceso local",
+        statement: "La necesidad de desplazarse para comprar materiales podría indicar una barrera de acceso, pero todavía falta medir su frecuencia y relevancia.",
+        rationale: "Lo que describes sobre el acceso aún no se ha medido, por eso se mantiene como hipótesis.",
+        whyItMatters: "La frecuencia de los desplazamientos ayudaría a saber si existe una necesidad recurrente o solo casos aislados.",
+        nextAction: "Precisar con qué frecuencia ocurre y qué materiales suelen buscarse fuera del pueblo.",
+        validationOptions: ["Conversar con residentes", "Registrar compras realizadas fuera del pueblo", "Identificar los materiales más buscados"],
+      };
+    }
     return {
       ...base,
-      mode: "blind_spot",
-      title: "Demanda local y hábitos sin validar",
-      statement: "La existencia de demanda insatisfecha, las alternativas actuales de los residentes y la viabilidad del negocio en la zona aún no han sido contrastadas.",
-      rationale: `La memoria registra «${grounding.value}». No se asume una problemática comunitaria preexistente ni viabilidad garantizada sin evidencia.`,
-      whyItMatters: "Verificar si los vecinos ya resuelven sus compras en otros comercios o si existen necesidades desatendidas evita invertir en inventario o servicios sin contrastar.",
-      nextAction: "Indagar hábitos de compra locales y alternativas actuales antes de asumir una necesidad específica.",
-      validationOptions: ["Entrevistar residentes", "Mapear comercios o ferreterías existentes en la zona", "Consultar cotizaciones de proveedores"],
+      mode: "hypothesis",
+      title: "Demanda local todavía desconocida",
+      statement: "Aún no hay información confirmada sobre la frecuencia de compra, las alternativas disponibles ni la demanda local.",
+      rationale: "La demanda y la viabilidad no se pueden deducir solo de la idea inicial.",
+      whyItMatters: "Distinguir lo conocido de lo que falta evita presentar la oportunidad comercial como un hecho.",
+      nextAction: "Conocer cómo y dónde compran actualmente las personas de la zona.",
+      validationOptions: ["Conversar con residentes", "Identificar comercios existentes", "Registrar necesidades de compra frecuentes"],
     };
   }
 
-  return {
-    ...base,
-    mode: "suggestion",
-    title: "Próximo avance posible",
-    statement: "Conviene convertir el objetivo actual en una prueba pequeña y observable antes de ampliar el alcance.",
-    rationale: `Esta propuesta parte de «${grounding.value}» y permanece sin confirmar hasta que decidas incorporarla.`,
-    whyItMatters: "Una prueba acotada puede revelar restricciones sin exigir una definición completa del proyecto.",
-    nextAction: "Definir el resultado mínimo que permitiría aprender algo útil.",
-    validationOptions: ["Crear un prototipo", "Observar una prueba manual"],
-  };
+  // Software, creative, operational and general projects have no project-independent insight:
+  // inventing one here is what produced unrelated cards. Leave those to the model (or plain conversation).
+  return undefined;
 }
 
 export function validateCognitiveGrounding(block: CognitiveInsightUIBlock, discovery: DiscoveryState, map: ConceptMap): CognitiveInsightUIBlock | undefined {
