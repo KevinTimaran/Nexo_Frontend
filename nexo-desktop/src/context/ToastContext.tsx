@@ -37,11 +37,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       <div
         role="region"
         aria-label="Notificaciones"
+        aria-live="polite"
+        aria-relevant="additions"
         className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none max-w-sm w-full"
       >
         {toasts.map((toast) => (
           <div
             key={toast.id}
+            role={toast.type === "error" ? "alert" : "status"}
             className="
               pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-2xl
               glass-card border border-line/80 dark:border-line/10
@@ -71,7 +74,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   <Info className="w-3.5 h-3.5" />
                 </div>
               )}
-              <span className="truncate text-body font-medium">{toast.message}</span>
+              <span className="text-body font-medium break-words">{toast.message}</span>
             </div>
             <button
               onClick={() => dismissToast(toast.id)}
