@@ -106,6 +106,31 @@
       "title": "Projects couldn't load"
     }
   },
+  "views": {
+    "discovery": "1. AI Ideation",
+    "discoveryShort": "AI",
+    "board": "2. Concept Board",
+    "boardShort": "Board",
+    "spatial": "3. Neural 3D",
+    "lockedHint": "Keep describing your idea to enable the board and 3D view."
+  },
+  "ux": {
+    "continueIdeation": "Continue in AI Ideation",
+    "boardEmpty": {
+      "title": "Your board will grow with the conversation",
+      "description": "Confirmed concepts, hypotheses, and evidence will appear here as you develop the idea. The 2D and 3D views share the same project."
+    },
+    "spatialLoading": {
+      "title": "Preparing the Neural 3D view…",
+      "description": "Organizing concepts and their relationships without interrupting your work."
+    },
+    "spatialEmpty": {
+      "title": "Relationships will appear here",
+      "description": "Once the project has connected concepts, you can explore them in 3D. It is the same information from the Concept Board, viewed from another perspective."
+    },
+    "spatialFit": "Fit view",
+    "spatialFitLabel": "Fit all concepts in the 3D view"
+  },
   "workspace": {
     "loading": "Opening workspace…",
     "notFound": {
@@ -282,5 +307,67 @@
   "languages": {
     "en": "English",
     "es": "Español"
+  },
+  "landing": {
+    "nav": {
+      "label": "Access",
+      "login": "Sign in",
+      "register": "Sign up"
+    },
+    "hero": {
+      "titleStart": "Turn a fuzzy idea into",
+      "titleHighlight": "a clear project",
+      "subtitle": "Nexo talks with you like a multidisciplinary advisor: it clarifies your idea, spots what you haven't considered, suggests alternatives and organizes everything on a board you can explore in 2D and 3D.",
+      "ctaRegister": "Create my account",
+      "ctaLogin": "I already have an account"
+    },
+    "how": {
+      "title": "How it works",
+      "steps": {
+        "idea": {
+          "title": "Tell it your idea",
+          "text": "Start however you have it, even if it is incomplete or confusing."
+        },
+        "chat": {
+          "title": "Talk and refine",
+          "text": "Nexo asks only what matters, offers examples and points out blind spots."
+        },
+        "board": {
+          "title": "Get your board",
+          "text": "Your confirmed ideas are arranged into connected concepts."
+        },
+        "space": {
+          "title": "Explore in 2D and 3D",
+          "text": "Walk through the same project as a board or as a neural space."
+        }
+      }
+    },
+    "features": {
+      "title": "Built to help you decide with confidence",
+      "items": {
+        "conversation": {
+          "title": "Guided conversation",
+          "text": "An advisor that understands what you already said and avoids repeating questions."
+        },
+        "perspectives": {
+          "title": "Several perspectives",
+          "text": "Economic, social, legal, technical and more, depending on what your project needs."
+        },
+        "evidence": {
+          "title": "Evidence, never invented",
+          "text": "It tells apart what you state, what was researched and what is still a hypothesis."
+        },
+        "views": {
+          "title": "One project, several views",
+          "text": "The 2D board and the 3D space share the same concepts and relationships."
+        }
+      }
+    },
+    "download": {
+      "title": "Also as a desktop app",
+      "text": "Download Nexo for Windows and go straight to your projects. Use the same account as on the web.",
+      "button": "Download for Windows"
+    },
+    "footer": "Nexo — Where ideas take shape."
   }
 }
