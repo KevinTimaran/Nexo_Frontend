@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,6 +14,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { MarkdownRenderer } from "../../components/ui/MarkdownRenderer";
 import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 export interface NotionModalViewerProps {
   node: ConceptNode | null;
@@ -33,20 +34,8 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
   relatedNodes = [],
 }) => {
   const { t } = useTranslation();
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Keyboard accessibility: Escape closes the viewer
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    closeButtonRef.current?.focus();
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(Boolean(node), dialogRef, { onEscape: onClose, trap: true });
 
   if (!node) return null;
 
@@ -82,9 +71,11 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
     <AnimatePresence>
       {node && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="notion-document-title"
+          tabIndex={-1}
           className="fixed inset-0 z-50 flex justify-end overflow-hidden font-sans select-none"
         >
           {/* Frosted Glass Backdrop Overlay */}
@@ -139,7 +130,7 @@ export const NotionModalViewer: React.FC<NotionModalViewerProps> = ({
                 )}
 
                 <button
-                  ref={closeButtonRef}
+                  data-dialog-initial-focus
                   onClick={onClose}
                   className="w-8 h-8 rounded-xl text-muted hover:text-fg dark:hover:text-fg hover:bg-surface/40 dark:hover:bg-surface/10 flex items-center justify-center transition-colors cursor-pointer"
                   aria-label="Cerrar documento"
