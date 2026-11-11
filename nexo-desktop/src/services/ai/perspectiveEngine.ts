@@ -42,13 +42,14 @@ const VALID_RELEVANCE = new Set<PerspectiveProposal["relevance"]>(["relevant", "
 
 const normalize = (value: string): string => value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-const isUsableFact = (fact: ProjectFact): boolean => fact.memoryState !== "rejected" && fact.kind !== "evidence_placeholder";
+// Unconfirmed AI proposals must not steer which perspectives look relevant to the project.
+const isUsableFact = (fact: ProjectFact): boolean => fact.memoryState !== "rejected" && fact.kind !== "evidence_placeholder" && !(fact.origin === "ai_suggestion" && (fact.memoryState === "proposed" || fact.memoryState === "modified"));
 
 const contextLabel = (fact: ProjectFact): string => {
   if (fact.kind === "hypothesis" && fact.memoryState !== "confirmed") return "Como hipótesis pendiente";
   if (fact.kind === "unknown" || fact.memoryState === "unknown") return "Como dato aún desconocido";
   if (fact.kind === "suggestion" && fact.memoryState !== "accepted") return "Como sugerencia todavía no aceptada";
-  return "La memoria confirmada indica";
+  return "A partir de lo que comentaste";
 };
 
 const short = (value: string): string => value.trim().replace(/\s+/g, " ").slice(0, 150);
