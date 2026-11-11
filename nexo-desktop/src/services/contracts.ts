@@ -60,6 +60,13 @@ export interface AIReplyRequest {
   messageHistory?: Message[];
   /** Canonical memory context used to ground cognitive assistance. */
   discovery?: DiscoveryState;
+  /** Identity of the active project; models must not answer about anything else. */
+  projectName?: string;
+  projectDescription?: string;
+  /** Deterministic reading of the user's intent for this turn. */
+  turnIntent?: "define_idea" | "close" | "statement" | "other";
+  /** Present only on a retry after validation rejected the previous answer. */
+  correctionNote?: string;
 }
 
 export interface AITutorRequest {
