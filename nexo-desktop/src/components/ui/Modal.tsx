@@ -1,6 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -19,21 +20,20 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   maxWidth = "md",
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const titleId = `modal-title-${id}`;
+  const descriptionId = `modal-description-${id}`;
+  useDialogFocus(isOpen, dialogRef, { onEscape: onClose, trap: true });
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
     if (isOpen) {
-      window.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
     }
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const widthClasses = {
     sm: "max-w-sm",
@@ -59,10 +59,13 @@ export const Modal: React.FC<ModalProps> = ({
 
           {/* Glassmorphism V2 Floating Glass Sheet */}
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-labelledby={title ? "modal-title" : undefined}
-            aria-describedby={description ? "modal-description" : undefined}
+            aria-labelledby={title ? titleId : undefined}
+            aria-label={title ? undefined : "Ventana de diálogo"}
+            aria-describedby={description ? descriptionId : undefined}
+            tabIndex={-1}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -82,18 +85,19 @@ export const Modal: React.FC<ModalProps> = ({
               <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-line/60 dark:border-line/10 bg-surface/30 dark:bg-surface/[0.02]">
                 <div className="pr-4">
                   {title && (
-                    <h3 id="modal-title" className="text-lg font-bold tracking-tight text-fg dark:text-fg leading-snug">
+                    <h3 id={titleId} className="text-lg font-bold tracking-tight text-fg dark:text-fg leading-snug">
                       {title}
                     </h3>
                   )}
                   {description && (
-                    <p id="modal-description" className="text-xs text-muted dark:text-muted mt-1 leading-relaxed">
+                    <p id={descriptionId} className="text-xs text-muted dark:text-muted mt-1 leading-relaxed">
                       {description}
                     </p>
                   )}
                 </div>
                 <button
                   onClick={onClose}
+                  data-dialog-initial-focus
                   className="w-8 h-8 rounded-xl text-muted hover:text-fg dark:hover:text-fg hover:bg-surface/40 dark:hover:bg-surface/10 active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
                   aria-label="Cerrar modal"
                 >
