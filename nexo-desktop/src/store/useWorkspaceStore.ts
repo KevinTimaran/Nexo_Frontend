@@ -28,6 +28,7 @@ import { normalizeRelationType } from "../services/ai/reconcileGraph";
 import { normalizeCategory } from "../domain/constants";
 import { services } from "../services";
 import { initialDiscovery } from "../services/ai/discovery";
+import { canonicalizeMessageHistory } from "../services/ai/chatOrchestration";
 import { resolveRelationVisual } from "../theme/semanticVisuals";
 
 export interface ConceptNodeData extends ConceptNode {
@@ -501,6 +502,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         spatialDocs: {},
         chatPhase: "PHASE_1_DISCOVERY",
         isArchitectureUnlocked: false,
+        // Conversation state belongs to a project: nothing may survive into the next one.
+        discoveryMessages: INITIAL_DISCOVERY_MESSAGES,
+        discoverySelectedOptions: {},
       });
       return;
     }
@@ -518,6 +522,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }));
     workspace = {
       ...workspace,
+      messages: canonicalizeMessageHistory(workspace.messages ?? []),
       map: { ...workspace.map, nodes: migratedNodes },
       discovery: workspace.discovery ?? initialDiscovery(Boolean(workspace.map?.nodes && workspace.map.nodes.length > 0)),
     };
@@ -528,9 +533,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (hasGeneratedNodes && workspace.discovery && workspace.discovery.lifecycle === "legacy_unknown") {
       workspace = { ...workspace, discovery: { ...workspace.discovery, lifecycle: "generated" } };
     }
-    const inferredPhase: ChatPhase = workspace.discovery?.lifecycle === "generated" || (hasGeneratedNodes && workspace.discovery?.lifecycle === "legacy_unknown")
-      ? "PHASE_3_EXPANSION"
-      : "PHASE_1_DISCOVERY";
+    // A graph is only a preliminary representation; it never ends discovery by itself.
+    const inferredPhase: ChatPhase = "PHASE_1_DISCOVERY";
     const landingMode = resolveInitialLandingMode(workspace.map);
 
     const spatialNodes = projectSpatialNodes(
@@ -547,7 +551,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const reconstructedDiscovery: ChatMessage[] =
       workspace.messages && workspace.messages.length > 0
-        ? workspace.messages.map((m) => {
+        ? workspace.messages.map((m, messageIndex) => {
             if (m.role === "user") {
               return {
                 id: m.id,
@@ -558,6 +562,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               };
             }
             const asst = m as AssistantMessage;
+            // Only the latest message can be the closing card; earlier "ready" turns stay plain text once the chat continued.
+            if (asst.action === "ready" && messageIndex === workspace.messages.length - 1 && ["ready", "generating", "generation_error", "generated"].includes(workspace.discovery?.lifecycle ?? "")) {
+              return { id: asst.id, role: "assistant" as const, content: asst.text, type: "ready" as const };
+            }
             if (asst.discoveryQuestions && asst.discoveryQuestions.length > 0 && asst.action !== "ready") {
               return {
                 id: asst.id,
@@ -585,35 +593,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
             };
           })
         : INITIAL_DISCOVERY_MESSAGES;
-
-    const lifecycle = workspace.discovery?.lifecycle;
-    if (lifecycle === "generated" || (hasGeneratedNodes && lifecycle !== "generation_error")) {
-      const anchorId = workspace.discovery?.completionAnchorMessageId ?? reconstructedDiscovery.find((m) => m.role === "user")?.id;
-      const anchorIndex = anchorId ? reconstructedDiscovery.findIndex((message) => message.id === anchorId) : -1;
-      const insertAt = anchorIndex >= 0
-        ? anchorIndex + 1
-        : (reconstructedDiscovery.length > 2 ? 2 : reconstructedDiscovery.length);
-
-      const cardId = `generation-status-${workspace.project.id}`;
-      if (!reconstructedDiscovery.some((message) => message.id === cardId || message.type === "ready")) {
-        reconstructedDiscovery.splice(insertAt, 0, {
-          id: cardId,
-          role: "assistant",
-          type: "ready",
-          content: "Tu tablero y la vista neuronal ya muestran la estructura inicial de tu proyecto. Puedes seguir conversando y ajustarla.",
-        });
-      }
-    } else if (lifecycle === "generation_error") {
-      const cardId = `generation-status-${workspace.project.id}`;
-      if (!reconstructedDiscovery.some((message) => message.id === cardId || message.type === "ready")) {
-        reconstructedDiscovery.push({
-          id: cardId,
-          role: "assistant",
-          type: "ready",
-          content: "Hubo un problema al guardar la estructura inicial. Puedes reintentar.",
-        });
-      }
-    }
 
     const selectedOptions = Object.assign({}, isNewProject ? {} : get().discoverySelectedOptions, ...workspace.messages.filter((m): m is Extract<Message, { role: "user" }> => m.role === "user" && Boolean(m.answers)).map((m) => m.answers));
     set({
@@ -928,7 +907,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { workspace } = get();
     if (!workspace) return;
 
-    const nextMessages = [...workspace.messages, message];
+    const nextMessages = canonicalizeMessageHistory([...workspace.messages, message]);
+    if (nextMessages.length === workspace.messages.length && nextMessages.every((item, index) => item === workspace.messages[index])) return;
     const nextWorkspace = { ...workspace, messages: nextMessages };
     set({ workspace: nextWorkspace });
     persistSession(workspace.project.id, workspace.map, nextMessages);
