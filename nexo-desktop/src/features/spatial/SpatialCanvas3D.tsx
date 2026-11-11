@@ -3,6 +3,8 @@ import ForceGraph3D from "react-force-graph-3d";
 import type { ForceGraphMethods, LinkObject, NodeObject } from "react-force-graph-3d";
 import * as THREE from "three";
 import SpriteText from "three-spritetext";
+import { Scan } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
 import { warmLuxuryDark, warmEditorialLight } from "../../theme/tokens";
 import {
@@ -246,6 +248,7 @@ function useElementSize<T extends HTMLElement>(): [React.RefObject<T | null>, { 
 /* ─────────────────────────── Component ─────────────────────────── */
 
 export const SpatialCanvas3D: React.FC = () => {
+  const { t } = useTranslation();
   const spatialNodes = useWorkspaceStore((s) => s.spatialNodes);
   const spatialLinks = useWorkspaceStore((s) => s.spatialLinks);
   const spatialGroupColors = useWorkspaceStore((s) => s.spatialGroupColors);
@@ -931,6 +934,9 @@ export const SpatialCanvas3D: React.FC = () => {
   );
 
   const noTooltip = useCallback(() => "", []);
+  const resetCamera = useCallback(() => {
+    fgRef.current?.zoomToFit?.(reduceMotion ? 0 : 500, 48);
+  }, [reduceMotion]);
 
   return (
     <div
@@ -965,6 +971,17 @@ export const SpatialCanvas3D: React.FC = () => {
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
       />
+      {spatialNodes.length > 0 && (
+        <button
+          type="button"
+          onClick={resetCamera}
+          className="absolute top-4 right-4 z-20 inline-flex items-center gap-2 rounded-xl border border-line bg-surface/85 px-3 py-2 text-xs font-semibold text-fg shadow-lg backdrop-blur-xl hover:bg-elevated focus-ring"
+          aria-label={t("ux.spatialFitLabel", { defaultValue: "Ajustar todos los conceptos en la vista 3D" })}
+        >
+          <Scan className="w-4 h-4" aria-hidden="true" />
+          <span className="hidden sm:inline">{t("ux.spatialFit", { defaultValue: "Ajustar vista" })}</span>
+        </button>
+      )}
       <SemanticLegend perspectives={visiblePerspectiveVisuals} floating className="pointer-events-auto" />
     </div>
   );
