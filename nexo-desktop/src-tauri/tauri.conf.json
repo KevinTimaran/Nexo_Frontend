@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "nexo-desktop",
+  "productName": "Nexo",
   "version": "0.1.0",
   "identifier": "com.kevin.nexo-desktop",
   "build": {
@@ -32,6 +32,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Kevin Timaran",
+    "shortDescription": "Nexo: de una idea difusa a un proyecto claro",
+    "longDescription": "Nexo es una incubadora cognitiva: conversa contigo, detecta lo que no has considerado y organiza tu proyecto en un tablero 2D y un espacio neuronal 3D."
   }
 }
