@@ -32,7 +32,7 @@ export const SemanticBadge: React.FC<SemanticBadgeProps> = ({
 
   return (
     <span
-      className={`semantic-badge inline-flex items-center gap-1 rounded-full border font-semibold ${compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"} ${className}`}
+      className={`semantic-badge inline-flex items-center gap-1 rounded-full border font-semibold ${compact ? "px-1.5 py-0.5 text-chat-xs" : "px-2 py-0.5 text-[10px]"} ${className}`}
       style={style}
       title={token.label}
     >
@@ -73,7 +73,7 @@ export const SemanticNodeBadges: React.FC<SemanticNodeBadgesProps> = ({
   items.push(<SemanticBadge key="status" token={semanticStatus} borderStyle={semanticStatus.borderStyle} compact={compact} />);
   if (showOrigin) {
     items.push(
-      <span key="origin" className={`inline-flex items-center gap-1 rounded-full border border-line bg-surface/60 text-muted font-semibold ${compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"}`} title={origin.label}>
+      <span key="origin" className={`inline-flex items-center gap-1 rounded-full border border-line bg-surface/60 text-muted font-semibold ${compact ? "px-1.5 py-0.5 text-chat-xs" : "px-2 py-0.5 text-[10px]"}`} title={origin.label}>
         <SemanticIcon name={origin.icon} className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
         {origin.shortLabel}
       </span>,
