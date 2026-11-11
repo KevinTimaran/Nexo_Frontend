@@ -110,7 +110,7 @@ console.log("\n[2/6] Verificando estructura de Layout y utilidades del Design Sy
 const requiredClasses = [
   "flex flex-col h-full w-full bg-app",
   "flex-1 min-h-0 overflow-y-auto p-6 pt-6",
-  "max-w-4xl mx-auto w-full",
+  "max-w-6xl mx-auto w-full",
   "glass-card",
   "bg-surface-elevated border border-primary/30",
   "text-fg",
@@ -772,9 +772,9 @@ assert.ok(
 );
 assert.ok(!renderedReadyDimsHtml.includes("Económico") && !renderedReadyDimsHtml.includes("Técnico"), "No debe renderizar el catálogo universal histórico");
 assert.ok(
-  renderedReadyDimsHtml.includes("Tablero de Conceptos") &&
-    renderedReadyDimsHtml.includes("Espacio Neuronal 3D"),
-  "Debe renderizar botones rápidos para navegar al Tablero 2D y Espacio 3D"
+  renderedReadyDimsHtml.includes("Ver Tablero de Conceptos") &&
+    !renderedReadyDimsHtml.includes("Espacio Neuronal 3D"),
+  "Debe renderizar únicamente el botón principal para ver el Tablero de Conceptos"
 );
 
 // 8.6 Generación de arquitectura multidimensional (PHASE_2_STRUCTURING)
