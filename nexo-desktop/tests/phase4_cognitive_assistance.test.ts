@@ -16,13 +16,12 @@ assert.equal(canProvideCognitiveValue(hardware), true, "Enough context should al
 assert.equal(canProvideCognitiveValue({ ...hardware, facts: [hardware.facts[0]], requiredTopics: [{ key: "users", importance: "blocking" }] }), false);
 const hardwareInsight = selectCognitiveAssistance(hardware, map)!;
 const thesisInsight = selectCognitiveAssistance(thesis, map)!;
-const softwareInsight = selectCognitiveAssistance(software, map)!;
+const softwareInsight = selectCognitiveAssistance(software, map);
 assert.equal(hardwareInsight.mode, "blind_spot");
 assert.equal(thesisInsight.mode, "risk");
-assert.equal(softwareInsight.mode, "blind_spot");
-assert.ok(hardwareInsight.rationale.includes(hardware.facts[0].value));
-assert.ok(thesisInsight.rationale.includes(thesis.facts[0].value));
-assert.notEqual(hardwareInsight.statement, softwareInsight.statement);
+assert.equal(softwareInsight, undefined, "Software projects must never receive a canned domain card");
+assert.ok(!hardwareInsight.rationale.includes(hardware.facts[0].value), "Rationale must not quote the user back");
+assert.ok(!thesisInsight.rationale.includes(thesis.facts[0].value), "Rationale must not quote the user back");
 assert.notDeepEqual(hardwareInsight.validationOptions, thesisInsight.validationOptions);
 assert.equal(hardwareInsight.linkedFactIds[0], "intent");
 
