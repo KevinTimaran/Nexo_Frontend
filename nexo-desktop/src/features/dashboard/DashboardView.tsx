@@ -4,7 +4,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Settings, User, Search, Plus, ArrowUpRight, MoreHorizontal,
-  ExternalLink, Copy, Archive, Trash2, X, LogOut, Layers, Lightbulb,
+  ExternalLink, Archive, Trash2, X, LogOut, Layers, Lightbulb,
   Leaf, Scale, Rocket, Book, Compass, LayoutGrid, List, Star, Pencil,
   AlertTriangle, Folder as FolderIcon, FolderPlus, FolderCheck, Check
 } from "lucide-react";
@@ -152,22 +152,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => { window.removeEventListener("click", handleGlobalClick); window.removeEventListener("keydown", handleKeyDown); };
   }, [activeMenuProjectId, profileMenuOpen]);
-
-  const handleDuplicateProject = async (project: Project) => {
-    setActiveMenuProjectId(null);
-    try {
-      const duplicated = await services.projects.create({
-        name: `${project.name} (Copia)`,
-        description: project.description,
-        icon: project.icon,
-        folderId: project.folderId ?? undefined,
-      });
-      setProjects((prev) => [duplicated, ...prev]);
-      showToast(`Proyecto "${duplicated.name}" duplicado`, "success");
-    } catch {
-      showToast("Error al duplicar el proyecto", "error");
-    }
-  };
 
   const handleToggleArchiveProject = async (project: Project) => {
     setActiveMenuProjectId(null);
@@ -742,7 +726,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       variants={itemVariants}
                       whileHover={{ y: -4, scale: 1.01, zIndex: 50 }}
                       onClick={handleNewProject}
-                      className="group relative p-2 min-h-[220px] rounded-[2rem] cursor-pointer border border-dashed border-[var(--floral-50)]/40 hover:border-[var(--floral-50)] bg-[var(--floral-50)]/5 hover:bg-[var(--floral-50)]/10 transition-all duration-300 transform-gpu"
+                      className="group relative p-2 min-h-[220px] rounded-[2rem] cursor-pointer border-2 border-dashed border-[var(--border-strong)] hover:border-[var(--accent)] bg-[var(--floral-50)]/5 hover:bg-[var(--floral-50)]/10 hover:shadow-lg transition-all duration-300 transform-gpu"
                     >
                       <div className="flex flex-col justify-center items-center text-center h-full rounded-3xl p-6">
                         <div className="w-14 h-14 rounded-2xl mb-3.5 bg-[var(--floral-50)]/10 border border-[var(--floral-50)]/30 flex items-center justify-center text-[var(--floral-50)] group-hover:scale-110 transition-all shadow-sm">
@@ -768,8 +752,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           onDragEnd={handleDragEnd}
                           className={`
                             group relative p-2 min-h-[220px] rounded-[2rem] cursor-pointer
-                            bg-[var(--elevated)] border border-[var(--line)]
-                            hover:border-[var(--floral-50)]/50 hover:shadow-xl transition-all duration-300 transform-gpu
+                            bg-[var(--elevated)] border-2 border-[var(--border-strong)]
+                            hover:border-[var(--accent)] hover:shadow-xl transition-all duration-300 transform-gpu
                             ${draggingProjectId === project.id ? "opacity-50 ring-2 ring-accent-primary" : ""}
                           `}
                         >
@@ -820,9 +804,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                         </button>
                                         <button onClick={() => handleOpenRename(project)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[var(--surface)] text-left">
                                           <Pencil className="w-3.5 h-3.5 text-[var(--floral-50)]" /> Renombrar
-                                        </button>
-                                        <button onClick={() => handleDuplicateProject(project)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[var(--surface)] text-left">
-                                          <Copy className="w-3.5 h-3.5 text-[var(--floral-50)]" /> Duplicar diseño
                                         </button>
                                         <button onClick={() => handleToggleArchiveProject(project)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[var(--surface)] text-left">
                                           <Archive className="w-3.5 h-3.5 text-[var(--floral-50)]" /> {project.status === "archived" ? "Restaurar" : "Archivar"}
@@ -881,34 +862,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     variants={containerVariants}
                     initial="hidden"
                     animate="show"
-                    className="w-full flex flex-col rounded-2xl border border-[var(--line)] bg-[var(--surface)]/30 overflow-hidden"
+                    className="w-full flex flex-col rounded-3xl border-2 border-[var(--border-strong)] bg-[var(--surface)]/40 overflow-hidden shadow-sm"
                   >
 
-                    <div className="flex items-center px-4 py-3 text-[11px] font-bold text-[var(--muted)] border-b border-[var(--line)] uppercase tracking-wider bg-[var(--surface)]/50">
+                    <div className="flex items-center px-6 py-4 text-xs font-bold text-[var(--muted)] border-b-2 border-[var(--border-strong)] uppercase tracking-wider bg-[var(--surface)]/70">
                       <div className="flex-1">Nombre</div>
                       <div className="w-28 hidden md:block">Carpeta</div>
                       <div className="w-24 hidden sm:block">Nodos</div>
                       <div className="w-32">Modificado</div>
-                      <div className="w-36 text-center">Acciones</div>
+                      <div className="w-44 text-center">Acciones</div>
                     </div>
 
                     <motion.div
                       variants={itemVariants}
                       onClick={handleNewProject}
-                      className="group flex items-center px-4 py-3 border-b border-[var(--line)] cursor-pointer hover:bg-[var(--hover)] transition-colors"
+                      className="group flex min-h-20 items-center px-6 py-4 border-b border-[var(--border-strong)] cursor-pointer hover:bg-[var(--hover)] transition-colors"
                     >
-                      <div className="flex-1 flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[var(--floral-50)]/10 border border-[var(--floral-50)]/30 flex items-center justify-center text-[var(--floral-50)] shrink-0 group-hover:scale-105 transition-transform">
-                          <Plus className="w-4 h-4" />
+                      <div className="flex-1 flex items-center gap-4 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-[var(--floral-50)]/10 border-2 border-[var(--border-strong)] flex items-center justify-center text-[var(--floral-50)] shrink-0 group-hover:scale-105 group-hover:border-[var(--accent)] transition-all">
+                          <Plus className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-[var(--floral-50)] truncate">
+                        <span className="text-base font-semibold text-[var(--floral-50)] truncate">
                           Nuevo proyecto
                         </span>
                       </div>
-                      <div className="w-28 hidden md:block text-xs text-[var(--muted)]">—</div>
-                      <div className="w-24 hidden sm:block text-xs text-[var(--muted)]">—</div>
-                      <div className="w-32 text-xs text-[var(--muted)]">—</div>
-                      <div className="w-36"></div>
+                      <div className="w-28 hidden md:block text-sm text-[var(--muted)]">—</div>
+                      <div className="w-24 hidden sm:block text-sm text-[var(--muted)]">—</div>
+                      <div className="w-32 text-sm text-[var(--muted)]">—</div>
+                      <div className="w-44"></div>
                     </motion.div>
 
                     {filteredProjects.map((project) => {
@@ -923,17 +904,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, project)}
                           onDragEnd={handleDragEnd}
                           className={`
-                            group flex items-center px-4 py-3 border-b border-[var(--line)] last:border-b-0 cursor-pointer
+                            group flex min-h-20 items-center px-6 py-4 border-b border-[var(--border-strong)] last:border-b-0 cursor-pointer
                             hover:bg-[var(--hover)] transition-colors
                             ${draggingProjectId === project.id ? "opacity-50" : ""}
                           `}
                         >
-                          <div className="flex-1 flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-[var(--elevated)] border border-[var(--line)] text-[var(--bone-400)] group-hover:text-[var(--floral-50)] group-hover:border-[var(--floral-50)]/30 flex items-center justify-center shrink-0 transition-colors">
+                          <div className="flex-1 flex items-center gap-4 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-[var(--elevated)] border-2 border-[var(--border-strong)] text-[var(--bone-400)] group-hover:text-[var(--floral-50)] group-hover:border-[var(--accent)] flex items-center justify-center shrink-0 transition-colors">
                               {ICON_MAP[project.icon] || <Layers className="w-4 h-4" />}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="text-sm font-medium text-[var(--fg)] group-hover:text-[var(--floral-50)] transition-colors truncate">
+                              <span className="text-base font-semibold text-[var(--fg)] group-hover:text-[var(--floral-50)] transition-colors truncate">
                                 {project.name}
                               </span>
                               <span className="text-[11px] text-[var(--muted)] truncate sm:hidden">
@@ -942,7 +923,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             </div>
                           </div>
 
-                          <div className="w-28 hidden md:block text-xs text-[var(--muted)] truncate">
+                          <div className="w-28 hidden md:block text-sm text-[var(--muted)] truncate">
                             {projectFolder ? (
                               <span className="inline-flex items-center gap-1 text-accent-primary">
                                 <FolderIcon className="w-3 h-3" />
@@ -953,50 +934,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             )}
                           </div>
 
-                          <div className="w-24 hidden sm:block text-xs text-[var(--muted)]">
+                          <div className="w-24 hidden sm:block text-sm text-[var(--muted)]">
                             {project.nodeCount > 0 ? project.nodeCount : 0} nodos
                           </div>
 
-                          <div className="w-32 text-xs text-[var(--muted)]">
+                          <div className="w-32 text-sm text-[var(--muted)]">
                             {formatLastModified(project.updatedAt)}
                           </div>
 
-                          <div className="w-36 flex items-center justify-end gap-1">
+                          <div className="w-44 flex items-center justify-end gap-1.5">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setProjectToMove(project);
                                 setSelectedMoveTargetFolderId(project.folderId ?? null);
                               }}
-                              className="p-1.5 rounded-lg text-[var(--muted)] hover:text-accent-primary hover:bg-[var(--elevated)] transition-colors"
+                              className="p-2.5 rounded-xl text-[var(--muted)] hover:text-accent-primary hover:bg-[var(--elevated)] transition-colors"
                               title="Mover a carpeta..."
                             >
-                              <FolderIcon className="w-3.5 h-3.5" />
+                              <FolderIcon className="w-4.5 h-4.5" />
                             </button>
                             <button
                               onClick={(e) => handleOpenRename(project, e)}
-                              className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--elevated)] transition-colors"
+                              className="p-2.5 rounded-xl text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--elevated)] transition-colors"
                               title="Renombrar"
                             >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDuplicateProject(project); }}
-                              className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--elevated)] transition-colors"
-                              title="Duplicar"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
+                              <Pencil className="w-4.5 h-4.5" />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setProjectToDelete(project); }}
-                              className="p-1.5 rounded-lg text-[var(--danger-fg)] hover:bg-[var(--danger-fg)]/10 transition-colors"
+                              className="p-2.5 rounded-xl text-[var(--danger-fg)] hover:bg-[var(--danger-fg)]/10 transition-colors"
                               title="Eliminar"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4.5 h-4.5" />
                             </button>
                             <button
                               onClick={(e) => togglePin(project.id, e)}
-                              className={`p-1.5 rounded-lg transition-colors hover:bg-[var(--elevated)] ${isPinned ? "text-amber-400" : "text-[var(--muted)] hover:text-[var(--fg)] opacity-50 group-hover:opacity-100"}`}
+                              className={`p-2.5 rounded-xl transition-colors hover:bg-[var(--elevated)] ${isPinned ? "text-amber-400" : "text-[var(--muted)] hover:text-[var(--fg)] opacity-50 group-hover:opacity-100"}`}
                               title={isPinned ? "Quitar de fijados" : "Fijar proyecto"}
                             >
                               <Star className={`w-4 h-4 ${isPinned ? "fill-amber-400" : "fill-transparent"}`} />
