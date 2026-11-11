@@ -318,13 +318,13 @@ const stateAfterGen = useWorkspaceStore.getState();
 const readyCardsInitial = stateAfterGen.discoveryMessages.filter((m) => m.type === "ready");
 assert.equal(
   readyCardsInitial.length,
-  1,
-  `Should have exactly 1 ready completion card after initial generation, got ${readyCardsInitial.length}`
+  0,
+  `A generated graph must not inject a synthetic completion card, got ${readyCardsInitial.length}`
 );
 assert.equal(
-  readyCardsInitial[0].id,
-  `generation-status-${mockProject.id}`,
-  "Ready card should have standard generation-status id"
+  stateAfterGen.chatPhase,
+  "PHASE_1_DISCOVERY",
+  "A generated graph must not automatically end discovery"
 );
 
 // 3.2 Post-generation turn 1: User asks a follow-up question
@@ -371,17 +371,10 @@ const stateAfterTurn1 = useWorkspaceStore.getState();
 const readyCardsTurn1 = stateAfterTurn1.discoveryMessages.filter((m) => m.type === "ready");
 assert.equal(
   readyCardsTurn1.length,
-  1,
-  `Should still have exactly 1 ready card after turn 1, got ${readyCardsTurn1.length}`
+  0,
+  `A follow-up must not create a synthetic completion card, got ${readyCardsTurn1.length}`
 );
 
-// Verify position: ready card must be at anchor position (index 1), NOT at the end
-const readyCardIndexTurn1 = stateAfterTurn1.discoveryMessages.findIndex((m) => m.type === "ready");
-assert.equal(
-  readyCardIndexTurn1,
-  1,
-  `Ready card must remain anchored at index 1, not pushed to the end (was at ${readyCardIndexTurn1})`
-);
 assert.equal(
   stateAfterTurn1.discoveryMessages[stateAfterTurn1.discoveryMessages.length - 1].role,
   "assistant",
@@ -414,8 +407,8 @@ for (let turn = 3; turn <= 6; turn++) {
   const readyCardsCurrent = stateCurrent.discoveryMessages.filter((m) => m.type === "ready");
   assert.equal(
     readyCardsCurrent.length,
-    1,
-    `Must maintain exactly 1 ready card at turn ${turn}, found ${readyCardsCurrent.length}`
+    0,
+    `Must not inject a synthetic completion card at turn ${turn}, found ${readyCardsCurrent.length}`
   );
   assert.equal(
     stateCurrent.discoveryMessages[stateCurrent.discoveryMessages.length - 1].id,
