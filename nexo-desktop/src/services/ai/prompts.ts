@@ -8,6 +8,11 @@ export interface PromptContext {
   phase: ChatPhase;
   lang: Language;
   projectName?: string;
+  projectDescription?: string;
+  /** Deterministic reading of what the user asks for this turn (see intent.ts). */
+  turnIntent?: "define_idea" | "close" | "statement" | "other";
+  /** Set on a retry after the previous answer failed validation. */
+  correctionNote?: string;
   existingNodesSummary?: string;
   userMessage: string;
   messageHistory?: Message[];
@@ -81,6 +86,12 @@ export function getSystemInstruction(phase: ChatPhase, lang: Language, projectNa
 Trabajas en una aplicación de escritorio llamada Nexo para asistir al usuario en convertir ideas difusas en mapas conceptuales accionables.
 ${projectName ? `Proyecto activo: "${projectName}".` : ""}
 
+REGLA DE CIERRE INMEDIATO (KILL SWITCH) — MÁXIMA PRIORIDAD, ANULA CUALQUIER OTRA REGLA:
+Tu objetivo NO es charlar eternamente. Si el usuario indica de CUALQUIER forma que ya no quiere agregar más funcionalidades, que la idea ya está definida, o usa frases como "estructúrame esto", "pasemos a lo siguiente", "ya está bien así", "ya tenemos lo básico, ¿qué sigue?":
+1. TIENES ESTRICTAMENTE PROHIBIDO hacer nuevas preguntas, proponer cronogramas o abrir nuevos temas.
+2. DEBES devolver INMEDIATAMENTE el JSON con "action": "ready" (sin "questions" ni "ui").
+3. Tu mensaje de despedida debe ser corto, ejecutivo y confirmar que vas a generar la arquitectura (ej. "Perfecto, tengo toda la información. Procedo a generar el tablero de tu proyecto.").
+
 REGLA ABSOLUTA DE IDIOMA (COMPORTAMIENTO ESPEJO):
 - Tu idioma de respuesta DEBE COINCIDIR EXACTAMENTE con el idioma del mensaje del usuario:
   * Si el usuario te habla o escribe en ESPAÑOL: Responde ABSOLUTAMENTE TODO en ESPAÑOL (textos de respuesta, preguntas de descubrimiento, opciones múltiples, títulos de nodos, descripciones, explicaciones simplificadas y detalles).
@@ -148,6 +159,10 @@ ASISTENCIA COGNITIVA:
 - Antes de preguntar, decide si puedes aportar valor con el contexto existente mediante explicación, punto ciego, sugerencia, solución, riesgo, oportunidad, contradicción, alternativa, hipótesis, validación o comparación.
 - Pregunta únicamente cuando la información faltante bloquee progreso útil. No uses felicitaciones ni frases de relleno.
 - Devuelve como máximo UN bloque ui primario; el texto sin ui siempre es válido.
+- Con una descripción inicial mínima, responde de forma natural y formula como máximo una pregunta contextual. No generes puntos ciegos, perspectivas, investigación, validación ni una señal de proyecto completado.
+- Investigación requiere una petición explícita o un objetivo de validación concreto. Validación requiere una afirmación o hipótesis y evidencia pertinente.
+- No expongas términos internos como "memoria semántica", "memoria confirmada", IDs, versiones del grafo ni objetivos de validación.
+- La existencia de nodos o de un grafo preliminar no significa que el proyecto esté terminado ni que deba interrumpirse el descubrimiento.
 - Para comparar usa decision_comparator. Para una propuesta cognitiva usa:
 {"type":"cognitive_insight","id":"estable","mode":"explanation|blind_spot|suggestion|solution|risk|opportunity|contradiction|alternative|hypothesis|validation_strategy","title":"...","statement":"...","rationale":"razón vinculada al contexto","whyItMatters":"...","nextAction":"...","mitigation":"...","validationOptions":["..."],"linkedFactIds":["id-real"],"linkedNodeIds":["id-real"],"perspectiveId":"id-opcional"}
 - Usa solo IDs suministrados. Una contradicción requiere dos hechos confirmados enlazados. No inventes cifras, leyes, demanda, competidores ni evidencia.
@@ -174,7 +189,7 @@ REGLAS DE DECISIÓN:
 0. Si el usuario pide planificación temporal, comparación de alternativas o ideas accionables, usa action: "chat" y genera el campo ui adecuado. No lo obligues a completar el componente y no envíes un cuestionario adicional en ese turno.
 1. Si el usuario hace una PREGUNTA, pide consejos, consulta dudas técnicas o conversa: Responde SIEMPRE con action: "chat" respondiendo directamente, a fondo, de forma clara, profesional y pedagógica a su consulta en el campo "message". NO generes cuestionarios. Deja "questions": [].
 2. Si el usuario describe una idea, reconoce lo que ya explicó y pregunta solo por un dato decisivo que falte. No presupongas que se trata de software.
-3. Cuando la idea tenga una finalidad y los aspectos esenciales para su tipo de proyecto, usa action: "ready". Nexo generará el mapa automáticamente.
+3. Usa action: "ready" solo cuando haya varios datos sustantivos y los aspectos esenciales estén realmente comprendidos. Nunca avances automáticamente por una sola frase inicial. La aplicación puede crear un grafo preliminar sin declarar terminado el descubrimiento.
 
 REGLA DE CONTEXTUALIZACIÓN:
 Usa el historial y la memoria del proyecto. No repitas preguntas contestadas. No pidas detalles técnicos, financieros o legales salvo que sean esenciales para la intención actual. Si el usuario no sabe una respuesta, regístrala como desconocida y sigue conversando.
@@ -416,11 +431,39 @@ export function sanitizeAssistantText(text: string, lang: Language = "es", conte
   return `He analizado esta perspectiva estratégica para tu proyecto${topic}. Podemos profundizar en sus implicaciones prácticas, estructura operativa y pasos clave para consolidarlo. ¿Qué aspecto específico te gustaría examinar primero?`;
 }
 
+/** Maximum number of past messages replayed to a model. */
+export const MAX_PROMPT_HISTORY_MESSAGES = 12;
+
+/**
+ * Compact, chronological history. Interactive component payloads are summarised instead of
+ * replayed verbatim so stale cards cannot be echoed back into new answers.
+ */
+export function formatMessageHistory(messageHistory?: Message[]): string {
+  if (!messageHistory || messageHistory.length === 0) return "(Sin historial de mensajes)";
+  return messageHistory
+    .slice(-MAX_PROMPT_HISTORY_MESSAGES)
+    .map((m) => {
+      const role = m.role === "user" ? "Usuario" : "Asistente";
+      const ui = "ui" in m && m.ui ? m.ui : undefined;
+      // Editable components (timeline, comparator, idea cards) keep their saved state so the model sees user progress.
+      // Cognitive cards are only summarised: replaying them verbatim echoed stale insights into new answers.
+      const shown = !ui
+        ? ""
+        : ui.type === "cognitive_insight"
+          ? `
+[Componente mostrado: análisis cognitivo «${ui.title}», estado ${ui.status}]`
+          : `
+Estado interactivo guardado: ${JSON.stringify(ui)}`;
+      return `${role}: ${m.text}${shown}`;
+    })
+    .join("\n");
+}
+
 /**
  * Builds the user prompt payload with context of the current canvas.
  */
 export function buildUserPrompt(ctx: PromptContext): string {
-  const { phase, existingNodesSummary, userMessage, lang, messageHistory, memorySummary, perspectiveSummary } = ctx;
+  const { phase, existingNodesSummary, userMessage, lang, messageHistory, memorySummary, perspectiveSummary, projectName, projectDescription, turnIntent, correctionNote } = ctx;
 
   let phaseInstruction = "";
   if (phase === "PHASE_1_DISCOVERY") {
@@ -454,20 +497,27 @@ Responde de forma directa, natural y contextualmente relevante al mensaje del us
 
   // Build the message history section in forward chronological order (oldest to newest)
   // Preserves multi-turn ideation context without reverse ordering or arbitrary 4-message truncation
-  const messageHistoryText =
-    messageHistory && messageHistory.length > 0
-      ? messageHistory
-          .map((m) => {
-            const role = m.role === "user" ? "Usuario" : "Asistente";
-            const interactiveState = "ui" in m && m.ui
-              ? `\nEstado interactivo guardado: ${JSON.stringify(m.ui)}`
-              : "";
-            return `${role}: ${m.text}${interactiveState}`;
-          })
-          .join("\n")
-      : "(Sin historial de mensajes)";
+  const messageHistoryText = formatMessageHistory(messageHistory);
 
-  return `Nodos existentes en el lienzo:
+  const projectBlock = projectName || projectDescription
+    ? `PROYECTO ACTIVO (todo tu análisis debe referirse únicamente a este proyecto):
+Nombre: ${projectName || "(sin nombre)"}${projectDescription ? `
+Descripción: ${projectDescription}` : ""}
+Si el mensaje no aporta contexto suficiente, pide una aclaración natural en vez de suponer detalles, usuarios, dominios o herramientas que el usuario no haya mencionado.`
+    : "";
+
+  const intentBlock = turnIntent === "define_idea"
+    ? `INTENCIÓN DEL TURNO: el usuario pide ayuda para definir una idea que aún no está clara.
+Reconoce esa incertidumbre, propón 2 o 3 direcciones o ejemplos relevantes para ESTE proyecto, y haz como máximo una pregunta simple. Responde con action: "chat". No incluyas "ui" ni tarjetas de validación, no inventes datos del proyecto y no cites mensajes anteriores.`
+    : "";
+
+  const closeBlock = turnIntent === "close"
+    ? `INTENCIÓN DEL TURNO: CIERRE. El usuario considera la idea definida y quiere avanzar. Aplica la REGLA DE CIERRE INMEDIATO: devuelve "action": "ready", un mensaje de despedida corto y ejecutivo, sin preguntas, sin cronogramas, sin "ui" y sin temas nuevos.`
+    : "";
+
+  const correctionBlock = correctionNote ? `CORRECCIÓN OBLIGATORIA: ${correctionNote}` : "";
+
+  return `${[projectBlock, intentBlock, closeBlock, correctionBlock].filter(Boolean).join("\n\n")}${projectBlock || intentBlock || closeBlock || correctionBlock ? "\n\n" : ""}Nodos existentes en el lienzo:
 ${existingNodesSummary || "(Lienzo en blanco)"}
 
 MEMORIA SEMÁNTICA CANÓNICA (IDs y estado; no cambies su certeza):
