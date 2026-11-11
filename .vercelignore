@@ -1,0 +1,4 @@
+# Only the web app is deployed on Vercel; the Tauri desktop shell and Render config are not needed.
+nexo-desktop/src-tauri
+nexo-desktop/dist
+render.yaml
