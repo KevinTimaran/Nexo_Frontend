@@ -51,7 +51,8 @@ const savedWorkspace = { project, map: applied, messages: conversation, discover
 useWorkspaceStore.getState().setWorkspace(savedWorkspace);
 useWorkspaceStore.getState().setWorkspace(savedWorkspace);
 const state = useWorkspaceStore.getState();
-assert.equal(state.discoveryMessages.filter((message) => message.type === "ready").length, 1);
+assert.equal(state.discoveryMessages.filter((message) => message.type === "ready").length, 0, "A preliminary graph must not inject a project-completed chat card");
+assert.equal(state.chatPhase, "PHASE_1_DISCOVERY", "Graph existence must not end discovery");
 assert.deepEqual(state.spatialNodes.map((node) => node.id).sort(), applied.nodes.map((node) => node.id).sort());
 assert.deepEqual(state.spatialLinks.map((link) => link.id).sort(), applied.relations.map((relation) => relation.id).sort());
 console.log("Discovery readiness, graph grounding, reconciliation and tombstones passed.");
