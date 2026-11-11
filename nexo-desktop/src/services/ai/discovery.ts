@@ -1,17 +1,19 @@
 import type { AssistantMessage, DiscoveryQuestion, DiscoveryState, GenerativeUIBlock, MemoryPatch, Message, ProjectArchetype, ProjectFact, UserMessage } from "../../domain/types";
 import { applyAiMemoryPatches, memoryOriginForUserMessage, transitionMemoryFact } from "./semanticMemory";
 import { syncCognitiveFact } from "./cognitiveAssistance";
+import { isCloseRequest, isPureMetaRequest } from "./intent";
 
 const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 export const questionKey = (text: string) => normalize(text).split(" ").filter((word) => word.length > 3).slice(0, 8).join("-");
 
 export function archetypeFor(text: string): ProjectArchetype {
   const value = normalize(text);
-  if (/tesis|investigacion|estudio|hipotesis|academi|research|thesis/.test(value)) return "research";
-  if (/app|aplicacion|software|plataforma|sistema|web|saas/.test(value)) return "software";
-  if (/ferreteria|tienda|negocio|comercio|restaurante|cafeteria|emprendimiento|ventas|local/.test(value)) return "business";
-  if (/pelicula|libro|novela|arte|musica|exposicion|creativo/.test(value)) return "creative";
-  if (/proceso|operacion|evento|organizar|logistica|plan/.test(value)) return "operational";
+  // Whole-word matching: substrings such as "app" in "application"/"happy" or "plan" in "explanation" must not classify a project.
+  if (/\b(tesis|investigacion|investigar|estudios?|hipotesis|academi\w*|research|thesis|dissertation)\b/.test(value)) return "research";
+  if (/\b(apps?|aplicacion|aplicaciones|application|applications|software|plataformas?|platforms?|sistemas?|webs?|website|saas)\b/.test(value)) return "software";
+  if (/\b(ferreteria|tiendas?|negocios?|comercios?|restaurantes?|cafeteria|emprendimientos?|ventas|locales|local|stores?|shops?|business|restaurant|cafe)\b/.test(value)) return "business";
+  if (/\b(pelicula|libros?|novelas?|arte|musica|exposicion|creativo|film|movie|books?|novel|music)\b/.test(value)) return "creative";
+  if (/\b(proceso|operacion|evento|organizar|logistica|plan\w*)\b/.test(value)) return "operational";
   return "general";
 }
 
@@ -40,7 +42,14 @@ const GREETING_OR_VAGUE_INTENT = /^(hola|buenas|buenos d[ií]as|buenas tardes|bu
 export function recordUserInput(state: DiscoveryState, message: UserMessage): DiscoveryState {
   const value = message.text.trim();
   const priorIntent = state.facts.find((fact) => fact.key === "intent")?.value ?? "";
-  if (!value || (!message.answers && (GREETING_OR_VAGUE_INTENT.test(value) || /[?¿]$/.test(value) || /^(explorar punto de vista|comparar|planifica|prop[oó]n tarjetas)/i.test(value) || (priorIntent && /\b(quiero|necesito)\s+(analizar|comparar|planificar|simular|explorar)\b/i.test(value) && !/\d/.test(value))))) return state;
+  // "Estructúrame esto" / "what's next": never stored as a fact; it closes discovery so the graph can be generated.
+  if (priorIntent && !message.answers && isCloseRequest(value)) {
+    return state.lifecycle === "discovering"
+      ? { ...state, lifecycle: "ready", completionAnchorMessageId: state.completionAnchorMessageId ?? message.id }
+      : state;
+  }
+  // A request such as "help me define my idea" describes the conversation, not the project: never store it as a fact.
+  if (!value || (!message.answers && (isPureMetaRequest(value, Boolean(priorIntent)) || GREETING_OR_VAGUE_INTENT.test(value) || /[?¿]$/.test(value) || /^(explorar punto de vista|comparar|planifica|prop[oó]n tarjetas)/i.test(value) || (priorIntent && /\b(quiero|necesito)\s+(analizar|comparar|planificar|simular|explorar)\b/i.test(value) && !/\d/.test(value))))) return state;
   const correction = state.lifecycle === "generated"
     ? /^(?:quiero\s+)?(?:cambiar\s+(?:completamente\s+de\s+|de\s+)?idea|reiniciar(?:\s+el)?\s+proyecto|empezar\s+de\s+nuevo|borrar\s+y\s+comenzar\s+de\s+nuevo)|(?:en\s+realidad|mejor)\s+(?:quiero|voy\s+a)\s+(?:crear|hacer|desarrollar)\s+(?:un|una|otro|otra)/i.test(value)
     : /cambiar de idea|en vez de|en lugar de|mejor quiero|en realidad|corrijo/i.test(value);
@@ -48,7 +57,9 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
   const archetype = correction ? archetypeFor(value) : priorArchetype === "general" ? archetypeFor(`${priorIntent} ${value}`) : priorArchetype;
   const facts = correction ? [] : [...state.facts];
   const put = (key: string, content: string) => {
-    const status = /^(no s[eé]|a[uú]n no lo s[eé]|por definir|desconocido|unknown|ninguna de las opciones)/i.test(content) ? "unknown" : "confirmed";
+    const isUnknown = /^(no s[eé]|a[uú]n no lo s[eé]|por definir|desconocido|unknown|ninguna de las opciones)/i.test(content);
+    const isHypothesis = !isUnknown && /\b(creo|pienso|supongo|parece|podr[ií]a|tal vez|quiz[aá]s?|posiblemente)\b/i.test(content);
+    const status = isUnknown ? "unknown" : isHypothesis ? "unconfirmed" : "confirmed";
     const index = facts.findIndex((fact) => fact.key === key);
     const sourceMessageIds = [...new Set([...(index >= 0 ? facts[index].sourceMessageIds : []), message.id])];
     const fact: ProjectFact = {
@@ -56,8 +67,8 @@ export function recordUserInput(state: DiscoveryState, message: UserMessage): Di
       value: content,
       status,
       sourceMessageIds,
-      kind: status === "unknown" ? "unknown" : "user_fact",
-      memoryState: status === "unknown" ? "unknown" : "confirmed",
+      kind: status === "unknown" ? "unknown" : isHypothesis ? "hypothesis" : "user_fact",
+      memoryState: status === "unknown" ? "unknown" : isHypothesis ? "proposed" : "confirmed",
       origin: memoryOriginForUserMessage(Boolean(message.answers)),
     };
     if (index < 0) facts.push(fact);
