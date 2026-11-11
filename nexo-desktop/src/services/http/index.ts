@@ -3,6 +3,9 @@
  * Communicates with the Java/Spring Boot backend REST API.
  * Adheres strictly to CONTRATO_API_NEXO.md.
  */
+import { buildApiUrl } from "../../config/env";
+import { isTauri } from "../../utils/platform";
+import { getAccessToken, getSupabase, toUser } from "../supabase";
 import {
   ServiceError,
   type AIResponse,
@@ -34,13 +37,17 @@ import type {
   WorkspaceService,
 } from "../contracts";
 
-export const DEFAULT_API_URL = "http://localhost:8080/api/v1";
+export const LOCAL_API_URL = "http://localhost:8080/api/v1";
+// A build can point at a hosted API (VITE_API_URL); otherwise the local backend is the default.
+export const DEFAULT_API_URL = buildApiUrl() ?? LOCAL_API_URL;
 const API_URL_STORAGE_KEY = "nexo.api.url";
 
 export function getStoredApiUrl(): string {
   try {
     const saved = localStorage.getItem(API_URL_STORAGE_KEY);
-    if (!saved || saved.includes(":8000")) {
+    // A hosted build must not stay stuck on a localhost URL saved by an older version.
+    const staleLocal = Boolean(buildApiUrl()) && Boolean(saved) && /\/\/(localhost|127\.0\.0\.1)[:/]/.test(saved ?? "");
+    if (!saved || saved.includes(":8000") || staleLocal) {
       // Migración automática: puerto estándar de Spring Boot es 8080
       localStorage.setItem(API_URL_STORAGE_KEY, DEFAULT_API_URL);
       return DEFAULT_API_URL;
@@ -72,7 +79,7 @@ export interface HealthCheckResult {
  * Performs a real health check against the configured backend URL.
  * Applies a strict timeout and checks ports 8080 / 8000 automatically.
  */
-export async function checkBackendHealth(apiUrl: string, timeoutMs = 3000): Promise<HealthCheckResult> {
+export async function checkBackendHealth(apiUrl: string, timeoutMs = buildApiUrl() ? 20000 : 3000): Promise<HealthCheckResult> {
   const start = performance.now();
   const timestamp = new Date().toISOString();
 
@@ -186,7 +193,9 @@ async function httpFetch<T>(endpoint: string, options: RequestInit = {}): Promis
   const url = `${baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  // Free hosting can take a while to wake up after being idle.
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const token = await getAccessToken();
 
   try {
     const response = await fetch(url, {
@@ -195,7 +204,8 @@ async function httpFetch<T>(endpoint: string, options: RequestInit = {}): Promis
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-Client-Platform": "tauri-desktop",
+        "X-Client-Platform": isTauri() ? "tauri-desktop" : "web",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
     });
@@ -203,7 +213,10 @@ async function httpFetch<T>(endpoint: string, options: RequestInit = {}): Promis
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      if (response.status === 401) throw new ServiceError("invalid-credentials", "Credenciales inválidas.");
+      if (response.status === 401) {
+        if (token && typeof window !== "undefined") window.dispatchEvent(new Event("nexo:session-expired"));
+        throw new ServiceError("invalid-credentials", token ? "Tu sesión expiró. Inicia sesión de nuevo." : "Credenciales inválidas.");
+      }
       let errorMsg = `Error del servidor HTTP ${response.status}`;
       try {
         const errorData = await response.json();
@@ -231,27 +244,36 @@ async function httpFetch<T>(endpoint: string, options: RequestInit = {}): Promis
   }
 }
 
-const httpAuth: AuthService = {
+export const httpAuth: AuthService = {
   async signIn(email: string, password: string): Promise<User> {
-    return httpFetch<User>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    const supabase = getSupabase();
+    if (!supabase) return localUser(email);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) throw new ServiceError("invalid-credentials", error?.message ?? "Credenciales inválidas.");
+    return toUser(data.user);
   },
   async signUp(name: string, email: string, password: string): Promise<User> {
-    return httpFetch<User>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ name, email, password }),
-    });
+    const supabase = getSupabase();
+    if (!supabase) return localUser(email, name);
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+    if (error) throw new ServiceError("unknown", error.message);
+    // With email confirmation enabled Supabase creates the account but returns no session yet.
+    if (!data.session || !data.user) throw new ServiceError("email-confirmation", "Revisa tu correo para confirmar la cuenta.");
+    return toUser(data.user);
   },
   async signOut(): Promise<void> {
     try {
-      await httpFetch<void>("/auth/logout", { method: "POST" });
+      await getSupabase()?.auth.signOut();
     } catch {
       // Ignore cleanup error
     }
   },
 };
+
+/** Only used when the build has no Supabase settings (local development against NEXO_AUTH_DISABLED=true). */
+function localUser(email: string, name?: string): User {
+  return { id: "local-user", email, name: name || email.split("@")[0] || "Usuario" };
+}
 
 const httpProjects: ProjectService = {
   async list(lang: Language, folderId?: string): Promise<Project[]> {
