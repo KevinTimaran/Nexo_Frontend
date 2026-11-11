@@ -4,6 +4,7 @@
  * as well as routing between OpenAI GPT and Google Gemini AI providers.
  * Changing modes changes the actual API client adapter, never just a label.
  */
+import { buildDefaultMode } from "../config/env";
 import type { ServiceMode } from "../domain/types";
 import type { Services } from "./contracts";
 import { geminiAiService, isGeminiConfigured } from "./gemini";
@@ -92,7 +93,8 @@ function getInitialMode(): ServiceMode {
   } catch {
     // Default to mock in development if storage is unreadable
   }
-  return "mock";
+  // Hosted builds (web and desktop) set VITE_DEFAULT_MODE=server so users never start on fake accounts.
+  return buildDefaultMode() ?? "mock";
 }
 
 class ServiceRegistry {
