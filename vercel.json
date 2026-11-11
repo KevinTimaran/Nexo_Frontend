@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "cd nexo-desktop && npm ci",
+  "buildCommand": "cd nexo-desktop && npm run build",
+  "outputDirectory": "nexo-desktop/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
