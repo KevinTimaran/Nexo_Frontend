@@ -13,6 +13,7 @@ import {
   Book,
   Compass,
   Layers,
+  AlertTriangle,
 } from "lucide-react";
 import { services } from "../../services";
 import { detectMessageLanguage, isPlaceholderResponse, sanitizeAssistantText } from "../../services/ai/prompts";
@@ -20,7 +21,16 @@ import { filterRepeatedQuestions, nextDiscoveryQuestion, questionKey, recordUser
 import { hydrateWorkspaceMemory, transitionMemoryFact, type MemoryAction } from "../../services/ai/semanticMemory";
 import { applyGraphOperations, buildGroundedGraph, reconcileGraph } from "../../services/ai/reconcileGraph";
 import { ensurePerspectiveState, transitionPerspective } from "../../services/ai/perspectiveEngine";
-import { selectCognitiveAssistance, validateCognitiveGrounding } from "../../services/ai/cognitiveAssistance";
+import { classifyTurnIntent } from "../../services/ai/intent";
+import { replyWithValidation, visibleRationale } from "../../services/ai/responseValidation";
+import {
+  appendUserMessageOnce,
+  orchestrateAssistantTurn,
+  resolveQuestionLead,
+  planChatTurn,
+  selectPerspectivesForTurn,
+  upsertAssistantTurn,
+} from "../../services/ai/chatOrchestration";
 import { buildResearchSummaryUIBlock, generateEvidenceConceptNode, syncEvidenceToDiscovery } from "../../services/ai/research";
 import { buildValidationSummaryUIBlock, generateValidationConceptNode, syncValidationToDiscovery, synthesizeValidation } from "../../services/ai/contextValidation";
 import type { ContextValidationRecord, EvidenceRecord } from "../../domain/types";
@@ -35,7 +45,9 @@ import { NotionModalViewer } from "./NotionModalViewer";
 import { GenerateDocumentModal } from "../documents/GenerateDocumentModal";
 import { SpaceWorkspace } from "../spatial/SpaceWorkspace";
 import { Button } from "../../components/ui/Button";
+import { Modal } from "../../components/ui/Modal";
 import { NexoLogo } from "../../components/brand/NexoLogo";
+import { saveFeedbackLabel, userFacingError, type SaveFeedbackState } from "../../services/uxFeedback";
 import type {
   ActionableIdea,
   AssistantMessage,
@@ -83,7 +95,6 @@ export const WorkspaceView: React.FC = () => {
     toggleChat,
     moveNode,
     removeNode,
-    setChatPhase,
     isZenMode,
     docViewMode,
     isArchitectureUnlocked,
@@ -98,9 +109,15 @@ export const WorkspaceView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [activityLabel, setActivityLabel] = useState("Analizando tu idea…");
+  const [saveStatus, setSaveStatus] = useState<SaveFeedbackState>("saved");
+  const [pendingDeleteNodeId, setPendingDeleteNodeId] = useState<string | null>(null);
   const pendingRequestRef = useRef<string | null>(null);
   const failedMessageIdRef = useRef<string | null>(null);
   const generationRef = useRef<string | null>(null);
+  const saveSequenceRef = useRef(0);
+  // Bumped when the user presses "Generar Arquitectura del Proyecto" on the closing card.
+  const [generateNowTick, setGenerateNowTick] = useState(0);
 
   // Reset workspace state upon navigating away so landing mode is fresh when reopening
   useEffect(() => {
@@ -112,10 +129,23 @@ export const WorkspaceView: React.FC = () => {
   // Load Workspace data on project change or language switch
   useEffect(() => {
     if (!projectId) return;
+    // Never let a slow response for a previous project overwrite the one that is open now.
+    let cancelled = false;
+    const stale = useWorkspaceStore.getState().workspace;
+    if (stale && stale.project.id !== projectId) {
+      useWorkspaceStore.getState().setWorkspace(null);
+      useWorkspaceStore.getState().setThinking(false);
+    }
+    pendingRequestRef.current = null;
+    failedMessageIdRef.current = null;
+    generationRef.current = null;
+    setChatError(null);
+    setGenerateNowTick(0);
     setLoading(true);
     services.workspace
       .load(projectId, lang)
       .then((data) => {
+        if (cancelled) return;
         if (!data) {
           setWorkspace(null);
           return;
@@ -130,15 +160,31 @@ export const WorkspaceView: React.FC = () => {
         setWorkspace({ ...hydrated, discovery });
       })
       .catch(() => {
-        showToast(t("workspace.notFound.title"), "error");
+        if (!cancelled) showToast(t("workspace.notFound.title"), "error");
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [projectId, lang, setWorkspace, showToast, t]);
 
-  // Persist session edits
+  const persistWorkspace = async (id: string, map: ConceptMap, messages: Message[], discovery?: DiscoveryState): Promise<boolean> => {
+    const sequence = ++saveSequenceRef.current;
+    setSaveStatus("saving");
+    try {
+      await services.workspace.save(id, map, messages, discovery);
+      if (sequence === saveSequenceRef.current) setSaveStatus("saved");
+      return true;
+    } catch (error) {
+      console.error("Workspace persistence failed", error);
+      if (sequence === saveSequenceRef.current) setSaveStatus("error");
+      showToast(lang === "en" ? "Changes could not be saved. Your local work remains available." : "No se pudieron guardar los cambios. Tu trabajo local sigue disponible.", "error");
+      return false;
+    }
+  };
+
+  // Persist session edits while exposing truthful feedback in the header.
   const saveSession = (map: ConceptMap, messages: Message[]) => {
     if (!projectId) return;
-    void services.workspace.save(projectId, map, messages, useWorkspaceStore.getState().workspace?.discovery).catch(console.error);
+    void persistWorkspace(projectId, map, messages, useWorkspaceStore.getState().workspace?.discovery);
   };
 
   const handleSendMessage = async (text: string, overridePhase?: ChatPhase, questionnaireId?: string, answers?: Record<string, string | string[]>, retryMessageId?: string) => {
@@ -147,7 +193,7 @@ export const WorkspaceView: React.FC = () => {
     if (!activeWorkspace || !projectId || pendingRequestRef.current) return;
     if (!retryMessageId && questionnaireId && activeWorkspace.messages.some((m) => m.role === "user" && m.questionnaireId === questionnaireId)) return;
 
-    let activePhase = overridePhase || ((activeWorkspace.discovery?.lifecycle === "generated" || activeWorkspace.map.nodes.length > 0) ? "PHASE_3_EXPANSION" : current.chatPhase);
+    let activePhase = overridePhase || current.chatPhase;
     const prior = retryMessageId && activeWorkspace.messages.find((m) => m.role === "user" && m.id === retryMessageId);
     let requestDefinitionVersion = activeWorkspace.discovery?.candidateDefinitionVersion;
     const userMessage: Message = prior && prior.role === "user" ? prior : {
@@ -162,47 +208,70 @@ export const WorkspaceView: React.FC = () => {
     pendingRequestRef.current = userMessage.id;
     failedMessageIdRef.current = null;
     const history = activeWorkspace.messages.filter((m) => m.id !== userMessage.id);
+    let turnDiscovery = activeWorkspace.discovery!;
     if (!prior) {
-      const updatedMessages = [...history, userMessage];
+      const updatedMessages = appendUserMessageOnce(history, userMessage);
       const nextDiscovery = recordUserInput(activeWorkspace.discovery!, userMessage);
+      turnDiscovery = nextDiscovery;
       requestDefinitionVersion = nextDiscovery.candidateDefinitionVersion;
       if (nextDiscovery.lifecycle === "discovering") activePhase = "PHASE_1_DISCOVERY";
       current.setWorkspace({ ...activeWorkspace, messages: updatedMessages, discovery: nextDiscovery });
       saveSession(activeWorkspace.map, updatedMessages);
     }
     current.setThinking(true);
+    setActivityLabel(detectMessageLanguage(text, lang) === "en" ? "Analyzing your idea…" : "Analizando tu idea…");
     setChatError(null);
 
     const messageLang = detectMessageLanguage(text, lang);
+    const orchestration = planChatTurn({ text, discovery: turnDiscovery, map: activeWorkspace.map, history });
+    const turnIntent = classifyTurnIntent(text, Boolean(activeWorkspace.discovery?.facts.some((fact) => fact.key === "intent")));
 
     try {
-      const response = await services.ai.reply({
-        text,
-        map: activeWorkspace.map,
-        lang: messageLang,
-        replyTo: userMessage.id,
-        chatPhase: activePhase,
-        messageHistory: history,
-        discovery: activeWorkspace.discovery,
-      });
+      if (orchestration.primary === "research" && orchestration.targetClaim) {
+        await handleTriggerResearch({
+          query: orchestration.targetClaim,
+          targetHypothesisId: orchestration.targetFactId,
+          rationale: "El usuario pidió comprobar esta afirmación con evidencia externa.",
+        }, userMessage.id);
+        return;
+      }
+      if (orchestration.primary === "validation" && orchestration.targetClaim && orchestration.targetFactId && orchestration.targetKind) {
+        await handleTriggerValidation({
+          targetSemanticId: orchestration.targetFactId,
+          targetClaim: orchestration.targetClaim,
+          targetKind: orchestration.targetKind,
+        }, userMessage.id);
+        return;
+      }
+      const { response } = await replyWithValidation(
+        (correctionNote) => services.ai.reply({
+          text,
+          map: activeWorkspace.map,
+          lang: messageLang,
+          replyTo: userMessage.id,
+          chatPhase: activePhase,
+          messageHistory: history,
+          discovery: turnDiscovery,
+          projectName: activeWorkspace.project.name,
+          projectDescription: activeWorkspace.project.description,
+          turnIntent,
+          correctionNote,
+        }),
+        {
+          projectName: activeWorkspace.project.name,
+          projectDescription: activeWorkspace.project.description,
+          discovery: turnDiscovery,
+          map: activeWorkspace.map,
+          history,
+          userText: text,
+          intent: turnIntent,
+          lang: messageLang,
+        },
+      );
       const latest = useWorkspaceStore.getState().workspace;
       if (!latest || latest.project.id !== projectId) return;
-      if (response.message.action === "questionnaire" && latest.discovery) {
-        const usefulAlternative = selectCognitiveAssistance(latest.discovery, latest.map);
-        if (usefulAlternative) {
-          response.message.action = "chat";
-          response.message.assistanceMode = usefulAlternative.mode;
-          response.message.discoveryQuestions = [];
-          response.message.ui = usefulAlternative;
-          response.message.text = `Antes de pedirte otro dato, hay algo útil que podemos examinar: ${usefulAlternative.statement}`;
-        }
-      }
-      if (response.message.ui?.type === "cognitive_insight" && latest.discovery) {
-        const grounded = validateCognitiveGrounding(response.message.ui, latest.discovery, latest.map);
-        response.message.ui = grounded;
-        response.message.assistanceMode = grounded?.mode ?? response.message.assistanceMode;
-      }
-      if (activePhase === "PHASE_1_DISCOVERY" && latest.discovery && response.message.action === "questionnaire") {
+      response.message = orchestrateAssistantTurn(response.message, orchestration, history);
+      if (orchestration.primary === "question" && activePhase === "PHASE_1_DISCOVERY" && latest.discovery && response.message.action === "questionnaire") {
         const aiQuestions = response.message.discoveryQuestions && response.message.discoveryQuestions.length > 0
           ? response.message.discoveryQuestions
           : nextDiscoveryQuestion(latest.discovery);
@@ -210,6 +279,8 @@ export const WorkspaceView: React.FC = () => {
         response.message.discoveryQuestions = filteredQuestions;
         if (!response.message.discoveryQuestions.length) {
           response.message.action = "chat";
+          // The questions were already asked or no longer apply: do not leave "answer the following questions:" hanging.
+          response.message.text = resolveQuestionLead(response.message.text);
           if (!response.message.text || isPlaceholderResponse(response.message.text)) {
             response.message.text = latest.discovery.lifecycle === "ready" ? "Ya tengo una base para organizar tu proyecto. Puedes seguir contándome detalles o explorar otras ideas." : "Podemos seguir conversando. Cuéntame ese detalle cuando quieras; también puedes decir que aún no lo sabes.";
           }
@@ -217,9 +288,10 @@ export const WorkspaceView: React.FC = () => {
           response.message.text = "Para entender mejor tu idea, hay algo que quisiera saber:";
         }
       }
-      if (latest.discovery?.lifecycle === "generated" || activePhase === "PHASE_3_EXPANSION" || (latest.map?.nodes && latest.map.nodes.length > 0)) {
+      if (activePhase === "PHASE_3_EXPANSION" && orchestration.primary !== "closing") {
         response.message.action = "chat";
         response.message.readyForStructuring = false;
+        response.message.text = resolveQuestionLead(response.message.text);
         response.message.discoveryQuestions = [];
         delete (response.message as any).dimensions;
       }
@@ -250,10 +322,10 @@ export const WorkspaceView: React.FC = () => {
         latest.discovery?.candidateDefinitionVersion,
         [userMessage.id, response.message.id],
       );
-      const discovery = syncedDiscovery && (syncedDiscovery.lifecycle === "generated" || nextMap.nodes.length > 0)
+      const discovery = syncedDiscovery && (orchestration.primary === "perspectives" || syncedDiscovery.lifecycle === "generated" || nextMap.nodes.length > 0)
         ? ensurePerspectiveState(syncedDiscovery, nextMap, latest.project.name, response.perspectiveProposals)
         : syncedDiscovery;
-      const nextMessages = [...latest.messages.filter((m) => !(m.role === "assistant" && m.replyTo === userMessage.id)), { ...response.message, replyTo: userMessage.id, requestId: userMessage.id }];
+      const nextMessages = upsertAssistantTurn(latest.messages, { ...response.message, replyTo: userMessage.id, requestId: userMessage.id });
       useWorkspaceStore.getState().setWorkspace({
         ...latest,
         map: nextMap,
@@ -266,13 +338,11 @@ export const WorkspaceView: React.FC = () => {
       if (addedNodeCount > 0) {
         showToast(`Se mapearon ${addedNodeCount} nuevos conceptos como propuestas.`, "success");
         setArchitectureUnlocked(true);
-        if (activePhase === "PHASE_2_STRUCTURING" || activePhase === "PHASE_1_DISCOVERY") {
-          setChatPhase("PHASE_3_EXPANSION");
-        }
       }
     } catch (err: unknown) {
       failedMessageIdRef.current = userMessage.id;
-      const errorMsg = err instanceof Error ? err.message : t("chat.error.title");
+      console.error("Chat request failed", err);
+      const errorMsg = userFacingError(err, messageLang);
       setChatError(errorMsg);
       showToast(errorMsg, "error");
     } finally {
@@ -285,6 +355,9 @@ export const WorkspaceView: React.FC = () => {
     const discovery = workspace?.discovery;
     const version = discovery?.candidateDefinitionVersion;
     if (!workspace || !projectId || !discovery || !version || discovery.lifecycle === "legacy_unknown" || discovery.lifecycle === "discovering" || discovery.lifecycle === "generation_error" || discovery.generatedDefinitionVersion === version || isThinking) return;
+    // After an explicit closing turn the user decides when to generate: wait for the button.
+    const lastMessage = workspace.messages[workspace.messages.length - 1];
+    if (lastMessage?.role === "assistant" && lastMessage.action === "ready" && generateNowTick === 0) return;
     const timer = window.setTimeout(async () => {
       const state = useWorkspaceStore.getState();
       const current = state.workspace;
@@ -296,7 +369,7 @@ export const WorkspaceView: React.FC = () => {
       const pending = { ...definition, lifecycle: "generating" as const, stableDefinitionVersion: version, generationLedger: { ...definition.generationLedger, [version]: { status: "pending" as const, requestId } } };
       state.setWorkspace({ ...current, discovery: pending });
       try {
-        await services.workspace.save(projectId, current.map, current.messages, pending);
+        if (!(await persistWorkspace(projectId, current.map, current.messages, pending))) throw new Error("save_failed");
         const generated = buildGroundedGraph(pending, current.project.name);
         const latest = useWorkspaceStore.getState().workspace;
         if (!latest || latest.project.id !== projectId || latest.discovery?.candidateDefinitionVersion !== version) return;
@@ -310,25 +383,28 @@ export const WorkspaceView: React.FC = () => {
         };
         const applied = ensurePerspectiveState(appliedBase, map, latest.project.name);
         state.setWorkspace({ ...latest, map, discovery: applied });
-        state.setChatPhase("PHASE_3_EXPANSION");
-        await services.workspace.save(projectId, map, latest.messages, applied);
+        if (!(await persistWorkspace(projectId, map, latest.messages, applied))) throw new Error("save_failed");
       } catch (error) {
         const latest = useWorkspaceStore.getState().workspace;
         if (latest?.discovery) {
           const failed = { ...latest.discovery, lifecycle: "generation_error" as const, generationLedger: { ...latest.discovery.generationLedger, [version]: { status: "failed" as const, requestId } } };
           state.setWorkspace({ ...latest, discovery: failed });
-          void services.workspace.save(projectId, latest.map, latest.messages, failed).catch(console.error);
+          void persistWorkspace(projectId, latest.map, latest.messages, failed);
         }
-        setChatError(error instanceof Error ? error.message : "No se pudo generar el proyecto");
+        setChatError(userFacingError(error, lang));
       } finally { generationRef.current = null; }
-    }, 1500);
+    }, generateNowTick > 0 ? 0 : 1500);
     return () => window.clearTimeout(timer);
-  }, [workspace?.discovery?.candidateDefinitionVersion, workspace?.discovery?.lifecycle, isThinking, projectId]);
+  }, [workspace?.discovery?.candidateDefinitionVersion, workspace?.discovery?.lifecycle, workspace?.messages.length, isThinking, projectId, generateNowTick]);
 
   const handleGenerateArchitecture = async () => {
     const latest = useWorkspaceStore.getState().workspace;
     if (latest?.discovery?.lifecycle === "generation_error") {
       useWorkspaceStore.getState().setWorkspace({ ...latest, discovery: { ...latest.discovery, lifecycle: "ready" } });
+      return;
+    }
+    if (latest?.discovery?.lifecycle === "ready" && !latest.map.nodes.length) {
+      setGenerateNowTick((tick) => tick + 1);
       return;
     }
     if (!latest?.map.nodes.length) return;
@@ -346,9 +422,7 @@ export const WorkspaceView: React.FC = () => {
     const nextDiscovery = transitionPerspective(current.discovery, event);
     if (nextDiscovery === current.discovery) return;
     state.setWorkspace({ ...current, discovery: nextDiscovery });
-    void services.workspace.save(current.project.id, current.map, current.messages, nextDiscovery).catch((error) => {
-      console.error("Could not save perspective action", error);
-    });
+    void persistWorkspace(current.project.id, current.map, current.messages, nextDiscovery);
   };
 
   const handleGenerativeUIChange = (messageId: string, ui: GenerativeUIBlock) => {
@@ -364,7 +438,7 @@ export const WorkspaceView: React.FC = () => {
     const nextWorkspace = { ...activeWorkspace, messages: nextMessages, discovery: activeWorkspace.discovery ? syncIdeaFacts(activeWorkspace.discovery, ui, messageId) : undefined };
 
     state.setWorkspace(nextWorkspace);
-    void services.workspace.save(activeWorkspace.project.id, activeWorkspace.map, nextMessages, nextWorkspace.discovery).catch(console.error);
+    void persistWorkspace(activeWorkspace.project.id, activeWorkspace.map, nextMessages, nextWorkspace.discovery);
   };
 
   const handleMemoryAction = (memoryKey: string, action: MemoryAction, value?: string) => {
@@ -408,9 +482,7 @@ export const WorkspaceView: React.FC = () => {
         : changedDiscovery;
       const nextWorkspace = { ...current, messages, discovery: nextDiscovery };
       state.setWorkspace(nextWorkspace);
-      void services.workspace.save(current.project.id, current.map, messages, nextDiscovery).catch((error) => {
-        console.error("Could not save semantic memory action", error);
-      });
+      void persistWorkspace(current.project.id, current.map, messages, nextDiscovery);
     } catch (error) {
       console.error("Rejected invalid semantic memory action", error);
     }
@@ -498,7 +570,8 @@ export const WorkspaceView: React.FC = () => {
       priority: block.mode === "risk" || block.mode === "contradiction" ? "high" : "medium",
       phase: block.mode === "validation_strategy" ? "validation" : "planning",
       metadata: `${block.mode} · ${fact.memoryState === "accepted" ? "aceptado" : "por validar"}`,
-      details: [`### Análisis`, block.statement, "", `### Por qué aparece`, block.rationale, "", block.whyItMatters ? `### Por qué importa\n${block.whyItMatters}` : "", block.nextAction ? `### Próxima acción\n${block.nextAction}` : ""].filter(Boolean).join("\n"),
+      details: [`### Análisis`, block.statement, "", visibleRationale(block.rationale) ? `### Por qué aparece
+${visibleRationale(block.rationale)}` : "", block.whyItMatters ? `### Por qué importa\n${block.whyItMatters}` : "", block.nextAction ? `### Próxima acción\n${block.nextAction}` : ""].filter(Boolean).join("\n"),
       relevanceScore: block.mode === "risk" || block.mode === "opportunity" ? 8 : 7,
       semanticKey: fact.semanticKey ?? fact.key,
       semanticKind: fact.kind,
@@ -515,10 +588,11 @@ export const WorkspaceView: React.FC = () => {
     }
   };
 
-  const handleTriggerResearch = async (intent: { query: string; targetHypothesisId?: string; rationale?: string }) => {
+  const handleTriggerResearch = async (intent: { query: string; targetHypothesisId?: string; rationale?: string }, replyTo?: string) => {
     const latest = useWorkspaceStore.getState().workspace;
     if (!latest) return;
     useWorkspaceStore.getState().setThinking(true);
+    setActivityLabel(lang === "en" ? "Researching sources…" : "Investigando fuentes…");
     try {
       const response = await services.research.search({
         query: intent.query,
@@ -526,6 +600,9 @@ export const WorkspaceView: React.FC = () => {
         lang,
       });
 
+      // The user may have switched project while the request was running: never write into another project.
+      const latestNow = useWorkspaceStore.getState().workspace;
+      if (!latestNow || latestNow.project.id !== latest.project.id) return;
       const summaryBlock = buildResearchSummaryUIBlock(
         response.query,
         response.overallSynthesis,
@@ -540,30 +617,49 @@ export const WorkspaceView: React.FC = () => {
       const assistantMessage: AssistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
+        replyTo,
+        requestId: replyTo,
         text: response.overallSynthesis,
         createdAt: new Date().toISOString(),
         cardType: "recommendation",
         ui: summaryBlock,
       };
 
-      let nextDiscovery = latest.discovery;
+      let nextDiscovery = latestNow.discovery;
       if (nextDiscovery) {
         for (const ev of response.evidenceRecords) {
           nextDiscovery = syncEvidenceToDiscovery(nextDiscovery, ev);
         }
+        const researchIntent = {
+          id: `research:${replyTo ?? summaryBlock.id}`,
+          query: response.query,
+          targetHypothesisId: intent.targetHypothesisId,
+          rationale: intent.rationale ?? "Investigación solicitada por el usuario.",
+          status: "completed" as const,
+        };
+        nextDiscovery = {
+          ...nextDiscovery,
+          researchIntents: [
+            ...(nextDiscovery.researchIntents ?? []).filter((item) => item.id !== researchIntent.id),
+            researchIntent,
+          ],
+        };
       }
 
-      const nextMessages = [...latest.messages, assistantMessage];
+      const nextMessages = upsertAssistantTurn(latestNow.messages, assistantMessage);
       const nextWorkspace = {
-        ...latest,
+        ...latestNow,
         messages: nextMessages,
         discovery: nextDiscovery,
       };
       useWorkspaceStore.getState().setWorkspace(nextWorkspace);
-      void services.workspace.save(latest.project.id, latest.map, nextMessages, nextDiscovery).catch(console.error);
+      void persistWorkspace(latestNow.project.id, latestNow.map, nextMessages, nextDiscovery);
       showToast(`Investigación completada: ${response.evidenceRecords.length} evidencias obtenidas.`, "info");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error durante la investigación externa.";
+      console.error("Research request failed", err);
+      const msg = userFacingError(err, lang);
+      failedMessageIdRef.current = replyTo ?? null;
+      setChatError(msg);
       showToast(msg, "error");
     } finally {
       useWorkspaceStore.getState().setThinking(false);
@@ -618,7 +714,7 @@ export const WorkspaceView: React.FC = () => {
     if (!latest?.discovery) return;
     const nextDiscovery = syncEvidenceToDiscovery(latest.discovery, { ...evidence, status: "accepted" });
     useWorkspaceStore.getState().setWorkspace({ ...latest, discovery: nextDiscovery });
-    void services.workspace.save(latest.project.id, latest.map, latest.messages, nextDiscovery).catch(console.error);
+    void persistWorkspace(latest.project.id, latest.map, latest.messages, nextDiscovery);
     showToast("Evidencia guardada en el proyecto.", "success");
   };
 
@@ -626,23 +722,33 @@ export const WorkspaceView: React.FC = () => {
     targetSemanticId: string;
     targetClaim: string;
     targetKind: "hypothesis" | "problem" | "assumption";
-  }) => {
+  }, replyTo?: string) => {
     const latest = useWorkspaceStore.getState().workspace;
     if (!latest) return;
     useWorkspaceStore.getState().setThinking(true);
+    setActivityLabel(lang === "en" ? "Interpreting the evidence…" : "Interpretando la evidencia…");
     try {
-      const searchRes = await services.research.search({
-        query: target.targetClaim,
-        targetHypothesisId: target.targetSemanticId,
-        lang,
-      });
+      const existingEvidence = latest.discovery?.evidence?.filter((item) =>
+        item.hypothesesLinkedIds.includes(target.targetSemanticId)
+        || item.query.toLocaleLowerCase("es").includes(target.targetClaim.toLocaleLowerCase("es").slice(0, 40))
+      ) ?? [];
+      const evidence = existingEvidence.length > 0
+        ? existingEvidence
+        : (await services.research.search({
+            query: target.targetClaim,
+            targetHypothesisId: target.targetSemanticId,
+            lang,
+          })).evidenceRecords;
 
+      // The user may have switched project while the request was running: never write into another project.
+      const latestNow = useWorkspaceStore.getState().workspace;
+      if (!latestNow || latestNow.project.id !== latest.project.id) return;
       const validation = synthesizeValidation({
         targetSemanticId: target.targetSemanticId,
         targetClaim: target.targetClaim,
         targetKind: target.targetKind,
-        targetGeography: latest.project.name.toLowerCase().includes("pasto") ? "Pasto" : "Colombia",
-        evidence: searchRes.evidenceRecords,
+        targetGeography: latestNow.project.name.toLowerCase().includes("pasto") ? "Pasto" : "Colombia",
+        evidence,
       });
 
       const summaryBlock = buildValidationSummaryUIBlock(validation);
@@ -650,28 +756,33 @@ export const WorkspaceView: React.FC = () => {
       const assistantMessage: AssistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
+        replyTo,
+        requestId: replyTo,
         text: validation.synthesis,
         createdAt: new Date().toISOString(),
         cardType: "recommendation",
         ui: summaryBlock,
       };
 
-      const nextDiscovery = latest.discovery
-        ? syncValidationToDiscovery(latest.discovery, validation)
+      const nextDiscovery = latestNow.discovery
+        ? syncValidationToDiscovery(latestNow.discovery, validation)
         : undefined;
 
-      const nextMessages = [...latest.messages, assistantMessage];
+      const nextMessages = upsertAssistantTurn(latestNow.messages, assistantMessage);
       const nextWorkspace = {
-        ...latest,
+        ...latestNow,
         messages: nextMessages,
         discovery: nextDiscovery,
       };
 
       useWorkspaceStore.getState().setWorkspace(nextWorkspace);
-      void services.workspace.save(latest.project.id, latest.map, nextMessages, nextDiscovery).catch(console.error);
+      void persistWorkspace(latestNow.project.id, latestNow.map, nextMessages, nextDiscovery);
       showToast(`Validación completada: «${validation.validationStatus}».`, "info");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error durante la validación de contexto.";
+      console.error("Validation request failed", err);
+      const msg = userFacingError(err, lang);
+      failedMessageIdRef.current = replyTo ?? null;
+      setChatError(msg);
       showToast(msg, "error");
     } finally {
       useWorkspaceStore.getState().setThinking(false);
@@ -725,9 +836,16 @@ export const WorkspaceView: React.FC = () => {
   };
 
   const handleRemoveNode = (nodeId: string) => {
-    if (!workspace) return;
-    const target = workspace.map.nodes.find((n) => n.id === nodeId);
-    removeNode(nodeId);
+    if (!workspace?.map.nodes.some((node) => node.id === nodeId)) return;
+    setPendingDeleteNodeId(nodeId);
+  };
+
+  const confirmRemoveNode = () => {
+    if (!workspace || !pendingDeleteNodeId) return;
+    const target = workspace.map.nodes.find((node) => node.id === pendingDeleteNodeId);
+    removeNode(pendingDeleteNodeId);
+    setExpandedDocNodeId(null);
+    setPendingDeleteNodeId(null);
     if (target) {
       showToast(t("canvas.node.removed", { title: target.title }), "info");
     }
@@ -810,6 +928,13 @@ export const WorkspaceView: React.FC = () => {
 
   const docNode = nodesList.find((n) => n.id === expandedDocNodeId) || null;
   const isDiscoveryMode = canvasMode === "discovery" || canvasMode === "obsidian";
+  const lastUserMessage = [...workspace.messages].reverse().find((message): message is UserMessage => message.role === "user");
+  const visiblePerspectivePlan = lastUserMessage && workspace.discovery
+    ? planChatTurn({ text: lastUserMessage.text, discovery: workspace.discovery, map: workspace.map, history: workspace.messages })
+    : undefined;
+  const userFacingPerspectives = visiblePerspectivePlan
+    ? selectPerspectivesForTurn(workspace.discovery?.perspectives, visiblePerspectivePlan)
+    : [];
 
   // Find related nodes for doc overlay
   const docRelatedNodes = docNode
@@ -841,7 +966,7 @@ export const WorkspaceView: React.FC = () => {
 
       {/* Unified VisionOS Top Navigation Bar */}
       {!(canvasMode === "spatial" && (isZenMode || docViewMode === "fullscreen")) && (
-        <header className="shrink-0 z-50 relative w-full px-6 py-4 flex items-center justify-between gap-4 pointer-events-auto">
+        <header className="shrink-0 z-50 relative w-full px-3 sm:px-6 py-3 sm:py-4 grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 pointer-events-auto">
           {/* Left: Back Button & Project Identification */}
           <div className="flex items-center gap-3">
             <button
@@ -877,15 +1002,15 @@ export const WorkspaceView: React.FC = () => {
                 {workspace.project.name}
               </h2>
               <div className="h-3.5 w-px bg-sunken/60 dark:bg-surface/10" />
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-positive/10 text-positive border border-positive/20 px-2 py-0.5 rounded-full glass-pill backdrop-blur-md">
-                <Check className="w-3 h-3 text-positive" />
-                {t("workspace.saved")}
+              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full glass-pill backdrop-blur-md ${saveStatus === "error" ? "bg-danger/10 text-danger border border-danger/25" : saveStatus === "saving" ? "bg-primary/10 text-primary border border-primary/25" : "bg-positive/10 text-positive border border-positive/20"}`} role="status" aria-live="polite">
+                {saveStatus === "saving" ? <Loader2 className="w-3 h-3 animate-spin" /> : saveStatus === "error" ? <AlertTriangle className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                {saveFeedbackLabel(saveStatus, lang)}
               </span>
             </div>
           </div>
 
           {/* Center: Global View Mode Switcher */}
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center min-w-0">
             <ViewModeToggle
               mode={canvasMode}
               onChange={setCanvasMode}
@@ -894,7 +1019,17 @@ export const WorkspaceView: React.FC = () => {
           </div>
 
           {/* Right section: Layout balance */}
-          <div className="flex items-center gap-2 min-w-[32px] justify-end" />
+          <div className="flex items-center gap-2 min-w-[32px] justify-end md:hidden">
+            <span
+              className={`w-8 h-8 rounded-xl border flex items-center justify-center ${saveStatus === "error" ? "bg-danger/10 text-danger border-danger/25" : saveStatus === "saving" ? "bg-primary/10 text-primary border-primary/25" : "bg-positive/10 text-positive border-positive/20"}`}
+              role="status"
+              aria-live="polite"
+              aria-label={saveFeedbackLabel(saveStatus, lang)}
+              title={saveFeedbackLabel(saveStatus, lang)}
+            >
+              {saveStatus === "saving" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saveStatus === "error" ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+            </span>
+          </div>
         </header>
       )}
 
@@ -923,6 +1058,7 @@ export const WorkspaceView: React.FC = () => {
                 if (useWorkspaceStore.getState().workspace?.map.nodes.length) setCanvasMode(mode);
               }}
               isThinking={isThinking}
+              thinkingLabel={activityLabel}
               error={chatError}
               onOpenSettings={outlet.onOpenSettings}
               onRetry={() => {
@@ -935,7 +1071,7 @@ export const WorkspaceView: React.FC = () => {
               onAddCognitiveToBoard={handleAddCognitiveToBoard}
               memoryFacts={workspace.discovery?.facts}
               onMemoryAction={handleMemoryAction}
-              perspectives={workspace.discovery?.perspectives}
+              perspectives={userFacingPerspectives}
               onPerspectiveAction={handlePerspectiveAction}
               onAddEvidenceToBoard={handleAddEvidenceToBoard}
               onSaveEvidenceToProject={handleSaveEvidenceToProject}
@@ -967,7 +1103,6 @@ export const WorkspaceView: React.FC = () => {
               onAskAI={() => handleAskAIAboutNode(docNode.title)}
               onRemoveNode={() => {
                 handleRemoveNode(docNode.id);
-                setExpandedDocNodeId(null);
               }}
               relatedNodes={docRelatedNodes}
             />
@@ -1000,6 +1135,24 @@ export const WorkspaceView: React.FC = () => {
         project={workspace.project}
         map={workspace.map}
       />
+
+      <Modal
+        isOpen={Boolean(pendingDeleteNodeId)}
+        onClose={() => setPendingDeleteNodeId(null)}
+        title="Quitar concepto del proyecto"
+        description="Esta acción también quitará sus relaciones. La eliminación quedará registrada para que una actualización automática no lo vuelva a crear."
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-fg">
+            ¿Quieres quitar «{workspace.map.nodes.find((node) => node.id === pendingDeleteNodeId)?.title ?? "este concepto"}»?
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setPendingDeleteNodeId(null)}>Conservar concepto</Button>
+            <Button variant="danger" onClick={confirmRemoveNode}>Quitar concepto</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
