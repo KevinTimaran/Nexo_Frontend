@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   ONBOARDING_STORAGE_KEY,
   type OnboardingStep,
 } from "./onboardingData";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 export { ONBOARDING_STEPS, ONBOARDING_STORAGE_KEY, type OnboardingStep };
 
@@ -26,6 +27,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,9 +53,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleDismiss();
-      } else if (e.key === "ArrowRight") {
+      if (e.key === "ArrowRight") {
         handleNext();
       } else if (e.key === "ArrowLeft") {
         handlePrev();
@@ -91,6 +91,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
     }
   };
 
+  useDialogFocus(isOpen, dialogRef, { onEscape: handleDismiss, trap: true });
+
   if (!isOpen) return null;
 
   const step = ONBOARDING_STEPS[currentStep];
@@ -102,6 +104,11 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 select-none">
         {/* Backdrop Glassmorphism */}
         <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="onboarding-step-title"
+          tabIndex={-1}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -131,6 +138,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
           <button
             type="button"
             onClick={handleDismiss}
+            data-dialog-initial-focus
+            aria-label="Cerrar guía"
             className="absolute top-5 right-5 text-muted hover:text-fg p-1.5 rounded-full hover:bg-surface/60 dark:hover:bg-surface/20 transition-colors cursor-pointer"
             title="Cerrar guía (Esc)"
           >
@@ -146,7 +155,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
               <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-primary">
                 {step.badge}
               </span>
-              <h2 className="text-lg font-bold text-fg tracking-tight leading-snug">
+              <h2 id="onboarding-step-title" className="text-lg font-bold text-fg tracking-tight leading-snug">
                 {step.title}
               </h2>
             </div>
@@ -179,6 +188,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                       : "w-2 bg-muted/30 hover:bg-muted/60"
                   }`}
                   title={`Ir al paso ${idx + 1}`}
+                  aria-label={`Ir al paso ${idx + 1}: ${s.title}`}
+                  aria-current={currentStep === idx ? "step" : undefined}
                 />
               ))}
             </div>
