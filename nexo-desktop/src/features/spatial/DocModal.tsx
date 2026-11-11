@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { FileText, Sparkles, X, Check } from "lucide-react";
 import { GlisseCard } from "../../components/ui/GlisseCard";
 import type { SpatialNode } from "../../domain/spatial";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 export interface DocModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const DocModal: React.FC<DocModalProps> = ({
   onSave,
 }) => {
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // Sync editor innerText only when opening or changing target node, avoiding caret jumping on typing
   useEffect(() => {
@@ -45,13 +47,17 @@ export const DocModal: React.FC<DocModalProps> = ({
     }
   };
 
+  useDialogFocus(isOpen && Boolean(node), dialogRef, { onEscape: handleClose, trap: true });
+
   return (
     <AnimatePresence>
       {isOpen && node && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="notion-modal-title"
+          tabIndex={-1}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 backdrop-blur-md bg-app/60 font-sans pointer-events-auto"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -132,12 +138,13 @@ export const DocModal: React.FC<DocModalProps> = ({
                 <div
                   id="notion-doc-editor"
                   ref={editorRef}
+                  tabIndex={0}
+                  data-dialog-initial-focus
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={handleBlur}
                   onKeyDown={(e) => {
-                    // Prevent Escape from being swallowed if typing, or stop bubbling
-                    e.stopPropagation();
+                    if (e.key !== "Escape") e.stopPropagation();
                   }}
                   className="w-full min-h-[220px] p-4 rounded-2xl bg-app/40 ring-1 ring-line/10 text-fg text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/50 whitespace-pre-wrap selection:bg-primary/30 font-sans cursor-text"
                 />
