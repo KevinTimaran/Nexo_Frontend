@@ -424,10 +424,14 @@ export const openaiAiService: AIService = {
     const memorySummary = discovery?.facts.map((fact) => `- [id=${fact.key} | ${fact.kind ?? "legacy_unknown"} | ${fact.memoryState ?? fact.status}] ${fact.value}`).join("\n");
     const perspectiveSummary = discovery?.perspectives?.filter((item) => item.explorationStatus !== "dismissed" && item.explorationStatus !== "not_relevant").slice(0, 5).map((item) => `- [${item.perspectiveId} | ${item.relevance}] ${item.rationale}`).join("\n");
 
-    const systemInstruction = getSystemInstruction(activePhase, effectiveLang);
+    const systemInstruction = getSystemInstruction(activePhase, effectiveLang, request.projectName);
     const promptText = buildUserPrompt({
       phase: activePhase,
       lang: effectiveLang,
+      projectName: request.projectName,
+      projectDescription: request.projectDescription,
+      turnIntent: request.turnIntent,
+      correctionNote: request.correctionNote,
       existingNodesSummary: existingSummary,
       memorySummary,
       perspectiveSummary,
@@ -450,7 +454,9 @@ export const openaiAiService: AIService = {
         if (m.text && m.text.trim().length > 0) {
           messages.push({
             role: m.role === "user" ? "user" : "assistant",
-            content: m.role === "assistant" && m.ui ? `${m.text}\nEstado interactivo guardado: ${JSON.stringify(m.ui)}` : m.text,
+            // Cognitive cards are not replayed verbatim: stale insights must not be echoed into new answers.
+            content: m.role === "assistant" && m.ui && m.ui.type !== "cognitive_insight" ? `${m.text}
+Estado interactivo guardado: ${JSON.stringify(m.ui)}` : m.text,
           });
         }
       }
