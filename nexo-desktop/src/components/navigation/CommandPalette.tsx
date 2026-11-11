@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { currentLanguage, setLanguage } from "../../i18n";
 import type { Project } from "../../domain/types";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -31,6 +32,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(isOpen, dialogRef, { onEscape: onClose, trap: true });
 
   useEffect(() => {
     if (isOpen) {
@@ -61,6 +64,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 font-sans select-none">
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("command.label")}
+            tabIndex={-1}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -87,6 +95,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               <Search className="w-4 h-4 text-primary dark:text-primary shrink-0" />
               <input
                 ref={inputRef}
+                data-dialog-initial-focus
+                aria-label={t("command.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("command.placeholder")}
