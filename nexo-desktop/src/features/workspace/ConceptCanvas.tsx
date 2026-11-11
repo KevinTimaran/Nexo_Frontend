@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Sparkles, FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "../../components/ui/Badge";
 import { SemanticNodeBadges } from "../../components/semantic/SemanticBadges";
 import { SemanticIcon } from "../../components/semantic/SemanticIcon";
@@ -40,6 +41,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
   map,
   isChatOpen = false,
 }) => {
+  const { t } = useTranslation();
   const { canvasMode, setCanvasMode, setSelectedNode, setDocViewMode, isThinking } = useWorkspaceStore();
 
   const safeNodes = map?.nodes || [];
@@ -112,10 +114,25 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
               </div>
             )}
 
-            <SemanticLegend perspectives={perspectiveGroups.map((group) => group.visual)} />
+            {safeNodes.length === 0 ? (
+              <section className="min-h-[45vh] rounded-3xl border border-dashed border-line bg-surface/45 flex flex-col items-center justify-center text-center p-8" aria-labelledby="empty-board-title">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4" aria-hidden="true">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h3 id="empty-board-title" className="text-base font-bold text-fg">{t("ux.boardEmpty.title", { defaultValue: "Tu tablero crecerá con la conversación" })}</h3>
+                <p className="mt-2 max-w-md text-xs leading-relaxed text-muted">
+                  {t("ux.boardEmpty.description", { defaultValue: "Los conceptos confirmados, las hipótesis y la evidencia aparecerán aquí a medida que desarrolles la idea. Las vistas 2D y 3D comparten el mismo proyecto." })}
+                </p>
+                <button type="button" onClick={() => setCanvasMode("discovery")} className="mt-5 btn-primary rounded-xl px-4 py-2 text-xs font-semibold focus-ring">
+                  {t("ux.continueIdeation", { defaultValue: "Continuar en Ideación IA" })}
+                </button>
+              </section>
+            ) : (
+              <>
+                <SemanticLegend perspectives={perspectiveGroups.map((group) => group.visual)} />
 
-            {/* Perspective Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+                {/* Perspective Columns */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
               {perspectiveGroups.map(({ visual, nodes }) => {
                 return (
                   <div
@@ -141,15 +158,14 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                     {/* Minimal Cards */}
                     <div className="space-y-2">
                       {nodes.length === 0 ? (
-                        <div
+                        <button
+                          type="button"
                           onClick={() => setCanvasMode("discovery")}
                           className="
                             p-4 rounded-xl border border-dashed border-line/80 dark:border-line/15
                             text-center text-[11px] text-muted bg-surface/30 space-y-1.5
                             cursor-pointer hover:border-concept-fg/40 hover:bg-surface/50 transition-all group
                           "
-                          role="button"
-                          tabIndex={0}
                           title="Ir a Ideación IA"
                         >
                           <p className="font-semibold text-fg/80 group-hover:text-concept-fg transition-colors">
@@ -158,7 +174,7 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                           <p className="text-[10px] text-muted leading-relaxed">
                             Genera conceptos explorando tu idea con la IA
                           </p>
-                        </div>
+                        </button>
                       ) : (
                         nodes.map((node) => (
                           <div
@@ -205,7 +221,9 @@ export const ConceptCanvas: React.FC<ConceptCanvasProps> = ({
                   </div>
                 );
               })}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
