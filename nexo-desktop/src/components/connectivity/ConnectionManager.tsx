@@ -15,6 +15,7 @@ import {
 import { useConnectivityStore } from "../../store/useConnectivityStore";
 import type { BackendStatus, AIServiceStatus, Neo4jStatus } from "../../domain/types";
 import { Button } from "../ui/Button";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 interface ConnectionManagerProps {
   isOpen: boolean;
@@ -43,21 +44,11 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
 
   const [inputUrl, setInputUrl] = useState(apiUrl);
   const [isUrlEditing, setIsUrlEditing] = useState(false);
+  useDialogFocus(isOpen, panelRef, { onEscape: onClose, trap: true });
 
   useEffect(() => {
     setInputUrl(apiUrl);
   }, [apiUrl]);
-
-  // Handle ESC key to dismiss panel
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -212,6 +203,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
     >
       <div
         ref={panelRef}
+        tabIndex={-1}
         className="w-full max-w-lg rounded-[32px] glass-modal border border-line/80 dark:border-line/12 shadow-[0_32px_80px_-16px_rgba(15,23,42,0.22)] dark:shadow-[0_32px_80px_-16px_rgba(0,0,0,0.85)] overflow-hidden animate-sheet-in text-fg select-none specular-sheen"
       >
         {/* Header */}
@@ -225,12 +217,13 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                 Panel de Conectividad y Servicios
               </h2>
               <p className="text-[11px] text-muted leading-tight">
-                Supervisión del backend Spring Boot, motor de IA y sincronización Neo4j
+                Estado independiente del backend, la IA y la base de grafos opcional
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
+            data-dialog-initial-focus
             className="w-8 h-8 rounded-xl text-muted hover:text-fg hover:bg-hover flex items-center justify-center transition-colors focus-ring cursor-pointer"
             aria-label="Cerrar panel"
           >
@@ -242,7 +235,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
         <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Mode Switcher Banner */}
           <div className="p-4 rounded-2xl glass-card border border-line/80 dark:border-line/10 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-caption font-bold text-fg uppercase tracking-wider">
                   Modo de Operación
@@ -269,7 +262,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                       : "text-muted hover:text-fg"
                   }`}
                 >
-                  Mock Mode
+                  Simulación local
                 </button>
                 <button
                   type="button"
@@ -282,7 +275,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                       : "text-muted hover:text-fg"
                   }`}
                 >
-                  Server Mode
+                  Servidor
                 </button>
               </div>
             </div>
@@ -384,7 +377,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
                 <div className="flex items-center justify-between">
                   <span>Modo activo:</span>
                   <span className="font-semibold text-fg">
-                    {mode === "mock" ? "Simulador local estricto" : "HTTP Server Adapter"}
+                    {mode === "mock" ? "Datos locales de desarrollo" : "Conexión HTTP al backend"}
                   </span>
                 </div>
                 {backendLatencyMs !== null && (
@@ -446,14 +439,14 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
               </div>
             </div>
 
-            {/* Service 3: Neo4j Synchronization */}
+            {/* Service 3: optional graph database */}
             <div className="p-4 rounded-2xl glass-card border border-line/80 dark:border-line/10 space-y-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-concept-fg/10 text-concept-fg flex items-center justify-center">
                     <Database className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-body font-bold text-fg">Sincronización Neo4j</span>
+                  <span className="text-body font-bold text-fg">Neo4j (opcional)</span>
                 </div>
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border backdrop-blur-md ${neo4jBadge.style}`}
@@ -465,15 +458,17 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ isOpen, on
 
               <div className="text-[11px] text-muted space-y-1 pt-1">
                 <div className="flex items-center justify-between">
-                  <span>Arquitectura de acceso:</span>
-                  <span className="font-semibold text-fg">A través de backend Spring Boot</span>
+                  <span>Uso actual:</span>
+                  <span className="font-semibold text-fg">No es requisito para guardar proyectos</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Estado reportado:</span>
                   <span className="text-muted font-mono text-[11px]">
                     {neo4jStatus === "connected"
                       ? "Activo en servidor"
-                      : "No disponible (sin health check activo en backend)"}
+                      : neo4jStatus === "error"
+                        ? "No disponible"
+                        : "No configurado"}
                   </span>
                 </div>
                 {neo4jLastSync && (
