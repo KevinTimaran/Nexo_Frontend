@@ -106,6 +106,31 @@
       "title": "No se pudieron cargar los proyectos"
     }
   },
+  "views": {
+    "discovery": "1. Ideación IA",
+    "discoveryShort": "IA",
+    "board": "2. Tablero de Conceptos",
+    "boardShort": "Tablero",
+    "spatial": "3. Neuronal 3D",
+    "lockedHint": "Continúa describiendo tu idea para habilitar el tablero y la vista 3D."
+  },
+  "ux": {
+    "continueIdeation": "Continuar en Ideación IA",
+    "boardEmpty": {
+      "title": "Tu tablero crecerá con la conversación",
+      "description": "Los conceptos confirmados, las hipótesis y la evidencia aparecerán aquí a medida que desarrolles la idea. Las vistas 2D y 3D comparten el mismo proyecto."
+    },
+    "spatialLoading": {
+      "title": "Preparando la vista Neuronal 3D…",
+      "description": "Organizando los conceptos y sus relaciones sin interrumpir tu trabajo."
+    },
+    "spatialEmpty": {
+      "title": "Las relaciones aparecerán aquí",
+      "description": "Cuando el proyecto tenga conceptos conectados, podrás recorrerlos en 3D. Es la misma información del Tablero de Conceptos, vista desde otra perspectiva."
+    },
+    "spatialFit": "Ajustar vista",
+    "spatialFitLabel": "Ajustar todos los conceptos en la vista 3D"
+  },
   "workspace": {
     "loading": "Abriendo espacio de trabajo…",
     "notFound": {
@@ -282,5 +307,67 @@
   "languages": {
     "en": "English",
     "es": "Español"
+  },
+  "landing": {
+    "nav": {
+      "label": "Acceso",
+      "login": "Iniciar sesión",
+      "register": "Registrarse"
+    },
+    "hero": {
+      "titleStart": "Convierte una idea difusa en",
+      "titleHighlight": "un proyecto claro",
+      "subtitle": "Nexo conversa contigo como un asesor multidisciplinario: aclara tu idea, detecta lo que no has considerado, propone alternativas y lo organiza todo en un tablero que puedes explorar en 2D y 3D.",
+      "ctaRegister": "Crear mi cuenta",
+      "ctaLogin": "Ya tengo cuenta"
+    },
+    "how": {
+      "title": "Cómo funciona",
+      "steps": {
+        "idea": {
+          "title": "Cuéntale tu idea",
+          "text": "Empieza como la tengas, aunque aún esté incompleta o confusa."
+        },
+        "chat": {
+          "title": "Conversa y afina",
+          "text": "Nexo pregunta lo justo, ofrece ejemplos y señala puntos ciegos."
+        },
+        "board": {
+          "title": "Obtén tu tablero",
+          "text": "Tus ideas confirmadas se ordenan en conceptos conectados."
+        },
+        "space": {
+          "title": "Explora en 2D y 3D",
+          "text": "Recorre el mismo proyecto desde un tablero o un espacio neuronal."
+        }
+      }
+    },
+    "features": {
+      "title": "Pensado para que decidas con criterio",
+      "items": {
+        "conversation": {
+          "title": "Conversación guiada",
+          "text": "Un asesor que entiende lo que ya dijiste y evita repetir preguntas."
+        },
+        "perspectives": {
+          "title": "Varias perspectivas",
+          "text": "Económica, social, legal, técnica y más, según lo que tu proyecto necesite."
+        },
+        "evidence": {
+          "title": "Evidencia, sin inventar",
+          "text": "Distingue lo que tú afirmas, lo investigado y lo que aún es una hipótesis."
+        },
+        "views": {
+          "title": "Un solo proyecto, varias vistas",
+          "text": "El tablero 2D y el espacio 3D comparten los mismos conceptos y relaciones."
+        }
+      }
+    },
+    "download": {
+      "title": "También como app de escritorio",
+      "text": "Descarga Nexo para Windows y entra directo a tus proyectos. Usa la misma cuenta que en la web.",
+      "button": "Descargar para Windows"
+    },
+    "footer": "Nexo — Donde las ideas toman forma."
   }
 }
